@@ -3,54 +3,226 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SaaS Opportunity Hunter</title>
+    <title>SaaS AI Hunter - باحث الفرص الذكي</title>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        :root { --bg-color: #f9fafb; --surface-color: #ffffff; --text-primary: #111827; --border-color: #e5e7eb; --primary-color: #2563eb; --primary-hover: #1d4ed8; --radius: 8px; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-primary); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .dashboard-container, .report-container { background-color: var(--surface-color); border-radius: var(--radius); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; max-width: 900px; padding: 30px; border: 1px solid var(--border-color); margin-bottom: 20px; }
-        .header { margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; }
-        .header h2 { margin: 0 0 8px 0; font-size: 1.5rem; }
-        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .form-group { display: flex; flex-direction: column; margin-bottom: 16px; }
-        .form-group label { font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; }
-        select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius); font-size: 0.95rem; outline: none; }
-        button { padding: 12px 20px; border: none; border-radius: var(--radius); font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; background-color: var(--primary-color); color: white; transition: 0.3s; margin-top: 15px; }
-        button:hover { background-color: var(--primary-hover); }
-        button:disabled { background-color: #9ca3af; cursor: not-allowed; }
-        #loading { display: none; text-align: center; color: var(--primary-color); font-weight: bold; margin-top: 15px; }
-        .report-container { display: none; line-height: 1.6; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: right; }
-        th { background-color: #f3f4f6; color: var(--primary-color); }
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+
+        :root {
+            --bg-dark: #0f172a;
+            --surface-dark: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.5);
+            --neon-purple: #8b5cf6;
+            --border-dark: #334155;
+            --radius: 12px;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 70%);
+            min-height: 100vh;
+        }
+
+        .dashboard-container, .report-container {
+            background-color: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: var(--radius);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 950px;
+            padding: 40px;
+            border: 1px solid var(--border-dark);
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .dashboard-container::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--neon-purple));
+        }
+
+        .header { margin-bottom: 30px; text-align: center; }
+        .header h2 {
+            margin: 0 0 10px;
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(to left, #fff, #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header p { color: var(--text-muted); font-size: 1.1rem; margin: 0; }
+        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group.full-width { grid-column: span 2; }
+        .form-group label {
+            font-size: 0.95rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .form-group label::before { content: "•"; color: var(--accent); font-size: 1.2rem; }
+
+        select, textarea {
+            width: 100%;
+            padding: 14px;
+            background-color: #0f172a;
+            color: var(--text-main);
+            border: 1px solid var(--border-dark);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            font-family: inherit;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+        select:focus, textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+        textarea { resize: vertical; min-height: 100px; }
+
+        button {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: 'Tajawal', sans-serif;
+            cursor: pointer;
+            width: 100%;
+            max-width: 400px;
+            margin: 40px auto 0;
+            display: block;
+            background: linear-gradient(135deg, var(--accent), var(--neon-purple));
+            color: white;
+            transition: all 0.4s ease;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6); }
+        button:disabled {
+            background: #475569;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+            color: #94a3b8;
+        }
+
+        #loading {
+            display: none;
+            text-align: center;
+            color: var(--accent);
+            font-weight: bold;
+            margin-top: 25px;
+            font-size: 1.1rem;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        .report-container { display: none; line-height: 1.8; font-size: 1.1rem; }
+        .report-container h1, .report-container h2, .report-container h3 { color: #bfdbfe; margin-top: 30px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            background-color: #0f172a;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td { border: 1px solid var(--border-dark); padding: 15px; text-align: right; }
+        th { background-color: rgba(59, 130, 246, 0.1); color: #93c5fd; font-weight: 700; }
+        strong { color: #93c5fd; }
+        ul, ol { padding-right: 20px; }
+        li { margin-bottom: 8px; }
+
+        @media (max-width: 640px) {
+            body { padding: 24px 12px; }
+            .dashboard-container, .report-container { padding: 24px 18px; }
+            .grid-layout { grid-template-columns: 1fr; gap: 18px; }
+            .form-group.full-width { grid-column: auto; }
+            .header h2 { font-size: 1.7rem; }
+        }
     </style>
 </head>
 <body>
-
-    <div class="dashboard-container">
+    <main class="dashboard-container">
         <div class="header">
-            <h2>إعدادات باحث فرص SaaS</h2>
-            <p>حدد معايير البحث لاكتشاف أفضل المشاريع البرمجية</p>
+            <h2>SaaS AI Hunter</h2>
+            <p>محرك الذكاء الاصطناعي لاكتشاف وتحليل فرص الاستثمار البرمجية</p>
         </div>
         <div class="grid-layout">
-            <div class="form-group"><label>الدولة المستهدفة</label><select id="country"><option value="السعودية">السعودية</option><option value="عالمي">عالمي</option></select></div>
-            <div class="form-group"><label>الميزانية المتاحة</label><select id="budget"><option value="حتى 500 دولار">حتى 500 دولار</option><option value="حتى 5000 دولار">حتى 5000 دولار</option></select></div>
-            <div class="form-group"><label>مجال العمل</label><select id="industry"><option value="جميع المجالات">جميع المجالات</option><option value="الذكاء الاصطناعي">الذكاء الاصطناعي</option></select></div>
-            <div class="form-group"><label>الهدف التجاري</label><select id="goal"><option value="إطلاق SaaS جديد">إطلاق SaaS جديد</option><option value="شراء مشروع قائم">شراء مشروع قائم</option></select></div>
+            <div class="form-group">
+                <label for="country">نطاق البحث الجغرافي</label>
+                <select id="country">
+                    <option value="السعودية">السعودية</option>
+                    <option value="الشرق الأوسط">الشرق الأوسط</option>
+                    <option value="عالمي">عالمي</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="budget">سقف الميزانية الاستثمارية</label>
+                <select id="budget">
+                    <option value="حتى 500 دولار">حتى 500 دولار (Micro-SaaS)</option>
+                    <option value="حتى 5000 دولار">حتى 5000 دولار</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="industry">القطاع المستهدف</label>
+                <select id="industry">
+                    <option value="جميع المجالات">بحث مفتوح في جميع المجالات</option>
+                    <option value="أدوات الذكاء الاصطناعي للشركات">أدوات الذكاء الاصطناعي للشركات</option>
+                    <option value="أنظمة إدارة الموارد البشرية HR">أنظمة إدارة الموارد البشرية HR</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="goal">استراتيجية الاستثمار</label>
+                <select id="goal">
+                    <option value="شراء وتطوير مشروع قائم (Acquisition)">شراء وتطوير مشروع قائم</option>
+                    <option value="استنساخ فكرة ناجحة وإطلاقها محلياً">استنساخ فكرة ناجحة وإطلاقها محلياً</option>
+                </select>
+            </div>
+            <div class="form-group full-width">
+                <label for="advanced">موجه الذكاء الاصطناعي المتقدم (Prompt Override)</label>
+                <textarea id="advanced" placeholder="اكتب هنا توجيهات دقيقة للمحرك... مثال: ركز على المشاريع التي تحقق أرباحاً شهرية متكررة (MRR) تفوق 100$، وتعتمد على واجهات برمجة التطبيقات (API)..."></textarea>
+            </div>
         </div>
-        <button id="startBtn">بدء البحث وإصدار التقرير</button>
-        <div id="loading">جاري البحث والتحليل في المنصات العالمية... يرجى الانتظار لحوالي 15-20 ثانية...</div>
-    </div>
+        <button id="startBtn" type="button">تشغيل محرك التحليل ✦</button>
+        <div id="loading" role="status" aria-live="polite">... يقوم الذكاء الاصطناعي بمسح قواعد البيانات وتحليل الأسواق ... يرجى الانتظار</div>
+    </main>
 
-    <div class="report-container" id="reportOutput"></div>
+    <section class="report-container" id="reportOutput" aria-live="polite"></section>
 
     <script>
         document.getElementById('startBtn').addEventListener('click', async () => {
             const btn = document.getElementById('startBtn');
             const loading = document.getElementById('loading');
             const output = document.getElementById('reportOutput');
-            
-            const settings = `الدولة: ${document.getElementById('country').value}، الميزانية: ${document.getElementById('budget').value}، المجال: ${document.getElementById('industry').value}، الهدف: ${document.getElementById('goal').value}`;
+
+            const advancedText = document.getElementById('advanced').value.trim();
+            const settings = `النطاق: ${document.getElementById('country').value}، الميزانية: ${document.getElementById('budget').value}، القطاع: ${document.getElementById('industry').value}، الاستراتيجية: ${document.getElementById('goal').value}. محددات إضافية من المستخدم: ${advancedText || 'لا يوجد'}`;
 
             btn.disabled = true;
             loading.style.display = 'block';
@@ -60,17 +232,27 @@
                 const response = await fetch('/.netlify/functions/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ settings: settings })
+                    body: JSON.stringify({ settings })
                 });
-
                 const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'تعذر إنشاء التقرير.');
+                }
+                if (typeof data.result !== 'string' || !data.result.trim()) {
+                    throw new Error('لم يُرجع الخادم تقريراً صالحاً.');
+                }
+
                 output.innerHTML = marked.parse(data.result);
                 output.style.display = 'block';
             } catch (error) {
-                alert("حدث خطأ في الاتصال بالخادم.");
+                alert(error.message || 'تم رصد خطأ في الاتصال بالخادم السحابي.');
             } finally {
                 btn.disabled = false;
                 loading.style.display = 'none';
+                if (output.innerHTML !== '') {
+                    output.scrollIntoView({ behavior: 'smooth' });
+                }
             }
         });
     </script>
