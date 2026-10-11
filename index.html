@@ -314,6 +314,192 @@
             .header h2 { font-size: 1.7rem; }
         }
     </style>
+    <style>
+        :root {
+            --bg-dark: #f9fafb;
+            --surface-dark: #ffffff;
+            --surface-raised: #ffffff;
+            --text-main: #111827;
+            --text-muted: #4b5563;
+            --accent: #2563eb;
+            --accent-glow: rgba(37, 99, 235, 0.2);
+            --neon-purple: #4f46e5;
+            --mint: #059669;
+            --border-dark: #e5e7eb;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-dark: #111827;
+                --surface-dark: #1f2937;
+                --surface-raised: #1f2937;
+                --text-main: #f9fafb;
+                --text-muted: #d1d5db;
+                --accent: #3b82f6;
+                --accent-glow: rgba(59, 130, 246, 0.25);
+                --neon-purple: #6366f1;
+                --mint: #34d399;
+                --border-dark: #374151;
+            }
+        }
+
+        body {
+            padding: 20px;
+            background-image: none;
+        }
+        .top-bar { max-width: 800px; }
+        .lang-btn {
+            background: var(--surface-dark);
+            color: var(--text-main);
+            border-color: var(--border-dark);
+        }
+        .dashboard-container, .report-container {
+            max-width: 800px;
+            padding: 30px;
+            background: var(--surface-dark);
+            backdrop-filter: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .dashboard-container::before { display: none; }
+        .header {
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-dark);
+            text-align: start;
+        }
+        .eyebrow {
+            margin-bottom: 8px;
+            padding: 4px 8px;
+            color: var(--mint);
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.2);
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        .eyebrow-dot { background: var(--mint); }
+        .header h2 {
+            font-size: 1.5rem;
+            background: none;
+            -webkit-text-fill-color: currentColor;
+            color: var(--text-main);
+        }
+        .header p { color: var(--text-muted); font-size: 0.9rem; }
+        .trust-row {
+            justify-content: flex-start;
+            gap: 15px;
+            font-size: 0.85rem;
+        }
+        .trust-chip {
+            padding: 0;
+            color: var(--accent);
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+        }
+        .grid-layout {
+            grid-template-columns: 1fr;
+            gap: 16px;
+            margin-top: 20px;
+        }
+        .form-group label {
+            color: var(--text-main);
+            font-size: 0.875rem;
+            margin-bottom: 6px;
+        }
+        .form-group label::before { display: none; }
+        select, textarea {
+            padding: 10px;
+            color: var(--text-main);
+            background-color: var(--surface-dark);
+            border-color: var(--border-dark);
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+        select { color-scheme: light dark; }
+        select:focus, textarea:focus {
+            background-color: var(--surface-dark);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+        .field-hint { color: var(--text-muted); }
+        .source-field {
+            grid-column: 1 / -1;
+            grid-template-columns: minmax(0, 1fr) minmax(180px, 0.62fr);
+            gap: 20px;
+            padding: 15px;
+            background: var(--surface-raised);
+            border-color: var(--border-dark);
+            border-radius: 8px;
+        }
+        .source-field .form-group { margin: 0; }
+        .source-field .form-group label { margin-bottom: 4px; }
+        .source-field select { max-width: 240px; justify-self: end; }
+        .action-btn {
+            margin-top: 30px;
+            background: var(--accent);
+            border-radius: 8px;
+            box-shadow: none;
+        }
+        .action-btn:hover { background: var(--neon-purple); box-shadow: none; }
+        .action-btn:disabled { background: #9ca3af; color: white; }
+        .advanced-options {
+            border-color: var(--border-dark);
+            border-radius: 8px;
+        }
+        .accordion-header {
+            padding: 14px;
+            background: var(--surface-raised);
+            color: var(--text-main);
+        }
+        .accordion-header:hover {
+            background: var(--bg-dark);
+            color: var(--text-main);
+        }
+        .accordion-content.open { max-height: 340px; }
+        #loading { color: var(--mint); }
+        .report-container { line-height: 1.6; font-size: 1rem; }
+        .report-container h1, .report-container h2, .report-container h3 {
+            color: var(--accent);
+            margin-top: 24px;
+        }
+        .report-container table {
+            background: var(--surface-dark);
+            border-radius: 0;
+        }
+        .report-container th, .report-container td {
+            border-color: var(--border-dark);
+            padding: 10px;
+        }
+        .report-container th {
+            background: var(--bg-dark);
+            color: var(--accent);
+        }
+        .report-container strong { color: var(--accent); }
+        .sources-panel {
+            border-color: var(--border-dark);
+        }
+        .sources-panel h2 { color: var(--accent); }
+        .source-link {
+            color: var(--accent);
+            background: var(--bg-dark);
+            border-color: var(--border-dark);
+        }
+        .source-link:hover { background: var(--surface-raised); }
+        @media (min-width: 640px) {
+            .grid-layout { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 640px) {
+            body { padding: 20px 12px 36px; }
+            .dashboard-container, .report-container { padding: 25px 18px; }
+            .source-field {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .source-field select { max-width: none; justify-self: stretch; }
+            .header h2 { font-size: 1.5rem; }
+            .trust-row { gap: 8px 15px; }
+        }
+    </style>
 </head>
 <body>
     <div class="top-bar">
@@ -325,7 +511,7 @@
             <span class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span><span id="eyebrowText">بحث ويب مباشر • مدعوم بالذكاء الاصطناعي</span></span>
             <h2>SaaS AI Hunter</h2>
             <p id="subText">محرك الذكاء الاصطناعي لاكتشاف وتحليل فرص الاستثمار البرمجية</p>
-            <div class="trust-row" aria-label="مزايا المحرك">
+            <div class="trust-row" id="trustRow" aria-label="مزايا المحرك">
                 <span class="trust-chip" id="chipSearch">⌕ بحث Google مباشر</span>
                 <span class="trust-chip" id="chipCitations">↗ مصادر وروابط موثقة</span>
                 <span class="trust-chip" id="chipReport">✦ تقرير استثماري مخصص</span>
@@ -335,16 +521,18 @@
             <div class="form-group">
                 <label id="lblCountry" for="country">نطاق البحث الجغرافي</label>
                 <select id="country">
+                    <option value="عالمي" data-ar="عالمي" data-en="Global" selected>عالمي</option>
                     <option value="السعودية" data-ar="السعودية" data-en="Saudi Arabia">السعودية</option>
                     <option value="الشرق الأوسط" data-ar="الشرق الأوسط" data-en="Middle East">الشرق الأوسط</option>
-                    <option value="عالمي" data-ar="عالمي" data-en="Global">عالمي</option>
                 </select>
             </div>
             <div class="form-group">
                 <label id="lblBudget" for="budget">سقف الميزانية الاستثمارية</label>
                 <select id="budget">
-                    <option value="حتى 500 دولار" data-ar="حتى 500 دولار (Micro-SaaS)" data-en="Up to $500 (Micro-SaaS)">حتى 500 دولار (Micro-SaaS)</option>
-                    <option value="حتى 5000 دولار" data-ar="حتى 5000 دولار" data-en="Up to $5,000">حتى 5000 دولار</option>
+                    <option value="حتى 100 دولار" data-ar="حتى 100 دولار" data-en="Up to $100">حتى 100 دولار</option>
+                    <option value="حتى 500 دولار" data-ar="حتى 500 دولار (Micro-SaaS)" data-en="Up to $500 (Micro-SaaS)" selected>حتى 500 دولار (Micro-SaaS)</option>
+                    <option value="حتى 5000 دولار" data-ar="حتى 5,000 دولار" data-en="Up to $5,000">حتى 5,000 دولار</option>
+                    <option value="مفتوح" data-ar="مفتوح (بدون حد)" data-en="Open (no limit)">مفتوح (بدون حد)</option>
                 </select>
             </div>
             <div class="form-group">
@@ -358,6 +546,7 @@
             <div class="form-group">
                 <label id="lblGoal" for="goal">استراتيجية الاستثمار</label>
                 <select id="goal">
+                    <option value="إطلاق SaaS جديد" data-ar="إطلاق SaaS جديد" data-en="Launch a new SaaS" selected>إطلاق SaaS جديد</option>
                     <option value="شراء وتطوير مشروع قائم" data-ar="شراء وتطوير مشروع قائم (Acquisition)" data-en="Acquire and grow an existing business">شراء وتطوير مشروع قائم (Acquisition)</option>
                     <option value="استنساخ فكرة ناجحة وإطلاقها محلياً" data-ar="استنساخ فكرة ناجحة وإطلاقها محلياً" data-en="Localize and launch a proven idea">استنساخ فكرة ناجحة وإطلاقها محلياً</option>
                 </select>
@@ -411,6 +600,7 @@
             ar: {
                 langBtn: 'English',
                 eyebrowText: 'بحث ويب مباشر • مدعوم بالذكاء الاصطناعي',
+                trustLabel: 'مزايا المحرك',
                 subText: 'محرك الذكاء الاصطناعي لاكتشاف وتحليل فرص الاستثمار البرمجية',
                 chipSearch: '⌕ بحث Google مباشر',
                 chipCitations: '↗ مصادر وروابط موثقة',
@@ -435,6 +625,7 @@
             en: {
                 langBtn: 'العربية',
                 eyebrowText: 'LIVE WEB RESEARCH • AI-POWERED',
+                trustLabel: 'Engine features',
                 subText: 'AI engine for discovering and analyzing software investment opportunities',
                 chipSearch: '⌕ Live Google Search',
                 chipCitations: '↗ Cited sources & links',
@@ -465,6 +656,7 @@
             document.documentElement.lang = currentLang;
             document.documentElement.dir = isArabic ? 'rtl' : 'ltr';
             langToggle.textContent = t.langBtn;
+            document.getElementById('trustRow').setAttribute('aria-label', t.trustLabel);
             document.getElementById('eyebrowText').textContent = t.eyebrowText;
             document.getElementById('subText').textContent = t.subText;
             document.getElementById('chipSearch').textContent = t.chipSearch;
@@ -513,7 +705,7 @@
                 const response = await fetch('/.netlify/functions/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ settings, sourceCount })
+                    body: JSON.stringify({ settings, sourceCount, language: currentLang })
                 });
                 const data = await response.json();
 
