@@ -18,11 +18,21 @@ exports.handler = async function (event) {
         };
     }
 
-    if (typeof data.settings !== "string" || !data.settings.trim()) {
+    if (!data || typeof data !== "object" || Array.isArray(data)
+        || typeof data.settings !== "string" || !data.settings.trim()) {
         return {
             statusCode: 400,
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ error: "A non-empty settings value is required" })
+        };
+    }
+
+    const sourceCount = Number(data.sourceCount);
+    if (!Number.isInteger(sourceCount) || ![3, 5, 8, 10].includes(sourceCount)) {
+        return {
+            statusCode: 400,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ error: "Choose a supported source count: 3, 5, 8, or 10" })
         };
     }
 
@@ -36,8 +46,8 @@ exports.handler = async function (event) {
         };
     }
 
-    const masterPrompt = `أنت محلل استثمارات SaaS خبير. مهمتك البحث وتقديم تقرير مفصل باللغة العربية بناءً على إعدادات المستخدم. يجب أن يشمل التقرير: جدول مقارنة شامل، التحليل المالي، والتوصيات النهائية مع خطة عمل واضحة للمشروع الأفضل.
-        إعدادات البحث المطلوبة: ${data.settings}`;
+    const masterPrompt = `You are an expert SaaS investment analyst. Search the web for real, current SaaS opportunities and produce a detailed investment report based on the user's settings. Target approximately ${sourceCount} independent, credible sources. Include a comparison table, financial analysis, a final recommendation, and a clear action plan. Never invent sources, URLs, or financial facts; distinguish estimates from verified facts and say when information is unavailable. Cite only sources returned by Google Search. Write the complete report in the language requested by the user.
+        User research settings: ${data.settings}`;
 
     try {
         const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
@@ -49,6 +59,7 @@ exports.handler = async function (event) {
             body: JSON.stringify({
                 model: "gemini-3.8-flash",
                 input: masterPrompt,
+                tools: [{ type: "google_search" }],
                 store: false
             })
         });
@@ -63,12 +74,22 @@ exports.handler = async function (event) {
             };
         }
 
-        const generatedText = resultData.steps
+        const outputBlocks = resultData.steps
             ?.filter((step) => step.type === "model_output")
-            .flatMap((step) => step.content || [])
+            .flatMap((step) => step.content || []) || [];
+        const generatedText = outputBlocks
             .map((part) => part.text)
             .filter(Boolean)
             .join("");
+        const sources = outputBlocks
+            .flatMap((part) => part.annotations || [])
+            .filter((annotation) => annotation.type === "url_citation"
+                && typeof annotation.url === "string"
+                && /^https?:\/\//i.test(annotation.url))
+            .map((annotation) => ({ title: annotation.title, url: annotation.url }))
+            .filter((source, index, allSources) =>
+                allSources.findIndex((item) => item.url === source.url) === index)
+            .slice(0, sourceCount);
 
         if (!generatedText) {
             console.error("Gemini API response did not contain generated text");
@@ -82,7 +103,7 @@ exports.handler = async function (event) {
         return {
             statusCode: 200,
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ result: generatedText })
+            body: JSON.stringify({ result: generatedText, sources })
         };
     } catch (error) {
         console.error("Failed to generate the SaaS opportunity report", error);
