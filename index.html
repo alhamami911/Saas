@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaaS Opportunity Hunter</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root { --bg-color: #f9fafb; --surface-color: #ffffff; --text-primary: #111827; --border-color: #e5e7eb; --primary-color: #2563eb; --primary-hover: #1d4ed8; --radius: 8px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-primary); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .dashboard-container, .report-container { background-color: var(--surface-color); border-radius: var(--radius); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%; max-width: 900px; padding: 30px; border: 1px solid var(--border-color); margin-bottom: 20px; }
+        .header { margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; }
+        .header h2 { margin: 0 0 8px 0; font-size: 1.5rem; }
+        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-group { display: flex; flex-direction: column; margin-bottom: 16px; }
+        .form-group label { font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; }
+        select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius); font-size: 0.95rem; outline: none; }
+        button { padding: 12px 20px; border: none; border-radius: var(--radius); font-size: 1rem; font-weight: 600; cursor: pointer; width: 100%; background-color: var(--primary-color); color: white; transition: 0.3s; margin-top: 15px; }
+        button:hover { background-color: var(--primary-hover); }
+        button:disabled { background-color: #9ca3af; cursor: not-allowed; }
+        #loading { display: none; text-align: center; color: var(--primary-color); font-weight: bold; margin-top: 15px; }
+        .report-container { display: none; line-height: 1.6; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: right; }
+        th { background-color: #f3f4f6; color: var(--primary-color); }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <div class="header">
+            <h2>إعدادات باحث فرص SaaS</h2>
+            <p>حدد معايير البحث لاكتشاف أفضل المشاريع البرمجية</p>
+        </div>
+        <div class="grid-layout">
+            <div class="form-group"><label>الدولة المستهدفة</label><select id="country"><option value="السعودية">السعودية</option><option value="عالمي">عالمي</option></select></div>
+            <div class="form-group"><label>الميزانية المتاحة</label><select id="budget"><option value="حتى 500 دولار">حتى 500 دولار</option><option value="حتى 5000 دولار">حتى 5000 دولار</option></select></div>
+            <div class="form-group"><label>مجال العمل</label><select id="industry"><option value="جميع المجالات">جميع المجالات</option><option value="الذكاء الاصطناعي">الذكاء الاصطناعي</option></select></div>
+            <div class="form-group"><label>الهدف التجاري</label><select id="goal"><option value="إطلاق SaaS جديد">إطلاق SaaS جديد</option><option value="شراء مشروع قائم">شراء مشروع قائم</option></select></div>
+        </div>
+        <button id="startBtn">بدء البحث وإصدار التقرير</button>
+        <div id="loading">جاري البحث والتحليل في المنصات العالمية... يرجى الانتظار لحوالي 15-20 ثانية...</div>
+    </div>
+
+    <div class="report-container" id="reportOutput"></div>
+
+    <script>
+        document.getElementById('startBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('startBtn');
+            const loading = document.getElementById('loading');
+            const output = document.getElementById('reportOutput');
+            
+            const settings = `الدولة: ${document.getElementById('country').value}، الميزانية: ${document.getElementById('budget').value}، المجال: ${document.getElementById('industry').value}، الهدف: ${document.getElementById('goal').value}`;
+
+            btn.disabled = true;
+            loading.style.display = 'block';
+            output.style.display = 'none';
+
+            try {
+                const response = await fetch('/.netlify/functions/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ settings: settings })
+                });
+
+                const data = await response.json();
+                output.innerHTML = marked.parse(data.result);
+                output.style.display = 'block';
+            } catch (error) {
+                alert("حدث خطأ في الاتصال بالخادم.");
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
