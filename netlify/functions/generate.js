@@ -40,13 +40,17 @@ exports.handler = async function (event) {
         إعدادات البحث المطلوبة: ${data.settings}`;
 
     try {
-        const url = new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent");
-        url.searchParams.set("key", apiKey);
-
-        const response = await fetch(url, {
+        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ contents: [{ parts: [{ text: masterPrompt }] }] })
+            headers: {
+                "Content-Type": "application/json",
+                "x-goog-api-key": apiKey
+            },
+            body: JSON.stringify({
+                model: "gemini-3.8-flash",
+                input: masterPrompt,
+                store: false
+            })
         });
 
         const resultData = await response.json();
@@ -59,8 +63,10 @@ exports.handler = async function (event) {
             };
         }
 
-        const generatedText = resultData.candidates?.[0]?.content?.parts
-            ?.map((part) => part.text)
+        const generatedText = resultData.steps
+            ?.filter((step) => step.type === "model_output")
+            .flatMap((step) => step.content || [])
+            .map((part) => part.text)
             .filter(Boolean)
             .join("");
 
