@@ -36,6 +36,15 @@ exports.handler = async function (event) {
         };
     }
 
+    const language = data.language === undefined ? "ar" : data.language;
+    if (language !== "ar" && language !== "en") {
+        return {
+            statusCode: 400,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ error: "Choose a supported report language: ar or en" })
+        };
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
         console.error("GEMINI_API_KEY is not configured");
@@ -46,8 +55,9 @@ exports.handler = async function (event) {
         };
     }
 
-    const masterPrompt = `You are an expert SaaS investment analyst. Search the web for real, current SaaS opportunities and produce a detailed investment report based on the user's settings. Target approximately ${sourceCount} independent, credible sources. Include a comparison table, financial analysis, a final recommendation, and a clear action plan. Never invent sources, URLs, or financial facts; distinguish estimates from verified facts and say when information is unavailable. Cite only sources returned by Google Search. Write the complete report in the language requested by the user.
-        User research settings: ${data.settings}`;
+    const reportLanguage = language === "ar" ? "العربية" : "الإنجليزية";
+    const masterPrompt = `أنت محلل استثمارات SaaS خبير. ابحث على الويب عن فرص ومشاريع SaaS حقيقية وحديثة، ثم أعد تقريراً مفصلاً باللغة ${reportLanguage} بناءً على إعدادات المستخدم. استهدف الاستناد إلى نحو ${sourceCount} مصادر مستقلة وموثوقة. أدرج جدول مقارنة، تحليلاً مالياً، توصية نهائية وخطة عمل واضحة. لا تختلق مصادر أو أرقاماً أو بيانات مالية؛ ميّز التقديرات عن الحقائق، واذكر بوضوح عندما لا تتوفر بيانات. استخدم الاستشهادات التي توفرها أداة البحث فقط.
+        إعدادات البحث المطلوبة: ${data.settings}`;
 
     try {
         const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
@@ -74,14 +84,15 @@ exports.handler = async function (event) {
             };
         }
 
-        const outputBlocks = resultData.steps
+        const generatedText = resultData.steps
             ?.filter((step) => step.type === "model_output")
-            .flatMap((step) => step.content || []) || [];
-        const generatedText = outputBlocks
+            .flatMap((step) => step.content || [])
             .map((part) => part.text)
             .filter(Boolean)
             .join("");
-        const sources = outputBlocks
+        const sources = resultData.steps
+            ?.filter((step) => step.type === "model_output")
+            .flatMap((step) => step.content || [])
             .flatMap((part) => part.annotations || [])
             .filter((annotation) => annotation.type === "url_citation"
                 && typeof annotation.url === "string"
