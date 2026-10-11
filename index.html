@@ -11,11 +11,13 @@
         :root {
             --bg-dark: #0f172a;
             --surface-dark: #1e293b;
+            --surface-raised: rgba(30, 41, 59, 0.82);
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --accent: #3b82f6;
             --accent-glow: rgba(59, 130, 246, 0.5);
             --neon-purple: #8b5cf6;
+            --mint: #34d399;
             --border-dark: #334155;
             --radius: 12px;
         }
@@ -25,12 +27,16 @@
             background-color: var(--bg-dark);
             color: var(--text-main);
             margin: 0;
-            padding: 40px 20px;
+            padding: 28px 20px 56px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            background-image: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 70%);
+            background-image:
+                radial-gradient(ellipse at 10% 5%, rgba(59, 130, 246, 0.15), transparent 35%),
+                radial-gradient(ellipse at 90% 18%, rgba(139, 92, 246, 0.14), transparent 32%),
+                linear-gradient(180deg, #111c33 0%, var(--bg-dark) 48%);
             min-height: 100vh;
+            box-sizing: border-box;
         }
 
         .top-bar {
@@ -38,7 +44,7 @@
             max-width: 950px;
             display: flex;
             justify-content: flex-end;
-            margin-bottom: 10px;
+            margin-bottom: 14px;
         }
 
         .lang-btn {
@@ -52,17 +58,21 @@
             transition: 0.3s;
         }
         .lang-btn:hover { color: var(--text-main); border-color: var(--text-muted); }
+        .lang-btn:focus-visible, button:focus-visible, select:focus-visible, textarea:focus-visible {
+            outline: 2px solid #93c5fd;
+            outline-offset: 3px;
+        }
 
         .dashboard-container, .report-container {
-            background-color: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(10px);
-            border-radius: var(--radius);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.94), rgba(15, 23, 42, 0.94));
+            backdrop-filter: blur(16px);
+            border-radius: 20px;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32), inset 0 1px rgba(255, 255, 255, 0.035);
             width: 100%;
             max-width: 950px;
-            padding: 40px;
+            padding: 38px;
             border: 1px solid var(--border-dark);
-            margin-bottom: 30px;
+            margin-bottom: 22px;
             position: relative;
             overflow: hidden;
             box-sizing: border-box;
@@ -75,70 +85,121 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: linear-gradient(90deg, var(--accent), var(--neon-purple));
+            background: linear-gradient(90deg, transparent, var(--accent), var(--neon-purple), transparent);
         }
 
-        .header { margin-bottom: 30px; text-align: center; }
+        .header { margin-bottom: 28px; text-align: center; }
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            padding: 7px 12px;
+            color: #bfdbfe;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(96, 165, 250, 0.22);
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+        }
+        .eyebrow-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--mint);
+            box-shadow: 0 0 12px rgba(52, 211, 153, 0.8);
+        }
         .header h2 {
-            margin: 0 0 10px;
-            font-size: 2rem;
+            margin: 0 0 8px;
+            font-size: clamp(2rem, 5vw, 2.7rem);
             font-weight: 800;
-            background: linear-gradient(to left, #fff, #93c5fd);
+            background: linear-gradient(100deg, #fff 10%, #bfdbfe 55%, #c4b5fd 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .header p { color: var(--text-muted); font-size: 1.1rem; margin: 0; }
-        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-        .form-group { display: flex; flex-direction: column; }
+        .header p { color: var(--text-muted); font-size: 1.05rem; margin: 0; }
+        .trust-row {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 9px;
+            margin-top: 20px;
+        }
+        .trust-chip {
+            padding: 6px 10px;
+            color: #cbd5e1;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.38);
+            font-size: 0.82rem;
+        }
+        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 19px 20px; }
+        .form-group { display: flex; flex-direction: column; min-width: 0; }
         .form-group.full-width { grid-column: span 2; }
         .form-group label {
-            font-size: 0.95rem;
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: #cbd5e1;
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 9px;
+            color: #dbeafe;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        .form-group label::before { content: "•"; color: var(--accent); font-size: 1.2rem; }
+        .form-group label::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
 
         select, textarea {
             width: 100%;
-            padding: 14px;
-            background-color: #0f172a;
+            padding: 13px 14px;
+            background: rgba(8, 15, 30, 0.72);
             color: var(--text-main);
-            border: 1px solid var(--border-dark);
-            border-radius: 8px;
+            border: 1px solid rgba(100, 116, 139, 0.42);
+            border-radius: 11px;
             font-size: 1rem;
             outline: none;
             font-family: inherit;
             box-sizing: border-box;
-            transition: all 0.3s ease;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         }
         select:focus, textarea:focus {
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            background: rgba(8, 15, 30, 0.95);
         }
         textarea { resize: vertical; min-height: 100px; }
+        .field-hint { color: var(--text-muted); font-size: 0.8rem; line-height: 1.55; margin-top: 7px; }
+        .source-field {
+            grid-column: span 2;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(180px, 0.62fr);
+            align-items: center;
+            gap: 20px;
+            padding: 17px 18px;
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            border-radius: 14px;
+            background: linear-gradient(100deg, rgba(59, 130, 246, 0.09), rgba(139, 92, 246, 0.06));
+        }
+        .source-field .form-group label { margin-bottom: 3px; }
+        .source-field select { max-width: 240px; justify-self: end; }
 
         .action-btn {
             padding: 16px 32px;
             border: none;
-            border-radius: 30px;
+            border-radius: 13px;
             font-size: 1.1rem;
             font-weight: 700;
             font-family: 'Tajawal', sans-serif;
             cursor: pointer;
             width: 100%;
-            max-width: 400px;
-            margin: 40px auto 0;
+            max-width: 100%;
+            margin: 27px auto 0;
             display: block;
-            background: linear-gradient(135deg, var(--accent), var(--neon-purple));
+            background: linear-gradient(105deg, #2563eb 0%, #6366f1 55%, #8b5cf6 100%);
             color: white;
-            transition: all 0.4s ease;
-            box-shadow: 0 4px 15px var(--accent-glow);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+            box-shadow: 0 10px 28px rgba(79, 70, 229, 0.28);
         }
-        .action-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6); }
+        .action-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(99, 102, 241, 0.4); filter: brightness(1.08); }
         .action-btn:disabled {
             background: #475569;
             box-shadow: none;
@@ -149,9 +210,8 @@
 
         .advanced-options {
             grid-column: span 2;
-            margin-top: 10px;
-            border: 1px solid var(--border-dark);
-            border-radius: 8px;
+            border: 1px solid rgba(100, 116, 139, 0.34);
+            border-radius: 13px;
             overflow: hidden;
         }
         .accordion-header {
@@ -160,8 +220,8 @@
             padding: 15px;
             border: 0;
             border-radius: 0;
-            background-color: rgba(15, 23, 42, 0.5);
-            color: var(--text-muted);
+            background-color: rgba(15, 23, 42, 0.38);
+            color: #cbd5e1;
             box-shadow: none;
             cursor: pointer;
             font: inherit;
@@ -182,6 +242,7 @@
         .accordion-content.open { padding: 15px; max-height: 300px; }
         .arrow { transition: transform 0.3s; font-size: 0.8rem; }
         .arrow.open { transform: rotate(180deg); }
+        .accordion-content[hidden] { display: none; }
 
         #loading {
             display: none;
@@ -192,13 +253,17 @@
             font-size: 1.1rem;
             animation: pulse 2s infinite;
         }
+        .loading-dot { display: inline-block; width: 7px; height: 7px; margin-inline: 2px; border-radius: 50%; background: var(--accent); animation: bounce 0.9s infinite alternate; }
+        .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dot:nth-child(3) { animation-delay: 0.4s; }
         @keyframes pulse {
             0% { opacity: 0.6; }
             50% { opacity: 1; }
             100% { opacity: 0.6; }
         }
+        @keyframes bounce { to { transform: translateY(-5px); opacity: 0.45; } }
 
-        .report-container { display: none; line-height: 1.8; font-size: 1.1rem; }
+        .report-container { display: none; line-height: 1.8; font-size: 1.05rem; }
         .report-container h1, .report-container h2, .report-container h3 { color: #bfdbfe; margin-top: 30px; }
         table {
             width: 100%;
@@ -213,15 +278,39 @@
         strong { color: #93c5fd; }
         ul, ol { padding-right: 20px; }
         li { margin-bottom: 8px; }
+        .sources-panel {
+            margin-top: 32px;
+            padding-top: 22px;
+            border-top: 1px solid rgba(100, 116, 139, 0.35);
+        }
+        .sources-panel h2 { margin: 0 0 14px; color: #bfdbfe; font-size: 1.15rem; }
+        .source-links { display: flex; flex-wrap: wrap; gap: 9px; }
+        .source-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            max-width: 100%;
+            padding: 8px 12px;
+            color: #bfdbfe;
+            background: rgba(15, 23, 42, 0.72);
+            border: 1px solid rgba(96, 165, 250, 0.22);
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            overflow-wrap: anywhere;
+        }
+        .source-link:hover { border-color: var(--accent); background: rgba(59, 130, 246, 0.12); }
 
         html[dir="ltr"] table th, html[dir="ltr"] table td { text-align: left; }
         html[dir="ltr"] ul, html[dir="ltr"] ol { padding-right: 0; padding-left: 20px; }
 
         @media (max-width: 640px) {
-            body { padding: 24px 12px; }
-            .dashboard-container, .report-container { padding: 24px 18px; }
+            body { padding: 18px 12px 36px; }
+            .dashboard-container, .report-container { padding: 25px 18px; border-radius: 16px; }
             .grid-layout { grid-template-columns: 1fr; gap: 18px; }
-            .form-group.full-width, .advanced-options { grid-column: auto; }
+            .form-group.full-width, .advanced-options, .source-field { grid-column: auto; }
+            .source-field { grid-template-columns: 1fr; gap: 12px; padding: 15px; }
+            .source-field select { max-width: none; justify-self: stretch; }
             .header h2 { font-size: 1.7rem; }
         }
     </style>
@@ -233,8 +322,14 @@
 
     <main class="dashboard-container">
         <div class="header">
+            <span class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span><span id="eyebrowText">بحث ويب مباشر • مدعوم بالذكاء الاصطناعي</span></span>
             <h2>SaaS AI Hunter</h2>
             <p id="subText">محرك الذكاء الاصطناعي لاكتشاف وتحليل فرص الاستثمار البرمجية</p>
+            <div class="trust-row" aria-label="مزايا المحرك">
+                <span class="trust-chip" id="chipSearch">⌕ بحث Google مباشر</span>
+                <span class="trust-chip" id="chipCitations">↗ مصادر وروابط موثقة</span>
+                <span class="trust-chip" id="chipReport">✦ تقرير استثماري مخصص</span>
+            </div>
         </div>
         <div class="grid-layout">
             <div class="form-group">
@@ -267,6 +362,18 @@
                     <option value="استنساخ فكرة ناجحة وإطلاقها محلياً" data-ar="استنساخ فكرة ناجحة وإطلاقها محلياً" data-en="Localize and launch a proven idea">استنساخ فكرة ناجحة وإطلاقها محلياً</option>
                 </select>
             </div>
+            <div class="source-field">
+                <div class="form-group">
+                    <label id="lblSources" for="sourceCount">عدد المصادر المطلوب البحث فيها</label>
+                    <span class="field-hint" id="sourceHint">سيستخدم البحث المباشر ويعرض روابط المصادر التي استند إليها التقرير. العدد هدف إرشادي وقد يختلف حسب النتائج.</span>
+                </div>
+                <select id="sourceCount">
+                    <option value="3" data-ar="3 مصادر" data-en="3 sources">3 مصادر</option>
+                    <option value="5" data-ar="5 مصادر" data-en="5 sources" selected>5 مصادر</option>
+                    <option value="8" data-ar="8 مصادر" data-en="8 sources">8 مصادر</option>
+                    <option value="10" data-ar="10 مصادر" data-en="10 sources">10 مصادر</option>
+                </select>
+            </div>
             <div class="advanced-options">
                 <button class="accordion-header" id="advHeader" type="button" aria-expanded="false" aria-controls="advContent">
                     <span id="advTitle">⚙️ خيارات متقدمة (Prompt Override)</span>
@@ -279,8 +386,8 @@
                 </div>
             </div>
         </div>
-        <button id="startBtn" type="button">تشغيل محرك التحليل ✦</button>
-        <div id="loading" role="status" aria-live="polite">... يقوم الذكاء الاصطناعي بمسح قواعد البيانات وتحليل الأسواق ... يرجى الانتظار</div>
+        <button id="startBtn" class="action-btn" type="button">ابدأ البحث والتحليل <span aria-hidden="true">✦</span></button>
+        <div id="loading" role="status" aria-live="polite"><span id="loadingText">يتم البحث في الويب وتحليل الفرص</span> <span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></div>
     </main>
 
     <section class="report-container" id="reportOutput" aria-live="polite"></section>
@@ -303,35 +410,49 @@
         const translations = {
             ar: {
                 langBtn: 'English',
+                eyebrowText: 'بحث ويب مباشر • مدعوم بالذكاء الاصطناعي',
                 subText: 'محرك الذكاء الاصطناعي لاكتشاف وتحليل فرص الاستثمار البرمجية',
+                chipSearch: '⌕ بحث Google مباشر',
+                chipCitations: '↗ مصادر وروابط موثقة',
+                chipReport: '✦ تقرير استثماري مخصص',
                 lblCountry: 'نطاق البحث الجغرافي',
                 lblBudget: 'سقف الميزانية الاستثمارية',
                 lblIndustry: 'القطاع المستهدف',
                 lblGoal: 'استراتيجية الاستثمار',
+                lblSources: 'عدد المصادر المطلوب البحث فيها',
+                sourceHint: 'سيستخدم البحث المباشر ويعرض روابط المصادر التي استند إليها التقرير. العدد هدف إرشادي وقد يختلف حسب النتائج.',
                 advTitle: '⚙️ خيارات متقدمة (Prompt Override)',
                 advPlaceholder: 'اكتب هنا توجيهات دقيقة للمحرك... مثال: ركز على المشاريع التي تحقق أرباحاً شهرية متكررة (MRR) تفوق 100$...',
-                btnText: 'تشغيل محرك التحليل ✦',
-                loadingText: '... يقوم الذكاء الاصطناعي بمسح قواعد البيانات وتحليل الأسواق ... يرجى الانتظار',
+                btnText: 'ابدأ البحث والتحليل',
+                loadingText: 'يتم البحث في الويب وتحليل الفرص',
+                sourcesTitle: 'المصادر المستخدمة في التقرير',
                 errorAlert: 'تم رصد خطأ في الاتصال بالخادم السحابي.',
                 invalidResponse: 'لم يُرجع الخادم تقريراً صالحاً.',
-                settingLabels: ['النطاق', 'الميزانية', 'القطاع', 'الاستراتيجية'],
+                settingLabels: ['النطاق', 'الميزانية', 'القطاع', 'الاستراتيجية', 'عدد المصادر المستهدف'],
                 noExtra: 'لا يوجد',
                 reportLanguage: 'العربية'
             },
             en: {
                 langBtn: 'العربية',
+                eyebrowText: 'LIVE WEB RESEARCH • AI-POWERED',
                 subText: 'AI engine for discovering and analyzing software investment opportunities',
+                chipSearch: '⌕ Live Google Search',
+                chipCitations: '↗ Cited sources & links',
+                chipReport: '✦ Tailored investor brief',
                 lblCountry: 'Geographical Scope',
                 lblBudget: 'Investment Budget Limit',
                 lblIndustry: 'Target Industry',
                 lblGoal: 'Investment Strategy',
+                lblSources: 'Target number of sources',
+                sourceHint: 'Live search is enabled and source links used by the report will be shown. This is a target; actual results may vary.',
                 advTitle: '⚙️ Advanced Options (Prompt Override)',
                 advPlaceholder: 'Enter precise instructions... e.g., focus on projects with recurring monthly revenue (MRR) above $100...',
-                btnText: 'Run Analysis Engine ✦',
-                loadingText: '... AI is scanning databases and analyzing markets ... Please wait',
+                btnText: 'Search & analyze',
+                loadingText: 'Searching the web and analyzing opportunities',
+                sourcesTitle: 'Sources used in this report',
                 errorAlert: 'Error connecting to the cloud server.',
                 invalidResponse: 'The server did not return a valid report.',
-                settingLabels: ['Geographic scope', 'Budget', 'Industry', 'Strategy'],
+                settingLabels: ['Geographic scope', 'Budget', 'Industry', 'Strategy', 'Target source count'],
                 noExtra: 'None',
                 reportLanguage: 'English'
             }
@@ -344,15 +465,21 @@
             document.documentElement.lang = currentLang;
             document.documentElement.dir = isArabic ? 'rtl' : 'ltr';
             langToggle.textContent = t.langBtn;
+            document.getElementById('eyebrowText').textContent = t.eyebrowText;
             document.getElementById('subText').textContent = t.subText;
+            document.getElementById('chipSearch').textContent = t.chipSearch;
+            document.getElementById('chipCitations').textContent = t.chipCitations;
+            document.getElementById('chipReport').textContent = t.chipReport;
             document.getElementById('lblCountry').textContent = t.lblCountry;
             document.getElementById('lblBudget').textContent = t.lblBudget;
             document.getElementById('lblIndustry').textContent = t.lblIndustry;
             document.getElementById('lblGoal').textContent = t.lblGoal;
+            document.getElementById('lblSources').textContent = t.lblSources;
+            document.getElementById('sourceHint').textContent = t.sourceHint;
             document.getElementById('advTitle').textContent = t.advTitle;
             document.getElementById('advanced').placeholder = t.advPlaceholder;
             document.getElementById('startBtn').textContent = t.btnText;
-            document.getElementById('loading').textContent = t.loadingText;
+            document.getElementById('loadingText').textContent = t.loadingText;
 
             document.querySelectorAll('select option').forEach((option) => {
                 option.textContent = option.dataset[currentLang];
@@ -365,7 +492,7 @@
 
         function getSelectedLabel(id) {
             const option = document.getElementById(id).selectedOptions[0];
-            return currentLang === 'ar' ? option.value : option.dataset.en;
+            return currentLang === 'ar' ? option.dataset.ar || option.value : option.dataset.en;
         }
 
         document.getElementById('startBtn').addEventListener('click', async () => {
@@ -375,7 +502,8 @@
             const t = translations[currentLang];
 
             const advancedText = document.getElementById('advanced').value.trim();
-            const settings = `${t.settingLabels[0]}: ${getSelectedLabel('country')}, ${t.settingLabels[1]}: ${getSelectedLabel('budget')}, ${t.settingLabels[2]}: ${getSelectedLabel('industry')}, ${t.settingLabels[3]}: ${getSelectedLabel('goal')}. ${currentLang === 'ar' ? 'محددات إضافية من المستخدم' : 'Additional user requirements'}: ${advancedText || t.noExtra}. ${currentLang === 'ar' ? 'يرجى إعداد التقرير باللغة' : 'Please write the report in'} ${t.reportLanguage}.`;
+            const sourceCount = Number(document.getElementById('sourceCount').value);
+            const settings = `${t.settingLabels[0]}: ${getSelectedLabel('country')}, ${t.settingLabels[1]}: ${getSelectedLabel('budget')}, ${t.settingLabels[2]}: ${getSelectedLabel('industry')}, ${t.settingLabels[3]}: ${getSelectedLabel('goal')}, ${t.settingLabels[4]}: ${sourceCount}. ${currentLang === 'ar' ? 'محددات إضافية من المستخدم' : 'Additional user requirements'}: ${advancedText || t.noExtra}. ${currentLang === 'ar' ? 'يرجى إعداد التقرير باللغة' : 'Please write the report in'} ${t.reportLanguage}.`;
 
             btn.disabled = true;
             loading.style.display = 'block';
@@ -385,7 +513,7 @@
                 const response = await fetch('/.netlify/functions/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ settings })
+                    body: JSON.stringify({ settings, sourceCount })
                 });
                 const data = await response.json();
 
@@ -397,6 +525,36 @@
                 }
 
                 output.innerHTML = marked.parse(data.result);
+                if (Array.isArray(data.sources) && data.sources.length) {
+                    const sourcesPanel = document.createElement('div');
+                    sourcesPanel.className = 'sources-panel';
+                    const sourcesTitle = document.createElement('h2');
+                    sourcesTitle.textContent = t.sourcesTitle;
+                    const sourceLinks = document.createElement('div');
+                    sourceLinks.className = 'source-links';
+
+                    data.sources.forEach((source) => {
+                        try {
+                            const url = new URL(source.url);
+                            if (!['http:', 'https:'].includes(url.protocol)) return;
+
+                            const link = document.createElement('a');
+                            link.className = 'source-link';
+                            link.href = url.href;
+                            link.target = '_blank';
+                            link.rel = 'noopener noreferrer';
+                            link.textContent = `↗ ${source.title || url.hostname}`;
+                            sourceLinks.appendChild(link);
+                        } catch (error) {
+                            console.warn('Skipping invalid source URL', source.url);
+                        }
+                    });
+
+                    if (sourceLinks.childElementCount) {
+                        sourcesPanel.append(sourcesTitle, sourceLinks);
+                        output.appendChild(sourcesPanel);
+                    }
+                }
                 output.style.display = 'block';
             } catch (error) {
                 alert(error.message || t.errorAlert);
