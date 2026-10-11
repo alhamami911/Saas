@@ -33,6 +33,26 @@
             min-height: 100vh;
         }
 
+        .top-bar {
+            width: 100%;
+            max-width: 950px;
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 10px;
+        }
+
+        .lang-btn {
+            background: transparent;
+            border: 1px solid var(--border-dark);
+            color: var(--text-muted);
+            padding: 6px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.3s;
+        }
+        .lang-btn:hover { color: var(--text-main); border-color: var(--text-muted); }
+
         .dashboard-container, .report-container {
             background-color: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(10px);
@@ -101,7 +121,7 @@
         }
         textarea { resize: vertical; min-height: 100px; }
 
-        button {
+        .action-btn {
             padding: 16px 32px;
             border: none;
             border-radius: 30px;
@@ -118,14 +138,50 @@
             transition: all 0.4s ease;
             box-shadow: 0 4px 15px var(--accent-glow);
         }
-        button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6); }
-        button:disabled {
+        .action-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6); }
+        .action-btn:disabled {
             background: #475569;
             box-shadow: none;
             cursor: not-allowed;
             transform: none;
             color: #94a3b8;
         }
+
+        .advanced-options {
+            grid-column: span 2;
+            margin-top: 10px;
+            border: 1px solid var(--border-dark);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .accordion-header {
+            width: 100%;
+            margin: 0;
+            padding: 15px;
+            border: 0;
+            border-radius: 0;
+            background-color: rgba(15, 23, 42, 0.5);
+            color: var(--text-muted);
+            box-shadow: none;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: 0.3s;
+        }
+        .accordion-header:hover { background-color: rgba(30, 41, 59, 0.8); color: var(--text-main); }
+        .accordion-content {
+            padding: 0 15px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease;
+            background-color: transparent;
+        }
+        .accordion-content.open { padding: 15px; max-height: 300px; }
+        .arrow { transition: transform 0.3s; font-size: 0.8rem; }
+        .arrow.open { transform: rotate(180deg); }
 
         #loading {
             display: none;
@@ -158,55 +214,69 @@
         ul, ol { padding-right: 20px; }
         li { margin-bottom: 8px; }
 
+        html[dir="ltr"] table th, html[dir="ltr"] table td { text-align: left; }
+        html[dir="ltr"] ul, html[dir="ltr"] ol { padding-right: 0; padding-left: 20px; }
+
         @media (max-width: 640px) {
             body { padding: 24px 12px; }
             .dashboard-container, .report-container { padding: 24px 18px; }
             .grid-layout { grid-template-columns: 1fr; gap: 18px; }
-            .form-group.full-width { grid-column: auto; }
+            .form-group.full-width, .advanced-options { grid-column: auto; }
             .header h2 { font-size: 1.7rem; }
         }
     </style>
 </head>
 <body>
+    <div class="top-bar">
+        <button class="lang-btn" id="langToggle" type="button">English</button>
+    </div>
+
     <main class="dashboard-container">
         <div class="header">
             <h2>SaaS AI Hunter</h2>
-            <p>محرك الذكاء الاصطناعي لاكتشاف وتحليل فرص الاستثمار البرمجية</p>
+            <p id="subText">محرك الذكاء الاصطناعي لاكتشاف وتحليل فرص الاستثمار البرمجية</p>
         </div>
         <div class="grid-layout">
             <div class="form-group">
-                <label for="country">نطاق البحث الجغرافي</label>
+                <label id="lblCountry" for="country">نطاق البحث الجغرافي</label>
                 <select id="country">
-                    <option value="السعودية">السعودية</option>
-                    <option value="الشرق الأوسط">الشرق الأوسط</option>
-                    <option value="عالمي">عالمي</option>
+                    <option value="السعودية" data-ar="السعودية" data-en="Saudi Arabia">السعودية</option>
+                    <option value="الشرق الأوسط" data-ar="الشرق الأوسط" data-en="Middle East">الشرق الأوسط</option>
+                    <option value="عالمي" data-ar="عالمي" data-en="Global">عالمي</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="budget">سقف الميزانية الاستثمارية</label>
+                <label id="lblBudget" for="budget">سقف الميزانية الاستثمارية</label>
                 <select id="budget">
-                    <option value="حتى 500 دولار">حتى 500 دولار (Micro-SaaS)</option>
-                    <option value="حتى 5000 دولار">حتى 5000 دولار</option>
+                    <option value="حتى 500 دولار" data-ar="حتى 500 دولار (Micro-SaaS)" data-en="Up to $500 (Micro-SaaS)">حتى 500 دولار (Micro-SaaS)</option>
+                    <option value="حتى 5000 دولار" data-ar="حتى 5000 دولار" data-en="Up to $5,000">حتى 5000 دولار</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="industry">القطاع المستهدف</label>
+                <label id="lblIndustry" for="industry">القطاع المستهدف</label>
                 <select id="industry">
-                    <option value="جميع المجالات">بحث مفتوح في جميع المجالات</option>
-                    <option value="أدوات الذكاء الاصطناعي للشركات">أدوات الذكاء الاصطناعي للشركات</option>
-                    <option value="أنظمة إدارة الموارد البشرية HR">أنظمة إدارة الموارد البشرية HR</option>
+                    <option value="جميع المجالات" data-ar="بحث مفتوح في جميع المجالات" data-en="Open search across all industries">بحث مفتوح في جميع المجالات</option>
+                    <option value="أدوات الذكاء الاصطناعي للشركات" data-ar="أدوات الذكاء الاصطناعي للشركات" data-en="Business AI tools">أدوات الذكاء الاصطناعي للشركات</option>
+                    <option value="أنظمة إدارة الموارد البشرية HR" data-ar="أنظمة إدارة الموارد البشرية HR" data-en="HR management systems">أنظمة إدارة الموارد البشرية HR</option>
                 </select>
             </div>
             <div class="form-group">
-                <label for="goal">استراتيجية الاستثمار</label>
+                <label id="lblGoal" for="goal">استراتيجية الاستثمار</label>
                 <select id="goal">
-                    <option value="شراء وتطوير مشروع قائم (Acquisition)">شراء وتطوير مشروع قائم</option>
-                    <option value="استنساخ فكرة ناجحة وإطلاقها محلياً">استنساخ فكرة ناجحة وإطلاقها محلياً</option>
+                    <option value="شراء وتطوير مشروع قائم" data-ar="شراء وتطوير مشروع قائم (Acquisition)" data-en="Acquire and grow an existing business">شراء وتطوير مشروع قائم (Acquisition)</option>
+                    <option value="استنساخ فكرة ناجحة وإطلاقها محلياً" data-ar="استنساخ فكرة ناجحة وإطلاقها محلياً" data-en="Localize and launch a proven idea">استنساخ فكرة ناجحة وإطلاقها محلياً</option>
                 </select>
             </div>
-            <div class="form-group full-width">
-                <label for="advanced">موجه الذكاء الاصطناعي المتقدم (Prompt Override)</label>
-                <textarea id="advanced" placeholder="اكتب هنا توجيهات دقيقة للمحرك... مثال: ركز على المشاريع التي تحقق أرباحاً شهرية متكررة (MRR) تفوق 100$، وتعتمد على واجهات برمجة التطبيقات (API)..."></textarea>
+            <div class="advanced-options">
+                <button class="accordion-header" id="advHeader" type="button" aria-expanded="false" aria-controls="advContent">
+                    <span id="advTitle">⚙️ خيارات متقدمة (Prompt Override)</span>
+                    <span class="arrow" id="advArrow" aria-hidden="true">▼</span>
+                </button>
+                <div class="accordion-content" id="advContent" hidden>
+                    <div class="form-group" style="margin-top: 10px;">
+                        <textarea id="advanced" placeholder="اكتب هنا توجيهات دقيقة للمحرك... مثال: ركز على المشاريع التي تحقق أرباحاً شهرية متكررة (MRR) تفوق 100$، وتعتمد على واجهات برمجة التطبيقات (API)..."></textarea>
+                    </div>
+                </div>
             </div>
         </div>
         <button id="startBtn" type="button">تشغيل محرك التحليل ✦</button>
@@ -216,13 +286,96 @@
     <section class="report-container" id="reportOutput" aria-live="polite"></section>
 
     <script>
+        const advHeader = document.getElementById('advHeader');
+        const advContent = document.getElementById('advContent');
+        const advArrow = document.getElementById('advArrow');
+
+        advHeader.addEventListener('click', () => {
+            const isOpen = advHeader.getAttribute('aria-expanded') === 'true';
+            advHeader.setAttribute('aria-expanded', String(!isOpen));
+            advContent.hidden = isOpen;
+            advContent.classList.toggle('open', !isOpen);
+            advArrow.classList.toggle('open', !isOpen);
+        });
+
+        const langToggle = document.getElementById('langToggle');
+        let currentLang = 'ar';
+        const translations = {
+            ar: {
+                langBtn: 'English',
+                subText: 'محرك الذكاء الاصطناعي لاكتشاف وتحليل فرص الاستثمار البرمجية',
+                lblCountry: 'نطاق البحث الجغرافي',
+                lblBudget: 'سقف الميزانية الاستثمارية',
+                lblIndustry: 'القطاع المستهدف',
+                lblGoal: 'استراتيجية الاستثمار',
+                advTitle: '⚙️ خيارات متقدمة (Prompt Override)',
+                advPlaceholder: 'اكتب هنا توجيهات دقيقة للمحرك... مثال: ركز على المشاريع التي تحقق أرباحاً شهرية متكررة (MRR) تفوق 100$...',
+                btnText: 'تشغيل محرك التحليل ✦',
+                loadingText: '... يقوم الذكاء الاصطناعي بمسح قواعد البيانات وتحليل الأسواق ... يرجى الانتظار',
+                errorAlert: 'تم رصد خطأ في الاتصال بالخادم السحابي.',
+                invalidResponse: 'لم يُرجع الخادم تقريراً صالحاً.',
+                settingLabels: ['النطاق', 'الميزانية', 'القطاع', 'الاستراتيجية'],
+                noExtra: 'لا يوجد',
+                reportLanguage: 'العربية'
+            },
+            en: {
+                langBtn: 'العربية',
+                subText: 'AI engine for discovering and analyzing software investment opportunities',
+                lblCountry: 'Geographical Scope',
+                lblBudget: 'Investment Budget Limit',
+                lblIndustry: 'Target Industry',
+                lblGoal: 'Investment Strategy',
+                advTitle: '⚙️ Advanced Options (Prompt Override)',
+                advPlaceholder: 'Enter precise instructions... e.g., focus on projects with recurring monthly revenue (MRR) above $100...',
+                btnText: 'Run Analysis Engine ✦',
+                loadingText: '... AI is scanning databases and analyzing markets ... Please wait',
+                errorAlert: 'Error connecting to the cloud server.',
+                invalidResponse: 'The server did not return a valid report.',
+                settingLabels: ['Geographic scope', 'Budget', 'Industry', 'Strategy'],
+                noExtra: 'None',
+                reportLanguage: 'English'
+            }
+        };
+
+        function setLanguage(language) {
+            currentLang = language;
+            const isArabic = currentLang === 'ar';
+            const t = translations[currentLang];
+            document.documentElement.lang = currentLang;
+            document.documentElement.dir = isArabic ? 'rtl' : 'ltr';
+            langToggle.textContent = t.langBtn;
+            document.getElementById('subText').textContent = t.subText;
+            document.getElementById('lblCountry').textContent = t.lblCountry;
+            document.getElementById('lblBudget').textContent = t.lblBudget;
+            document.getElementById('lblIndustry').textContent = t.lblIndustry;
+            document.getElementById('lblGoal').textContent = t.lblGoal;
+            document.getElementById('advTitle').textContent = t.advTitle;
+            document.getElementById('advanced').placeholder = t.advPlaceholder;
+            document.getElementById('startBtn').textContent = t.btnText;
+            document.getElementById('loading').textContent = t.loadingText;
+
+            document.querySelectorAll('select option').forEach((option) => {
+                option.textContent = option.dataset[currentLang];
+            });
+        }
+
+        langToggle.addEventListener('click', () => {
+            setLanguage(currentLang === 'ar' ? 'en' : 'ar');
+        });
+
+        function getSelectedLabel(id) {
+            const option = document.getElementById(id).selectedOptions[0];
+            return currentLang === 'ar' ? option.value : option.dataset.en;
+        }
+
         document.getElementById('startBtn').addEventListener('click', async () => {
             const btn = document.getElementById('startBtn');
             const loading = document.getElementById('loading');
             const output = document.getElementById('reportOutput');
+            const t = translations[currentLang];
 
             const advancedText = document.getElementById('advanced').value.trim();
-            const settings = `النطاق: ${document.getElementById('country').value}، الميزانية: ${document.getElementById('budget').value}، القطاع: ${document.getElementById('industry').value}، الاستراتيجية: ${document.getElementById('goal').value}. محددات إضافية من المستخدم: ${advancedText || 'لا يوجد'}`;
+            const settings = `${t.settingLabels[0]}: ${getSelectedLabel('country')}, ${t.settingLabels[1]}: ${getSelectedLabel('budget')}, ${t.settingLabels[2]}: ${getSelectedLabel('industry')}, ${t.settingLabels[3]}: ${getSelectedLabel('goal')}. ${currentLang === 'ar' ? 'محددات إضافية من المستخدم' : 'Additional user requirements'}: ${advancedText || t.noExtra}. ${currentLang === 'ar' ? 'يرجى إعداد التقرير باللغة' : 'Please write the report in'} ${t.reportLanguage}.`;
 
             btn.disabled = true;
             loading.style.display = 'block';
@@ -237,16 +390,16 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error || 'تعذر إنشاء التقرير.');
+                    throw new Error(data.error || t.errorAlert);
                 }
                 if (typeof data.result !== 'string' || !data.result.trim()) {
-                    throw new Error('لم يُرجع الخادم تقريراً صالحاً.');
+                    throw new Error(t.invalidResponse);
                 }
 
                 output.innerHTML = marked.parse(data.result);
                 output.style.display = 'block';
             } catch (error) {
-                alert(error.message || 'تم رصد خطأ في الاتصال بالخادم السحابي.');
+                alert(error.message || t.errorAlert);
             } finally {
                 btn.disabled = false;
                 loading.style.display = 'none';
