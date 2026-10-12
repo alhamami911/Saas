@@ -27,12 +27,12 @@ exports.handler = async function (event) {
         };
     }
 
-    const sourceCount = Number(data.sourceCount);
-    if (!Number.isInteger(sourceCount) || ![3, 5, 8, 10].includes(sourceCount)) {
+    const opportunityCount = Number(data.opportunityCount);
+    if (!Number.isInteger(opportunityCount) || ![5, 10, 20].includes(opportunityCount)) {
         return {
             statusCode: 400,
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ error: "Choose a supported source count: 3, 5, 8, or 10" })
+            body: JSON.stringify({ error: "Choose a supported opportunity count: 5, 10, or 20" })
         };
     }
 
@@ -80,7 +80,7 @@ exports.handler = async function (event) {
     const selectedFilters = filters.length
         ? filters.map((filter) => filterDescriptions[filter]).join(", ")
         : "No mandatory product capability filters";
-    const masterPrompt = `أنت محلل استثمارات SaaS خبير. ابحث على الويب عن فرص ومشاريع SaaS حقيقية وحديثة، ثم أعد تقريراً مفصلاً باللغة ${reportLanguage} بناءً على إعدادات المستخدم. طبّق خصائص SaaS المطلوبة التالية كمرشحات إلزامية، ولا تعرض فرصة على أنها مطابقة ما لم يدعمها مصدر موثوق: ${selectedFilters}. إذا تعذر العثور على فرص تطابق المرشحات، صرّح بذلك بدلاً من تخفيفها. استهدف الاستناد إلى نحو ${sourceCount} مصادر مستقلة وموثوقة. أدرج جدول مقارنة، تحليلاً مالياً، توصية نهائية وخطة عمل واضحة. لا تختلق مصادر أو أرقاماً أو بيانات مالية؛ ميّز التقديرات عن الحقائق، واذكر بوضوح عندما لا تتوفر بيانات. استخدم الاستشهادات التي توفرها أداة البحث فقط.
+    const masterPrompt = `أنت محلل استثمارات SaaS خبير. ابحث على الويب عن فرص ومشاريع SaaS حقيقية وحديثة، ثم أعد تقريراً مفصلاً باللغة ${reportLanguage} بناءً على إعدادات المستخدم. أنشئ ${opportunityCount} فرص SaaS منفصلة بالضبط، ورقّم كل فرصة واجعلها واضحة ومستقلة في جدول المقارنة والتوصيات. طبّق خصائص SaaS المطلوبة التالية كمرشحات إلزامية، ولا تعرض فرصة على أنها مطابقة ما لم يدعمها مصدر موثوق: ${selectedFilters}. إذا تعذر العثور على ${opportunityCount} فرص تطابق المرشحات، اذكر العدد الذي أمكن التحقق منه ولا تختلق فرصاً ولا تخفف المرشحات. استخدم بحث الويب والاستشهادات لدعم الفرص، وأدرج روابط المصادر الحقيقية في التقرير. أضف تحليلاً مالياً وتوصية نهائية وخطة عمل واضحة. لا تختلق مصادر أو أرقاماً أو بيانات مالية؛ ميّز التقديرات عن الحقائق، واذكر بوضوح عندما لا تتوفر بيانات. استخدم الاستشهادات التي توفرها أداة البحث فقط.
         إعدادات البحث المطلوبة: ${data.settings}`;
 
     try {
@@ -101,10 +101,17 @@ exports.handler = async function (event) {
         const resultData = await response.json();
         if (!response.ok) {
             console.error("Gemini API request failed", response.status, resultData.error?.message);
+            const quotaExceeded = response.status === 429
+                || resultData.error?.status === "RESOURCE_EXHAUSTED";
             return {
-                statusCode: 502,
+                statusCode: quotaExceeded ? 429 : 502,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: "Gemini API request failed" })
+                body: JSON.stringify({
+                    errorCode: quotaExceeded ? "AI_QUOTA_EXCEEDED" : "GEMINI_REQUEST_FAILED",
+                    error: quotaExceeded
+                        ? "The AI search quota is exceeded. Check Gemini API billing and usage limits, then try again."
+                        : "Gemini API request failed"
+                })
             };
         }
 
@@ -123,8 +130,7 @@ exports.handler = async function (event) {
                 && /^https?:\/\//i.test(annotation.url))
             .map((annotation) => ({ title: annotation.title, url: annotation.url }))
             .filter((source, index, allSources) =>
-                allSources.findIndex((item) => item.url === source.url) === index)
-            .slice(0, sourceCount);
+                allSources.findIndex((item) => item.url === source.url) === index);
 
         if (!generatedText) {
             console.error("Gemini API response did not contain generated text");
