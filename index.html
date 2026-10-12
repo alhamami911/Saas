@@ -3,479 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SaaS AI Hunter - باحث الفرص الذكي</title>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <title>SaaS Opportunity Hunter - محرك البحث المباشر</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
-
         :root {
-            --bg-dark: #0f172a;
-            --surface-dark: #1e293b;
-            --surface-raised: rgba(30, 41, 59, 0.82);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent: #3b82f6;
-            --accent-glow: rgba(59, 130, 246, 0.5);
-            --neon-purple: #8b5cf6;
-            --mint: #34d399;
-            --border-dark: #334155;
-            --radius: 12px;
+            --bg-color: #f9fafb; --surface-color: #ffffff; --text-primary: #111827; --text-secondary: #4b5563;
+            --border-color: #e5e7eb; --primary-color: #2563eb; --primary-hover: #1d4ed8;
+            --secondary-color: #f3f4f6; --secondary-hover: #e5e7eb; --radius: 8px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-
-        body {
-            font-family: 'Tajawal', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            margin: 0;
-            padding: 28px 20px 56px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-image:
-                radial-gradient(ellipse at 10% 5%, rgba(59, 130, 246, 0.15), transparent 35%),
-                radial-gradient(ellipse at 90% 18%, rgba(139, 92, 246, 0.14), transparent 32%),
-                linear-gradient(180deg, #111c33 0%, var(--bg-dark) 48%);
-            min-height: 100vh;
-            box-sizing: border-box;
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #111827; --surface-color: #1f2937; --text-primary: #f9fafb; --text-secondary: #d1d5db;
+                --border-color: #374151; --primary-color: #3b82f6; --primary-hover: #2563eb;
+                --secondary-color: #374151; --secondary-hover: #4b5563;
+            }
         }
-
-        .top-bar {
-            width: 100%;
-            max-width: 950px;
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 14px;
-        }
-
-        .lang-btn {
-            background: transparent;
-            border: 1px solid var(--border-dark);
-            color: var(--text-muted);
-            padding: 6px 12px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-family: inherit;
-            transition: 0.3s;
-        }
-        .lang-btn:hover { color: var(--text-main); border-color: var(--text-muted); }
-        .lang-btn:focus-visible, button:focus-visible, select:focus-visible, textarea:focus-visible {
-            outline: 2px solid #93c5fd;
-            outline-offset: 3px;
-        }
-
-        .dashboard-container, .report-container {
-            background: linear-gradient(145deg, rgba(30, 41, 59, 0.94), rgba(15, 23, 42, 0.94));
-            backdrop-filter: blur(16px);
-            border-radius: 20px;
-            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32), inset 0 1px rgba(255, 255, 255, 0.035);
-            width: 100%;
-            max-width: 950px;
-            padding: 38px;
-            border: 1px solid var(--border-dark);
-            margin-bottom: 22px;
-            position: relative;
-            overflow: hidden;
-            box-sizing: border-box;
-        }
-
-        .dashboard-container::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, var(--accent), var(--neon-purple), transparent);
-        }
-
-        .header { margin-bottom: 28px; text-align: center; }
-        .eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 15px;
-            padding: 7px 12px;
-            color: #bfdbfe;
-            background: rgba(59, 130, 246, 0.1);
-            border: 1px solid rgba(96, 165, 250, 0.22);
-            border-radius: 999px;
-            font-size: 0.82rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-        }
-        .eyebrow-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--mint);
-            box-shadow: 0 0 12px rgba(52, 211, 153, 0.8);
-        }
-        .header h2 {
-            margin: 0 0 8px;
-            font-size: clamp(2rem, 5vw, 2.7rem);
-            font-weight: 800;
-            background: linear-gradient(100deg, #fff 10%, #bfdbfe 55%, #c4b5fd 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .header p { color: var(--text-muted); font-size: 1.05rem; margin: 0; }
-        .trust-row {
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            gap: 9px;
-            margin-top: 20px;
-        }
-        .trust-chip {
-            padding: 6px 10px;
-            color: #cbd5e1;
-            border: 1px solid rgba(148, 163, 184, 0.18);
-            border-radius: 999px;
-            background: rgba(15, 23, 42, 0.38);
-            font-size: 0.82rem;
-        }
-        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 19px 20px; }
-        .form-group { display: flex; flex-direction: column; min-width: 0; }
-        .form-group.full-width { grid-column: span 2; }
-        .form-group label {
-            font-size: 0.9rem;
-            font-weight: 700;
-            margin-bottom: 9px;
-            color: #dbeafe;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .form-group label::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
-
-        select, textarea {
-            width: 100%;
-            padding: 13px 14px;
-            background: rgba(8, 15, 30, 0.72);
-            color: var(--text-main);
-            border: 1px solid rgba(100, 116, 139, 0.42);
-            border-radius: 11px;
-            font-size: 1rem;
-            outline: none;
-            font-family: inherit;
-            box-sizing: border-box;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-        }
-        select:focus, textarea:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
-            background: rgba(8, 15, 30, 0.95);
-        }
-        textarea { resize: vertical; min-height: 100px; }
-        .field-hint { color: var(--text-muted); font-size: 0.8rem; line-height: 1.55; margin-top: 7px; }
-        .source-field {
-            grid-column: span 2;
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(180px, 0.62fr);
-            align-items: center;
-            gap: 20px;
-            padding: 17px 18px;
-            border: 1px solid rgba(96, 165, 250, 0.2);
-            border-radius: 14px;
-            background: linear-gradient(100deg, rgba(59, 130, 246, 0.09), rgba(139, 92, 246, 0.06));
-        }
-        .source-field .form-group label { margin-bottom: 3px; }
-        .source-field select { max-width: 240px; justify-self: end; }
-        .feature-filters {
-            grid-column: span 2;
-            padding: 17px 18px;
-            border: 1px solid rgba(96, 165, 250, 0.2);
-            border-radius: 14px;
-            background: linear-gradient(100deg, rgba(59, 130, 246, 0.09), rgba(139, 92, 246, 0.06));
-        }
-        .feature-filters legend {
-            padding: 0 6px;
-            color: #dbeafe;
-            font-size: 0.9rem;
-            font-weight: 700;
-        }
-        .feature-filter-options {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        .feature-filter {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 9px 12px;
-            color: var(--text-main);
-            background: rgba(8, 15, 30, 0.55);
-            border: 1px solid rgba(100, 116, 139, 0.42);
-            border-radius: 10px;
-            cursor: pointer;
-        }
-        .feature-filter input { accent-color: var(--accent); }
-        .feature-filter:focus-within {
-            outline: 2px solid #93c5fd;
-            outline-offset: 2px;
-        }
-
-        .action-btn {
-            padding: 16px 32px;
-            border: none;
-            border-radius: 13px;
-            font-size: 1.1rem;
-            font-weight: 700;
-            font-family: 'Tajawal', sans-serif;
-            cursor: pointer;
-            width: 100%;
-            max-width: 100%;
-            margin: 27px auto 0;
-            display: block;
-            background: linear-gradient(105deg, #2563eb 0%, #6366f1 55%, #8b5cf6 100%);
-            color: white;
-            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
-            box-shadow: 0 10px 28px rgba(79, 70, 229, 0.28);
-        }
-        .action-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(99, 102, 241, 0.4); filter: brightness(1.08); }
-        .action-btn:disabled {
-            background: #475569;
-            box-shadow: none;
-            cursor: not-allowed;
-            transform: none;
-            color: #94a3b8;
-        }
-
-        .advanced-options {
-            grid-column: span 2;
-            border: 1px solid rgba(100, 116, 139, 0.34);
-            border-radius: 13px;
-            overflow: hidden;
-        }
-        .accordion-header {
-            width: 100%;
-            margin: 0;
-            padding: 15px;
-            border: 0;
-            border-radius: 0;
-            background-color: rgba(15, 23, 42, 0.38);
-            color: #cbd5e1;
-            box-shadow: none;
-            cursor: pointer;
-            font: inherit;
-            font-weight: 600;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: 0.3s;
-        }
-        .accordion-header:hover { background-color: rgba(30, 41, 59, 0.8); color: var(--text-main); }
-        .accordion-content {
-            padding: 0 15px;
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out, padding 0.3s ease;
-            background-color: transparent;
-        }
-        .accordion-content.open { padding: 15px; max-height: 300px; }
-        .arrow { transition: transform 0.3s; font-size: 0.8rem; }
-        .arrow.open { transform: rotate(180deg); }
-        .accordion-content[hidden] { display: none; }
-
-        #loading {
-            display: none;
-            text-align: center;
-            color: var(--accent);
-            font-weight: bold;
-            margin-top: 25px;
-            font-size: 1.1rem;
-            animation: pulse 2s infinite;
-        }
-        .loading-dot { display: inline-block; width: 7px; height: 7px; margin-inline: 2px; border-radius: 50%; background: var(--accent); animation: bounce 0.9s infinite alternate; }
-        .loading-dot:nth-child(2) { animation-delay: 0.2s; }
-        .loading-dot:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes pulse {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { opacity: 0.6; }
-        }
-        @keyframes bounce { to { transform: translateY(-5px); opacity: 0.45; } }
-
-        .report-container { display: none; line-height: 1.8; font-size: 1.05rem; }
-        .report-container h1, .report-container h2, .report-container h3 { color: #bfdbfe; margin-top: 30px; }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 25px 0;
-            background-color: #0f172a;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        th, td { border: 1px solid var(--border-dark); padding: 15px; text-align: right; }
-        th { background-color: rgba(59, 130, 246, 0.1); color: #93c5fd; font-weight: 700; }
-        strong { color: #93c5fd; }
-        ul, ol { padding-right: 20px; }
-        li { margin-bottom: 8px; }
-        .sources-panel {
-            margin-top: 32px;
-            padding-top: 22px;
-            border-top: 1px solid rgba(100, 116, 139, 0.35);
-        }
-        .sources-panel h2 { margin: 0 0 14px; color: #bfdbfe; font-size: 1.15rem; }
-        .source-links { display: flex; flex-wrap: wrap; gap: 9px; }
-        .source-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            max-width: 100%;
-            padding: 8px 12px;
-            color: #bfdbfe;
-            background: rgba(15, 23, 42, 0.72);
-            border: 1px solid rgba(96, 165, 250, 0.22);
-            border-radius: 10px;
-            text-decoration: none;
-            font-size: 0.9rem;
-            overflow-wrap: anywhere;
-        }
-        .source-link:hover { border-color: var(--accent); background: rgba(59, 130, 246, 0.12); }
-
-        html[dir="ltr"] table th, html[dir="ltr"] table td { text-align: left; }
-        html[dir="ltr"] ul, html[dir="ltr"] ol { padding-right: 0; padding-left: 20px; }
-
-        @media (max-width: 640px) {
-            body { padding: 18px 12px 36px; }
-            .dashboard-container, .report-container { padding: 25px 18px; border-radius: 16px; }
-            .grid-layout { grid-template-columns: 1fr; gap: 18px; }
-            .form-group.full-width, .advanced-options, .source-field, .feature-filters { grid-column: auto; }
-            .source-field { grid-template-columns: 1fr; gap: 12px; padding: 15px; }
-            .source-field select { max-width: none; justify-self: stretch; }
-            .header h2 { font-size: 1.7rem; }
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-primary); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .top-bar { width: 100%; max-width: 800px; display: flex; justify-content: flex-end; margin-bottom: 10px; }
+        .lang-btn { background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; transition: 0.3s; font-size: 0.9rem; }
+        .dashboard-container, .report-container { background-color: var(--surface-color); border-radius: var(--radius); box-shadow: var(--shadow); width: 100%; max-width: 800px; padding: 30px; border: 1px solid var(--border-color); margin-bottom: 20px; box-sizing: border-box; }
+        .header { margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; }
+        .badge { display: inline-block; background-color: #ecfdf5; color: #059669; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; margin-bottom: 8px; }
+        .header h2 { margin: 0 0 8px; font-size: 1.5rem; }
+        .header p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
+        .features { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px; font-size: 0.85rem; color: var(--primary-color); font-weight: 600; }
+        .grid-layout { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 20px; }
+        @media (min-width: 640px) { .grid-layout { grid-template-columns: 1fr 1fr; } }
+        .full-width { grid-column: 1 / -1; }
+        .feature-filters { grid-column: 1 / -1; min-width: 0; padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius); }
+        .feature-filters legend { padding: 0 5px; color: var(--text-primary); font-size: 0.9rem; font-weight: 600; }
+        .feature-filter-options { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 9px; }
+        .feature-filter { display: inline-flex; align-items: center; gap: 7px; padding: 7px 9px; border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); }
+        .feature-filter input { accent-color: var(--primary-color); }
+        .form-group { display: flex; flex-direction: column; margin-bottom: 16px; min-width: 0; }
+        .form-group label { font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; color: var(--text-primary); }
+        .hint { font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; }
+        select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius); background-color: var(--surface-color); color: var(--text-primary); font-size: 0.95rem; outline: none; box-sizing: border-box; font-family: inherit; }
+        select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: left 10px center; background-size: 16px; }
+        html[dir="ltr"] select { background-position: right 10px center; }
+        select:focus, textarea:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+        textarea { min-height: 80px; resize: vertical; }
+        .section-title { font-size: 1.1rem; font-weight: 600; margin: 20px 0 16px; color: var(--primary-color); display: flex; align-items: center; cursor: pointer; }
+        .section-title svg { width: 20px; height: 20px; margin-inline-start: 8px; transition: transform 0.3s; }
+        .collapsed svg { transform: rotate(-90deg); }
+        .hidden { display: none !important; }
+        button.btn-primary { padding: 12px 20px; border: none; border-radius: var(--radius); font-size: 1rem; font-weight: 600; cursor: pointer; background-color: var(--primary-color); color: white; width: 100%; margin-top: 20px; transition: 0.3s; }
+        button.btn-primary:hover { background-color: var(--primary-hover); }
+        button.btn-primary:disabled { background-color: #9ca3af; cursor: not-allowed; }
+        #loading { display: none; text-align: center; color: #059669; font-weight: bold; margin-top: 15px; }
+        .report-container { display: none; line-height: 1.6; overflow-wrap: anywhere; }
+        .report-container table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 20px 0; }
+        .report-container th, .report-container td { border: 1px solid var(--border-color); padding: 10px; text-align: right; }
+        html[dir="ltr"] .report-container th, html[dir="ltr"] .report-container td { text-align: left; }
+        .report-container th { background-color: var(--secondary-color); color: var(--primary-color); }
+        .sources-list { background: var(--secondary-color); padding: 15px; border-radius: var(--radius); margin-top: 20px; }
+        .sources-list h3 { margin-top: 0; color: var(--primary-color); }
+        .sources-list a { color: var(--primary-color); font-weight: 600; overflow-wrap: anywhere; }
+        .usage-stats { margin-top: 20px; padding: 12px 15px; background-color: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: var(--radius); font-size: 0.85rem; color: var(--text-primary); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .usage-stats div { display: flex; align-items: center; gap: 5px; }
+        .usage-stats strong { color: #059669; }
+        .report-summary { padding-bottom: 14px; border-bottom: 1px solid var(--border-color); }
+        .opportunity-list { display: grid; gap: 14px; margin-top: 18px; }
+        .opportunity { padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--surface-color); }
+        .opportunity h3 { margin: 0 0 8px; font-size: 1.1rem; }
+        .opportunity h3 a, .opportunity a { color: var(--primary-color); overflow-wrap: anywhere; }
+        .opportunity-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; color: var(--text-secondary); font-size: 0.85rem; }
+        .opportunity-section { margin-top: 12px; }
+        .opportunity-section h4 { margin: 0 0 5px; font-size: 0.9rem; }
+        .opportunity-section ul { margin: 5px 0 0; padding-inline-start: 22px; }
+        .opportunity-section li { margin: 4px 0; }
+        .status-label { display: inline-block; padding: 3px 8px; border-radius: 999px; background: var(--secondary-color); font-size: 0.8rem; }
+        .bot-trap { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+        @media (max-width: 480px) { body { padding: 12px; } .dashboard-container, .report-container { padding: 20px 16px; } }
     </style>
 </head>
 <body>
-    <div class="top-bar">
-        <button class="lang-btn" id="langToggle" type="button">English</button>
-    </div>
-
+    <div class="top-bar"><button class="lang-btn" id="langToggle" type="button">English</button></div>
     <main class="dashboard-container">
         <div class="header">
-            <span class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span><span id="eyebrowText">بحث ويب مباشر • مدعوم بالذكاء الاصطناعي</span></span>
-            <h2>SaaS AI Hunter</h2>
+            <span class="badge" id="badgeText">بحث ويب مباشر • مدعوم بالذكاء الاصطناعي</span>
+            <h2 id="titleText">إعدادات باحث فرص SaaS</h2>
             <p id="subText">محرك الذكاء الاصطناعي لاكتشاف وتحليل فرص الاستثمار البرمجية</p>
-            <div class="trust-row" id="trustRow" aria-label="مزايا المحرك">
-                <span class="trust-chip" id="chipSearch">⌕ بحث Google مباشر</span>
-                <span class="trust-chip" id="chipCitations">↗ مصادر وروابط موثقة</span>
-                <span class="trust-chip" id="chipReport">✦ تقرير استثماري مخصص</span>
+            <div class="features">
+                <span id="feat1">⌕ بحث Google مباشر</span>
+                <span id="feat2">↗ مصادر وروابط موثقة</span>
+                <span id="feat3">✦ تتبع التكلفة والاستهلاك</span>
             </div>
         </div>
         <form id="configForm">
-        <div class="grid-layout">
-            <div class="form-group">
-                <label id="lblCountry" for="country">الدولة المستهدفة</label>
-                <select id="country" required>
-                    <option value="" data-ar="اختر الدولة" data-en="Select a country" selected disabled>اختر الدولة</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label id="lblBudget" for="budget">سقف الميزانية الاستثمارية</label>
-                <select id="budget" required>
-                    <option value="" data-ar="اختر الميزانية" data-en="Select a budget" selected disabled>اختر الميزانية</option>
-                    <option value="حتى 100 دولار" data-ar="حتى 100 دولار" data-en="Up to $100">حتى 100 دولار</option>
-                    <option value="حتى 500 دولار" data-ar="حتى 500 دولار (Micro-SaaS)" data-en="Up to $500 (Micro-SaaS)">حتى 500 دولار (Micro-SaaS)</option>
-                    <option value="حتى 5000 دولار" data-ar="حتى 5,000 دولار" data-en="Up to $5,000">حتى 5,000 دولار</option>
-                    <option value="مفتوح" data-ar="مفتوح (بدون حد)" data-en="Open (no limit)">مفتوح (بدون حد)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label id="lblIndustry" for="industry">القطاع المستهدف</label>
-                <select id="industry" required>
-                    <option value="" data-ar="اختر القطاع" data-en="Select an industry" selected disabled>اختر القطاع</option>
-                    <option value="جميع المجالات" data-ar="جميع المجالات" data-en="All industries">جميع المجالات</option>
-                    <option value="أدوات الذكاء الاصطناعي للشركات" data-ar="أدوات الذكاء الاصطناعي للشركات" data-en="Business AI tools">أدوات الذكاء الاصطناعي للشركات</option>
-                    <option value="أنظمة إدارة الموارد البشرية HR" data-ar="أنظمة إدارة الموارد البشرية HR" data-en="HR management systems">أنظمة إدارة الموارد البشرية HR</option>
-                    <option value="التجارة الإلكترونية والمدفوعات" data-ar="التجارة الإلكترونية والمدفوعات" data-en="E-commerce and payments">التجارة الإلكترونية والمدفوعات</option>
-                    <option value="التسويق والمبيعات" data-ar="التسويق والمبيعات" data-en="Marketing and sales">التسويق والمبيعات</option>
-                    <option value="الصحة والرعاية الصحية" data-ar="الصحة والرعاية الصحية" data-en="Healthcare">الصحة والرعاية الصحية</option>
-                    <option value="التعليم والتدريب" data-ar="التعليم والتدريب" data-en="Education and training">التعليم والتدريب</option>
-                    <option value="المالية والمحاسبة" data-ar="المالية والمحاسبة" data-en="Finance and accounting">المالية والمحاسبة</option>
-                    <option value="العقارات وإدارة الممتلكات" data-ar="العقارات وإدارة الممتلكات" data-en="Real estate and property management">العقارات وإدارة الممتلكات</option>
-                    <option value="الأمن السيبراني والخصوصية" data-ar="الأمن السيبراني والخصوصية" data-en="Cybersecurity and privacy">الأمن السيبراني والخصوصية</option>
-                    <option value="الإنتاجية وإدارة المشاريع" data-ar="الإنتاجية وإدارة المشاريع" data-en="Productivity and project management">الإنتاجية وإدارة المشاريع</option>
-                    <option value="الخدمات القانونية" data-ar="الخدمات القانونية" data-en="Legal services">الخدمات القانونية</option>
-                    <option value="سلاسل الإمداد والخدمات اللوجستية" data-ar="سلاسل الإمداد والخدمات اللوجستية" data-en="Supply chain and logistics">سلاسل الإمداد والخدمات اللوجستية</option>
-                </select>
-            </div>
-            <fieldset class="feature-filters">
-                <legend id="filtersLegend">خصائص SaaS المطلوبة (اختياري)</legend>
-                <span class="field-hint" id="filtersHint">اختر خاصية واحدة أو أكثر لتصفية الفرص.</span>
-                <div class="feature-filter-options">
-                    <label class="feature-filter"><input type="checkbox" name="featureFilter" value="rtl_support"><span id="filterRtl">دعم RTL واللغات من اليمين لليسار</span></label>
-                    <label class="feature-filter"><input type="checkbox" name="featureFilter" value="multi_tenant"><span id="filterMultiTenant">بنية متعددة المستأجرين (Multi-tenant)</span></label>
-                    <label class="feature-filter"><input type="checkbox" name="featureFilter" value="arabic_localization"><span id="filterArabic">تعريب وواجهة باللغة العربية</span></label>
-                    <label class="feature-filter"><input type="checkbox" name="featureFilter" value="api_integrations"><span id="filterApi">تكاملات API</span></label>
-                    <label class="feature-filter"><input type="checkbox" name="featureFilter" value="ai_features"><span id="filterAi">ميزات الذكاء الاصطناعي</span></label>
-                    <label class="feature-filter"><input type="checkbox" name="featureFilter" value="white_label"><span id="filterWhiteLabel">إمكانية العلامة البيضاء</span></label>
-                    <label class="feature-filter"><input type="checkbox" name="featureFilter" value="security_compliance"><span id="filterSecurity">أمن وامتثال</span></label>
-                </div>
-            </fieldset>
-            <div class="form-group">
-                <label id="lblGoal" for="goal">استراتيجية الاستثمار</label>
-                <select id="goal" required>
-                    <option value="" data-ar="اختر الاستراتيجية" data-en="Select a strategy" selected disabled>اختر الاستراتيجية</option>
-                    <option value="إطلاق SaaS جديد" data-ar="إطلاق SaaS جديد" data-en="Launch a new SaaS">إطلاق SaaS جديد</option>
-                    <option value="شراء وتطوير مشروع قائم" data-ar="شراء وتطوير مشروع قائم (Acquisition)" data-en="Acquire and grow an existing business">شراء وتطوير مشروع قائم (Acquisition)</option>
-                    <option value="استنساخ فكرة ناجحة وإطلاقها محلياً" data-ar="استنساخ فكرة ناجحة وإطلاقها محلياً" data-en="Localize and launch a proven idea">استنساخ فكرة ناجحة وإطلاقها محلياً</option>
-                </select>
-            </div>
-            <div class="source-field">
-                <div class="form-group">
-                    <label id="lblOpportunityCount" for="opportunityCount">عدد الفرص المطلوب توليدها</label>
-                    <span class="field-hint" id="opportunityHint">اختر عدد أفكار SaaS التي تريد تحليلها. ستُعرض مصادر البحث لكل فرصة.</span>
-                </div>
-                <select id="opportunityCount" required>
-                    <option value="" data-ar="اختر العدد" data-en="Select a count" selected disabled>اختر العدد</option>
-                    <option value="5" data-ar="5 فرص" data-en="5 opportunities">5 فرص</option>
-                    <option value="10" data-ar="10 فرص" data-en="10 opportunities">10 فرص</option>
-                    <option value="20" data-ar="20 فرصة" data-en="20 opportunities">20 فرصة</option>
-                </select>
-            </div>
-            <div class="advanced-options">
-                <button class="accordion-header" id="advHeader" type="button" aria-expanded="false" aria-controls="advContent">
-                    <span id="advTitle">⚙️ خيارات متقدمة (Prompt Override)</span>
-                    <span class="arrow" id="advArrow" aria-hidden="true">▼</span>
-                </button>
-                <div class="accordion-content" id="advContent" hidden>
-                    <div class="form-group" style="margin-top: 10px;">
-                        <textarea id="advanced" placeholder="اكتب هنا توجيهات دقيقة للمحرك... مثال: ركز على المشاريع التي تحقق أرباحاً شهرية متكررة (MRR) تفوق 100$، وتعتمد على واجهات برمجة التطبيقات (API)..."></textarea>
+            <div class="grid-layout">
+                <div class="form-group"><label id="lblCountry" for="country">الدولة المستهدفة</label><select id="country" required><option value="" data-ar="اختر الدولة" data-en="Select a country" selected disabled>اختر الدولة</option></select></div>
+                <div class="form-group"><label id="lblBudget" for="budget">سقف الميزانية الاستثمارية</label><select id="budget" required><option value="" data-ar="اختر الميزانية" data-en="Select a budget" selected disabled>اختر الميزانية</option><option value="حتى 100 دولار" data-ar="حتى 100 دولار" data-en="Up to $100">حتى 100 دولار</option><option value="حتى 500 دولار" data-ar="حتى 500 دولار (Micro-SaaS)" data-en="Up to $500 (Micro-SaaS)">حتى 500 دولار (Micro-SaaS)</option><option value="حتى 5000 دولار" data-ar="حتى 5,000 دولار" data-en="Up to $5,000">حتى 5,000 دولار</option><option value="مفتوح" data-ar="مفتوح (بدون حد)" data-en="Open (no limit)">مفتوح (بدون حد)</option></select></div>
+                <div class="form-group"><label id="lblIndustry" for="industry">القطاع المستهدف</label><select id="industry" required><option value="" data-ar="اختر القطاع" data-en="Select an industry" selected disabled>اختر القطاع</option><option value="جميع المجالات" data-ar="جميع المجالات" data-en="All industries">جميع المجالات</option><option value="أدوات الذكاء الاصطناعي للشركات" data-ar="أدوات الذكاء الاصطناعي للشركات" data-en="Business AI tools">أدوات الذكاء الاصطناعي للشركات</option><option value="أنظمة إدارة الموارد البشرية HR" data-ar="أنظمة إدارة الموارد البشرية HR" data-en="HR management systems">أنظمة إدارة الموارد البشرية HR</option><option value="التجارة الإلكترونية والمدفوعات" data-ar="التجارة الإلكترونية والمدفوعات" data-en="E-commerce and payments">التجارة الإلكترونية والمدفوعات</option><option value="التسويق والمبيعات" data-ar="التسويق والمبيعات" data-en="Marketing and sales">التسويق والمبيعات</option><option value="الصحة والرعاية الصحية" data-ar="الصحة والرعاية الصحية" data-en="Healthcare">الصحة والرعاية الصحية</option><option value="التعليم والتدريب" data-ar="التعليم والتدريب" data-en="Education and training">التعليم والتدريب</option><option value="المالية والمحاسبة" data-ar="المالية والمحاسبة" data-en="Finance and accounting">المالية والمحاسبة</option><option value="العقارات وإدارة الممتلكات" data-ar="العقارات وإدارة الممتلكات" data-en="Real estate and property management">العقارات وإدارة الممتلكات</option><option value="الأمن السيبراني والخصوصية" data-ar="الأمن السيبراني والخصوصية" data-en="Cybersecurity and privacy">الأمن السيبراني والخصوصية</option><option value="الإنتاجية وإدارة المشاريع" data-ar="الإنتاجية وإدارة المشاريع" data-en="Productivity and project management">الإنتاجية وإدارة المشاريع</option><option value="الخدمات القانونية" data-ar="الخدمات القانونية" data-en="Legal services">الخدمات القانونية</option><option value="سلاسل الإمداد والخدمات اللوجستية" data-ar="سلاسل الإمداد والخدمات اللوجستية" data-en="Supply chain and logistics">سلاسل الإمداد والخدمات اللوجستية</option></select></div>
+                <div class="form-group"><label id="lblGoal" for="goal">استراتيجية الاستثمار</label><select id="goal" required><option value="" data-ar="اختر الاستراتيجية" data-en="Select a strategy" selected disabled>اختر الاستراتيجية</option><option value="إطلاق SaaS جديد" data-ar="إطلاق SaaS جديد" data-en="Launch a new SaaS">إطلاق SaaS جديد</option><option value="شراء وتطوير مشروع قائم" data-ar="شراء وتطوير مشروع قائم (Acquisition)" data-en="Acquire and grow an existing business">شراء وتطوير مشروع قائم (Acquisition)</option><option value="استنساخ فكرة ناجحة وإطلاقها محلياً" data-ar="استنساخ فكرة ناجحة وإطلاقها محلياً" data-en="Localize and launch a proven idea">استنساخ فكرة ناجحة وإطلاقها محلياً</option></select></div>
+                <fieldset class="feature-filters">
+                    <legend id="filtersLegend">خصائص SaaS المطلوبة (اختياري)</legend>
+                    <span class="hint" id="filtersHint">اختر خاصية واحدة أو أكثر لتصفية الفرص.</span>
+                    <div class="feature-filter-options">
+                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="rtl_support"><span id="filterRtl">دعم RTL واللغات من اليمين لليسار</span></label>
+                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="multi_tenant"><span id="filterMultiTenant">بنية متعددة المستأجرين (Multi-tenant)</span></label>
+                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="arabic_localization"><span id="filterArabic">تعريب وواجهة باللغة العربية</span></label>
+                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="api_integrations"><span id="filterApi">تكاملات API</span></label>
+                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="ai_features"><span id="filterAi">ميزات الذكاء الاصطناعي</span></label>
+                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="white_label"><span id="filterWhiteLabel">إمكانية العلامة البيضاء</span></label>
+                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="security_compliance"><span id="filterSecurity">أمن وامتثال</span></label>
                     </div>
-                </div>
+                </fieldset>
+                <div class="form-group full-width"><label id="lblOpportunityCount" for="opportunityCount">عدد الفرص المطلوب الحصول عليها</label><select id="opportunityCount"><option value="5" data-ar="5 فرص" data-en="5 opportunities" selected>5 فرص</option><option value="10" data-ar="10 فرص" data-en="10 opportunities">10 فرص</option><option value="20" data-ar="20 فرصة" data-en="20 opportunities">20 فرصة</option></select><span class="hint" id="lblHint">سيتم البحث عن فرص SaaS حقيقية وإرفاق المصادر الموثوقة المتاحة.</span></div>
             </div>
-        </div>
-        <button id="startBtn" class="action-btn" type="submit">ابدأ البحث والتحليل <span aria-hidden="true">✦</span></button>
-        <div id="loading" role="status" aria-live="polite"><span id="loadingText">يتم البحث في الويب وتحليل الفرص</span> <span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></div>
+            <button class="section-title collapsed" id="advancedToggle" type="button" aria-expanded="false" aria-controls="advancedSection">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                <span id="advTitle">الإعدادات المتقدمة</span>
+            </button>
+            <div id="advancedSection" class="hidden">
+                <div class="grid-layout"><div class="form-group full-width"><label id="lblPrompt" for="promptOverride">توجيهات إضافية (اختياري)</label><textarea id="promptOverride" placeholder="اكتب هنا أي توجيهات مخصصة للبحث المباشر..."></textarea></div></div>
+            </div>
+            <div class="bot-trap" aria-hidden="true"><label for="website">Leave this field empty</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div>
+            <button type="submit" class="btn-primary" id="startBtn">بدء البحث المباشر في الويب</button>
+            <div id="loading" role="status" aria-live="polite">يتم البحث في الويب وتحليل الفرص... يرجى الانتظار</div>
         </form>
     </main>
-
     <section class="report-container" id="reportOutput" aria-live="polite"></section>
 
     <script>
-        const advHeader = document.getElementById('advHeader');
-        const advContent = document.getElementById('advContent');
-        const advArrow = document.getElementById('advArrow');
-
-        advHeader.addEventListener('click', () => {
-            const isOpen = advHeader.getAttribute('aria-expanded') === 'true';
-            advHeader.setAttribute('aria-expanded', String(!isOpen));
-            advContent.hidden = isOpen;
-            advContent.classList.toggle('open', !isOpen);
-            advArrow.classList.toggle('open', !isOpen);
+        const advancedToggle = document.getElementById('advancedToggle');
+        const advancedSection = document.getElementById('advancedSection');
+        advancedToggle.addEventListener('click', () => {
+            const isOpen = advancedToggle.getAttribute('aria-expanded') === 'true';
+            advancedToggle.setAttribute('aria-expanded', String(!isOpen));
+            advancedSection.classList.toggle('hidden', isOpen);
+            advancedToggle.classList.toggle('collapsed', isOpen);
         });
 
-        const langToggle = document.getElementById('langToggle');
-        let currentLang = 'ar';
         const countrySelect = document.getElementById('country');
         const arabicCountryNames = new Intl.DisplayNames(['ar'], { type: 'region' });
         const englishCountryNames = new Intl.DisplayNames(['en'], { type: 'region' });
         const countryOptions = [];
-
         for (let first = 65; first <= 90; first += 1) {
             for (let second = 65; second <= 90; second += 1) {
                 const code = String.fromCharCode(first, second);
@@ -486,7 +149,6 @@
                 }
             }
         }
-
         countryOptions.sort((first, second) => first.arabicName.localeCompare(second.arabicName, 'ar'));
         countryOptions.forEach(({ code, arabicName, englishName }) => {
             const option = document.createElement('option');
@@ -499,113 +161,69 @@
 
         const translations = {
             ar: {
-                langBtn: 'English',
-                eyebrowText: 'بحث ويب مباشر • مدعوم بالذكاء الاصطناعي',
-                trustLabel: 'مزايا المحرك',
-                subText: 'محرك الذكاء الاصطناعي لاكتشاف وتحليل فرص الاستثمار البرمجية',
-                chipSearch: '⌕ بحث Google مباشر',
-                chipCitations: '↗ مصادر وروابط موثقة',
-                chipReport: '✦ تقرير استثماري مخصص',
-                lblCountry: 'الدولة المستهدفة',
-                lblBudget: 'سقف الميزانية الاستثمارية',
-                lblIndustry: 'القطاع المستهدف',
-                filtersLegend: 'خصائص SaaS المطلوبة (اختياري)',
-                filtersHint: 'اختر خاصية واحدة أو أكثر لتصفية الفرص.',
-                filterRtl: 'دعم RTL واللغات من اليمين لليسار',
-                filterMultiTenant: 'بنية متعددة المستأجرين (Multi-tenant)',
-                filterArabic: 'تعريب وواجهة باللغة العربية',
-                filterApi: 'تكاملات API',
-                filterAi: 'ميزات الذكاء الاصطناعي',
-                filterWhiteLabel: 'إمكانية العلامة البيضاء',
-                filterSecurity: 'أمن وامتثال',
-                lblGoal: 'استراتيجية الاستثمار',
-                lblOpportunityCount: 'عدد فرص SaaS المطلوب توليدها',
-                opportunityHint: 'اختر عدد الفرص التي تريد تحليلها. ستُعرض مصادر البحث المستخدمة لكل فرصة.',
-                advTitle: '⚙️ خيارات متقدمة (Prompt Override)',
-                advPlaceholder: 'اكتب هنا توجيهات دقيقة للمحرك... مثال: ركز على المشاريع التي تحقق أرباحاً شهرية متكررة (MRR) تفوق 100$...',
-                btnText: 'ابدأ البحث والتحليل',
-                loadingText: 'يتم البحث في الويب وتحليل الفرص',
-                sourcesTitle: 'المصادر المستخدمة في التقرير',
-                errorAlert: 'تم رصد خطأ في الاتصال بالخادم السحابي.',
-                quotaExceeded: 'تم تجاوز حصة استخدام Gemini. تحقق من إعدادات الفوترة وحدود الاستخدام في Google AI Studio ثم أعد المحاولة.',
-                invalidResponse: 'لم يُرجع الخادم تقريراً صالحاً.',
-                settingLabels: ['الدولة', 'الميزانية', 'القطاع', 'الاستراتيجية', 'عدد الفرص المطلوب توليدها', 'خصائص SaaS المطلوبة'],
-                noExtra: 'لا يوجد',
-                noFilters: 'لا توجد خصائص محددة',
-                filterOptions: {
-                    rtl_support: 'دعم RTL',
-                    multi_tenant: 'بنية متعددة المستأجرين',
-                    arabic_localization: 'تعريب وواجهة عربية',
-                    api_integrations: 'تكاملات API',
-                    ai_features: 'ميزات الذكاء الاصطناعي',
-                    white_label: 'علامة بيضاء',
-                    security_compliance: 'أمن وامتثال'
-                },
-                reportLanguage: 'العربية'
+                toggle: 'English', badge: 'بحث ويب مباشر • مدعوم بالذكاء الاصطناعي', title: 'إعدادات باحث فرص SaaS',
+                subtitle: 'محرك الذكاء الاصطناعي لاكتشاف وتحليل فرص الاستثمار البرمجية', search: '⌕ بحث Google مباشر',
+                sources: '↗ مصادر وروابط موثقة', usage: '✦ تتبع التكلفة والاستهلاك', country: 'الدولة المستهدفة',
+                budget: 'الميزانية المتاحة', industry: 'القطاع المستهدف', goal: 'الهدف التجاري', opportunityCount: 'عدد الفرص المطلوب الحصول عليها',
+                filtersLegend: 'خصائص SaaS المطلوبة (اختياري)', filtersHint: 'اختر خاصية واحدة أو أكثر لتصفية الفرص.',
+                filterRtl: 'دعم RTL واللغات من اليمين لليسار', filterMultiTenant: 'بنية متعددة المستأجرين (Multi-tenant)',
+                filterArabic: 'تعريب وواجهة باللغة العربية', filterApi: 'تكاملات API', filterAi: 'ميزات الذكاء الاصطناعي',
+                filterWhiteLabel: 'إمكانية العلامة البيضاء', filterSecurity: 'أمن وامتثال', noFilters: 'لا توجد خصائص محددة',
+                filterOptions: { rtl_support: 'دعم RTL', multi_tenant: 'بنية متعددة المستأجرين', arabic_localization: 'تعريب وواجهة عربية', api_integrations: 'تكاملات API', ai_features: 'ميزات الذكاء الاصطناعي', white_label: 'علامة بيضاء', security_compliance: 'أمن وامتثال' },
+                hint: 'سيتم البحث عن فرص SaaS حقيقية وإرفاق المصادر الموثوقة المتاحة.', advanced: 'الإعدادات المتقدمة', prompt: 'توجيهات إضافية (اختياري)',
+                placeholder: 'اكتب هنا أي توجيهات مخصصة للبحث المباشر...', start: 'بدء البحث المباشر في الويب', loading: 'يتم البحث في الويب وتحليل الفرص... يرجى الانتظار',
+                sourceTitle: 'المصادر والروابط الموثقة', tokenIn: 'توكن الإدخال', tokenOut: 'توكن الإخراج', total: 'إجمالي التوكنز', cost: 'التكلفة التقديرية',
+                error: 'حدث خطأ في الاتصال بالخادم.', invalid: 'لم يُرجع الخادم تقريراً صالحاً.',
+                found: 'الفرص التي تم التحقق منها', requested: 'المطلوب', excluded: 'فرص مستبعدة لعدم كفاية التحقق',
+                origin: 'السوق أو المستودع الأصلي', sourcesForOpportunity: 'مصادر هذه الفرصة', license: 'الترخيص', price: 'السعر',
+                verified: 'متحقق', unverified: 'غير متحقق', estimate: 'تقديري', unknown: 'غير معروف',
+                confidence: 'مستوى الثقة', lastVerified: 'آخر تحقق', high: 'مرتفع', medium: 'متوسط', low: 'منخفض',
+                verifiedFacts: 'معلومات موثقة', estimates: 'تقديرات', noOpportunities: 'لم يتم التحقق من فرص مطابقة؛ راجع الملاحظة أدناه.',
+                modelCost: 'تكلفة النموذج المقدرة', searchCost: 'رسوم البحث المقدرة', totalCost: 'الإجمالي المقدر',
+                actualBilling: 'الفوترة الفعلية: راجع Google AI Studio أو Cloud Billing', billingNote: 'هذه تقديرات وليست سجلاً للفوترة الفعلية.'
             },
             en: {
-                langBtn: 'العربية',
-                eyebrowText: 'LIVE WEB RESEARCH • AI-POWERED',
-                trustLabel: 'Engine features',
-                subText: 'AI engine for discovering and analyzing software investment opportunities',
-                chipSearch: '⌕ Live Google Search',
-                chipCitations: '↗ Cited sources & links',
-                chipReport: '✦ Tailored investor brief',
-                lblCountry: 'Target Country',
-                lblBudget: 'Investment Budget Limit',
-                lblIndustry: 'Target Industry',
-                filtersLegend: 'Required SaaS capabilities (optional)',
-                filtersHint: 'Choose one or more capabilities to filter opportunities.',
-                filterRtl: 'RTL and right-to-left language support',
-                filterMultiTenant: 'Multi-tenant architecture',
-                filterArabic: 'Arabic localization and interface',
-                filterApi: 'API integrations',
-                filterAi: 'AI features',
-                filterWhiteLabel: 'White-label capability',
-                filterSecurity: 'Security and compliance',
-                lblGoal: 'Investment Strategy',
-                lblOpportunityCount: 'Number of opportunities to generate',
-                opportunityHint: 'Choose how many SaaS opportunities to analyze. Research citations will be shown for the opportunities.',
-                advTitle: '⚙️ Advanced Options (Prompt Override)',
-                advPlaceholder: 'Enter precise instructions... e.g., focus on projects with recurring monthly revenue (MRR) above $100...',
-                btnText: 'Search & analyze',
-                loadingText: 'Searching the web and analyzing opportunities',
-                sourcesTitle: 'Sources used in this report',
-                errorAlert: 'Error connecting to the cloud server.',
-                quotaExceeded: 'The Gemini API quota is exceeded. Check billing and usage limits in Google AI Studio, then try again.',
-                invalidResponse: 'The server did not return a valid report.',
-                settingLabels: ['Country', 'Budget', 'Industry', 'Strategy', 'Number of opportunities to generate', 'Required SaaS capabilities'],
-                noExtra: 'None',
-                noFilters: 'No specific capabilities',
-                filterOptions: {
-                    rtl_support: 'RTL support',
-                    multi_tenant: 'Multi-tenant architecture',
-                    arabic_localization: 'Arabic localization',
-                    api_integrations: 'API integrations',
-                    ai_features: 'AI features',
-                    white_label: 'White-label',
-                    security_compliance: 'Security and compliance'
-                },
-                reportLanguage: 'English'
+                toggle: 'العربية', badge: 'LIVE WEB RESEARCH • AI-POWERED', title: 'SaaS Opportunity Hunter',
+                subtitle: 'AI engine for discovering and analyzing software investment opportunities', search: '⌕ Live Google Search',
+                sources: '↗ Verified sources & links', usage: '✦ Usage and cost tracking', country: 'Target country',
+                budget: 'Available budget', industry: 'Target industry', goal: 'Business goal', opportunityCount: 'Number of opportunities requested',
+                filtersLegend: 'Required SaaS capabilities (optional)', filtersHint: 'Choose one or more capabilities to filter opportunities.',
+                filterRtl: 'RTL and right-to-left language support', filterMultiTenant: 'Multi-tenant architecture',
+                filterArabic: 'Arabic localization and interface', filterApi: 'API integrations', filterAi: 'AI features',
+                filterWhiteLabel: 'White-label capability', filterSecurity: 'Security and compliance', noFilters: 'No specific capabilities',
+                filterOptions: { rtl_support: 'RTL support', multi_tenant: 'Multi-tenant architecture', arabic_localization: 'Arabic localization', api_integrations: 'API integrations', ai_features: 'AI features', white_label: 'White-label', security_compliance: 'Security and compliance' },
+                hint: 'Live web search will find real SaaS opportunities and cite available sources.', advanced: 'Advanced settings', prompt: 'Additional instructions (optional)',
+                placeholder: 'Add custom instructions for the live search...', start: 'Start live web search', loading: 'Searching the web and analyzing opportunities...',
+                sourceTitle: 'Verified sources & links', tokenIn: 'Prompt tokens', tokenOut: 'Completion tokens', total: 'Total tokens', cost: 'Estimated cost',
+                error: 'An error occurred while contacting the server.', invalid: 'The server did not return a valid report.',
+                found: 'Verified opportunities', requested: 'Requested', excluded: 'Excluded for insufficient verification',
+                origin: 'Original marketplace or repository', sourcesForOpportunity: 'Sources for this opportunity', license: 'License', price: 'Price',
+                verified: 'Verified', unverified: 'Unverified', estimate: 'Estimate', unknown: 'Unknown',
+                confidence: 'Confidence', lastVerified: 'Last verified', high: 'High', medium: 'Medium', low: 'Low',
+                verifiedFacts: 'Verified facts', estimates: 'Estimates', noOpportunities: 'No matching opportunities could be verified; see the note below.',
+                modelCost: 'Estimated model cost', searchCost: 'Estimated search fee', totalCost: 'Estimated total',
+                actualBilling: 'Actual billing: check Google AI Studio or Cloud Billing', billingNote: 'These are estimates, not actual billing records.'
             }
         };
+        let currentLang = 'ar';
 
         function setLanguage(language) {
             currentLang = language;
-            const isArabic = currentLang === 'ar';
-            const t = translations[currentLang];
-            document.documentElement.lang = currentLang;
-            document.documentElement.dir = isArabic ? 'rtl' : 'ltr';
-            langToggle.textContent = t.langBtn;
-            document.getElementById('trustRow').setAttribute('aria-label', t.trustLabel);
-            document.getElementById('eyebrowText').textContent = t.eyebrowText;
-            document.getElementById('subText').textContent = t.subText;
-            document.getElementById('chipSearch').textContent = t.chipSearch;
-            document.getElementById('chipCitations').textContent = t.chipCitations;
-            document.getElementById('chipReport').textContent = t.chipReport;
-            document.getElementById('lblCountry').textContent = t.lblCountry;
-            document.getElementById('lblBudget').textContent = t.lblBudget;
-            document.getElementById('lblIndustry').textContent = t.lblIndustry;
+            const t = translations[language];
+            document.documentElement.lang = language;
+            document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+            document.getElementById('langToggle').textContent = t.toggle;
+            document.getElementById('badgeText').textContent = t.badge;
+            document.getElementById('titleText').textContent = t.title;
+            document.getElementById('subText').textContent = t.subtitle;
+            document.getElementById('feat1').textContent = t.search;
+            document.getElementById('feat2').textContent = t.sources;
+            document.getElementById('feat3').textContent = t.usage;
+            document.getElementById('lblCountry').textContent = t.country;
+            document.getElementById('lblBudget').textContent = t.budget;
+            document.getElementById('lblIndustry').textContent = t.industry;
+            document.getElementById('lblGoal').textContent = t.goal;
+            document.getElementById('lblOpportunityCount').textContent = t.opportunityCount;
             document.getElementById('filtersLegend').textContent = t.filtersLegend;
             document.getElementById('filtersHint').textContent = t.filtersHint;
             document.getElementById('filterRtl').textContent = t.filterRtl;
@@ -615,103 +233,222 @@
             document.getElementById('filterAi').textContent = t.filterAi;
             document.getElementById('filterWhiteLabel').textContent = t.filterWhiteLabel;
             document.getElementById('filterSecurity').textContent = t.filterSecurity;
-            document.getElementById('lblGoal').textContent = t.lblGoal;
-            document.getElementById('lblOpportunityCount').textContent = t.lblOpportunityCount;
-            document.getElementById('opportunityHint').textContent = t.opportunityHint;
-            document.getElementById('advTitle').textContent = t.advTitle;
-            document.getElementById('advanced').placeholder = t.advPlaceholder;
-            document.getElementById('startBtn').textContent = t.btnText;
-            document.getElementById('loadingText').textContent = t.loadingText;
-
-            document.querySelectorAll('select option').forEach((option) => {
-                option.textContent = option.dataset[currentLang];
+            document.getElementById('lblHint').textContent = t.hint;
+            document.getElementById('advTitle').textContent = t.advanced;
+            document.getElementById('lblPrompt').textContent = t.prompt;
+            document.getElementById('promptOverride').placeholder = t.placeholder;
+            document.getElementById('startBtn').textContent = t.start;
+            document.getElementById('loading').textContent = t.loading;
+            document.querySelectorAll('select option[data-ar][data-en]').forEach((option) => {
+                option.textContent = option.dataset[language];
             });
         }
 
-        langToggle.addEventListener('click', () => {
+        document.getElementById('langToggle').addEventListener('click', () => {
             setLanguage(currentLang === 'ar' ? 'en' : 'ar');
         });
 
-        function getSelectedLabel(id) {
+        function selectedLabel(id) {
             const option = document.getElementById(id).selectedOptions[0];
-            return currentLang === 'ar' ? option.dataset.ar || option.value : option.dataset.en;
+            return option.dataset[currentLang] || option.value;
+        }
+
+        function appendUsage(output, usage, costs, t) {
+            if (!usage && !costs) return;
+            const panel = document.createElement('div');
+            panel.className = 'usage-stats';
+            const entries = [
+                [t.tokenIn, usage?.promptTokens],
+                [t.tokenOut, usage?.completionTokens],
+                [t.total, usage?.totalTokens],
+                [t.modelCost, costs ? `$${costs.modelUsd}` : null],
+                [t.searchCost, costs ? `$${costs.searchUsd}` : null],
+                [t.totalCost, costs ? `$${costs.totalUsd}` : null]
+            ].filter((entry) => entry[1] !== null && entry[1] !== undefined);
+            entries.forEach(([label, value]) => {
+                const item = document.createElement('div');
+                const strong = document.createElement('strong');
+                strong.textContent = `${label}:`;
+                item.append(strong, document.createTextNode(` ${value}`));
+                panel.appendChild(item);
+            });
+            output.appendChild(panel);
+            const note = document.createElement('p');
+            note.className = 'hint';
+            note.textContent = `${t.billingNote} ${t.actualBilling}.`;
+            output.appendChild(note);
+        }
+
+        function addSection(container, title, values, t) {
+            if (!Array.isArray(values) || values.length === 0) return;
+            const section = document.createElement('div');
+            section.className = 'opportunity-section';
+            const heading = document.createElement('h4');
+            heading.textContent = title;
+            const list = document.createElement('ul');
+            values.forEach((value) => {
+                const item = document.createElement('li');
+                if (typeof value === 'string') {
+                    item.textContent = value;
+                } else {
+                    item.textContent = value.claim;
+                    if (value.url) {
+                        const source = document.createElement('a');
+                        source.href = value.url;
+                        source.target = '_blank';
+                        source.rel = 'noopener noreferrer';
+                        source.textContent = ` (${value.title || value.url})`;
+                        item.appendChild(source);
+                    }
+                }
+                list.appendChild(item);
+            });
+            section.append(heading, list);
+            container.appendChild(section);
+        }
+
+        function safeHttpUrl(value) {
+            try {
+                const url = new URL(value);
+                return ['http:', 'https:'].includes(url.protocol) ? url : null;
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function renderOpportunity(opportunity, t) {
+            const card = document.createElement('article');
+            card.className = 'opportunity';
+            const title = document.createElement('h3');
+            const directUrl = safeHttpUrl(opportunity.directUrl);
+            if (directUrl) {
+                const link = document.createElement('a');
+                link.href = directUrl.href;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.textContent = opportunity.productName;
+                title.appendChild(link);
+            } else {
+                title.textContent = opportunity.productName;
+            }
+            card.appendChild(title);
+
+            const meta = document.createElement('div');
+            meta.className = 'opportunity-meta';
+            const origin = safeHttpUrl(opportunity.originUrl);
+            const originText = origin ? `${opportunity.originName}: ${origin.href}` : opportunity.originName;
+            meta.append(document.createTextNode(`${t.origin}: ${originText}`));
+            meta.append(document.createTextNode(`${t.confidence}: ${t[opportunity.confidence] || t.low}`));
+            meta.append(document.createTextNode(`${t.lastVerified}: ${opportunity.lastVerifiedDate}`));
+            card.appendChild(meta);
+
+            const priceText = opportunity.price?.status === 'unknown'
+                ? t.unknown
+                : `${opportunity.price.amount || ''} ${opportunity.price.currency || ''} ${opportunity.price.period || ''} (${t[opportunity.price.status] || t.unverified})`.trim();
+            const licenseText = `${opportunity.license?.name || t.unknown} (${opportunity.license?.status === 'verified' ? t.verified : t.unverified})`;
+            const facts = document.createElement('div');
+            facts.className = 'opportunity-meta opportunity-section';
+            facts.append(document.createTextNode(`${t.price}: ${priceText}`));
+            facts.append(document.createTextNode(`${t.license}: ${licenseText}`));
+            card.appendChild(facts);
+
+            addSection(card, t.verifiedFacts, opportunity.verifiedFacts, t);
+            addSection(card, t.estimates, opportunity.estimates, t);
+
+            if (Array.isArray(opportunity.supportingSources) && opportunity.supportingSources.length) {
+                const section = document.createElement('div');
+                section.className = 'opportunity-section';
+                const heading = document.createElement('h4');
+                heading.textContent = t.sourcesForOpportunity;
+                const list = document.createElement('ul');
+                opportunity.supportingSources.forEach((source) => {
+                    const url = safeHttpUrl(source.url);
+                    if (!url) return;
+                    const link = document.createElement('a');
+                    link.href = url.href;
+                    link.target = '_blank';
+                    link.rel = 'noopener noreferrer';
+                    link.textContent = source.title || url.hostname;
+                    const item = document.createElement('li');
+                    item.appendChild(link);
+                    list.appendChild(item);
+                });
+                section.append(heading, list);
+                card.appendChild(section);
+            }
+            return card;
+        }
+
+        function renderReport(output, data, t) {
+            const summary = document.createElement('div');
+            summary.className = 'report-summary';
+            const count = document.createElement('strong');
+            count.textContent = `${t.found}: ${data.verifiedCount} / ${data.requestedCount ?? data.verifiedCount}`;
+            summary.appendChild(count);
+            if (data.summary) {
+                const paragraph = document.createElement('p');
+                paragraph.textContent = data.summary;
+                summary.appendChild(paragraph);
+            }
+            if (data.verificationNote) {
+                const note = document.createElement('p');
+                note.textContent = data.verificationNote;
+                summary.appendChild(note);
+            }
+            if (data.excludedCount) {
+                const excluded = document.createElement('p');
+                excluded.textContent = `${t.excluded}: ${data.excludedCount}`;
+                summary.appendChild(excluded);
+            }
+            output.appendChild(summary);
+
+            const list = document.createElement('div');
+            list.className = 'opportunity-list';
+            if (!data.opportunities?.length) {
+                const empty = document.createElement('p');
+                empty.textContent = t.noOpportunities;
+                list.appendChild(empty);
+            } else {
+                data.opportunities.forEach((opportunity) => list.appendChild(renderOpportunity(opportunity, t)));
+            }
+            output.appendChild(list);
+            appendUsage(output, data.usage, data.estimatedCosts, t);
         }
 
         document.getElementById('configForm').addEventListener('submit', async (event) => {
             event.preventDefault();
-            const btn = document.getElementById('startBtn');
+            const button = document.getElementById('startBtn');
             const loading = document.getElementById('loading');
             const output = document.getElementById('reportOutput');
             const t = translations[currentLang];
-
-            const advancedText = document.getElementById('advanced').value.trim();
             const opportunityCount = Number(document.getElementById('opportunityCount').value);
+            const website = document.getElementById('website').value;
             const selectedFilters = Array.from(document.querySelectorAll('input[name="featureFilter"]:checked'), (input) => input.value);
             const selectedFilterLabels = selectedFilters.map((filter) => t.filterOptions[filter]);
-            const settings = `${t.settingLabels[0]}: ${getSelectedLabel('country')}, ${t.settingLabels[1]}: ${getSelectedLabel('budget')}, ${t.settingLabels[2]}: ${getSelectedLabel('industry')}, ${t.settingLabels[3]}: ${getSelectedLabel('goal')}, ${t.settingLabels[4]}: ${opportunityCount}, ${t.settingLabels[5]}: ${selectedFilterLabels.join(', ') || t.noFilters}. ${currentLang === 'ar' ? 'محددات إضافية من المستخدم' : 'Additional user requirements'}: ${advancedText || t.noExtra}. ${currentLang === 'ar' ? 'يرجى إعداد التقرير باللغة' : 'Please write the report in'} ${t.reportLanguage}.`;
+            const settings = `Country: ${selectedLabel('country')}; Budget: ${selectedLabel('budget')}; Industry: ${selectedLabel('industry')}; Goal: ${selectedLabel('goal')}; Requested SaaS opportunities: ${opportunityCount}; Required SaaS capabilities: ${selectedFilterLabels.join(', ') || t.noFilters}; Additional instructions: ${document.getElementById('promptOverride').value.trim() || 'None'}. Write the report in ${currentLang === 'ar' ? 'Arabic' : 'English'}.`;
 
-            btn.disabled = true;
+            button.disabled = true;
             loading.style.display = 'block';
             output.style.display = 'none';
+            output.replaceChildren();
 
             try {
                 const response = await fetch('/.netlify/functions/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ settings, opportunityCount, language: currentLang, filters: selectedFilters })
+                    body: JSON.stringify({ settings, language: currentLang, opportunityCount, filters: selectedFilters, website })
                 });
                 const data = await response.json();
-
-                if (!response.ok) {
-                    if (data.errorCode === 'AI_QUOTA_EXCEEDED') {
-                        throw new Error(t.quotaExceeded);
-                    }
-                    throw new Error(data.error || t.errorAlert);
-                }
-                if (typeof data.result !== 'string' || !data.result.trim()) {
-                    throw new Error(t.invalidResponse);
-                }
-
-                output.innerHTML = marked.parse(data.result);
-                if (Array.isArray(data.sources) && data.sources.length) {
-                    const sourcesPanel = document.createElement('div');
-                    sourcesPanel.className = 'sources-panel';
-                    const sourcesTitle = document.createElement('h2');
-                    sourcesTitle.textContent = t.sourcesTitle;
-                    const sourceLinks = document.createElement('div');
-                    sourceLinks.className = 'source-links';
-
-                    data.sources.forEach((source) => {
-                        try {
-                            const url = new URL(source.url);
-                            if (!['http:', 'https:'].includes(url.protocol)) return;
-
-                            const link = document.createElement('a');
-                            link.className = 'source-link';
-                            link.href = url.href;
-                            link.target = '_blank';
-                            link.rel = 'noopener noreferrer';
-                            link.textContent = `↗ ${source.title || url.hostname}`;
-                            sourceLinks.appendChild(link);
-                        } catch (error) {
-                            console.warn('Skipping invalid source URL', source.url);
-                        }
-                    });
-
-                    if (sourceLinks.childElementCount) {
-                        sourcesPanel.append(sourcesTitle, sourceLinks);
-                        output.appendChild(sourcesPanel);
-                    }
-                }
+                if (!response.ok) throw new Error(data.error || t.error);
+                if (!Array.isArray(data.opportunities) || !Number.isInteger(data.verifiedCount)) throw new Error(t.invalid);
+                renderReport(output, data, t);
                 output.style.display = 'block';
             } catch (error) {
-                alert(error.message || t.errorAlert);
+                alert(error.message || t.error);
             } finally {
-                btn.disabled = false;
+                button.disabled = false;
                 loading.style.display = 'none';
-                if (output.innerHTML !== '') {
-                    output.scrollIntoView({ behavior: 'smooth' });
-                }
+                if (output.innerHTML !== '') output.scrollIntoView({ behavior: 'smooth' });
             }
         });
     </script>

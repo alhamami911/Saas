@@ -1,157 +1,228 @@
+"use strict";
+
+const { getConfig, estimateCosts } = require("./config");
+const { checkRateLimit } = require("./rate-limit");
+const { createUsageEvent, storeUsage } = require("./usage-store");
+const { buildResearchPrompt, validateRequest, validateResearchResult } = require("./research");
+
+function jsonResponse(statusCode, payload, extraHeaders = {}) {
+    return {
+        statusCode,
+        headers: { "Content-Type": "application/json", ...extraHeaders },
+        body: JSON.stringify(payload)
+    };
+}
+
+function safeProviderMessage(data) {
+    const message = data?.error?.message;
+    return typeof message === "string" ? message.slice(0, 500) : "No provider error details";
+}
+
+async function persistRequest(config, fields, usage, grounded) {
+    const event = createUsageEvent({ ...fields, usage: usage || null, grounded });
+    const stored = await storeUsage(config, event, grounded);
+    const costs = estimateCosts(
+        usage,
+        config,
+        grounded && stored.groundedPromptsToday > config.searchFreeDailyPrompts
+    );
+    event.groundedPromptsToday = stored.groundedPromptsToday;
+    event.estimatedCosts = costs;
+    await storeUsage(config, event, false);
+    return { requestId: event.requestId, usage: event.usage, costs };
+}
+
 exports.handler = async function (event) {
     if (event.httpMethod !== "POST") {
-        return {
-            statusCode: 405,
-            headers: { Allow: "POST" },
-            body: "Method Not Allowed"
-        };
+        return jsonResponse(405, { errorCode: "METHOD_NOT_ALLOWED", error: "Method Not Allowed" }, { Allow: "POST" });
+    }
+
+    let config;
+    try {
+        config = getConfig();
+    } catch (error) {
+        console.error("Invalid QLook environment configuration", error.message);
+        return jsonResponse(500, { errorCode: "INVALID_SERVER_CONFIGURATION", error: "Server configuration is invalid" });
+    }
+    if (!config.apiKey) {
+        console.error("qlook_key is not configured");
+        return jsonResponse(503, { errorCode: "GEMINI_KEY_MISSING", error: "Gemini service is not configured" });
+    }
+
+    const rawBody = event.isBase64Encoded
+        ? Buffer.from(event.body || "", "base64").toString("utf8")
+        : event.body || "";
+    if (Buffer.byteLength(rawBody, "utf8") > config.maxRequestBodyBytes) {
+        return jsonResponse(413, { errorCode: "REQUEST_TOO_LARGE", error: "Request body exceeds the allowed size" });
+    }
+    const contentType = event.headers?.["content-type"] || event.headers?.["Content-Type"];
+    if (contentType && !contentType.toLowerCase().startsWith("application/json")) {
+        return jsonResponse(415, { errorCode: "UNSUPPORTED_CONTENT_TYPE", error: "Send the request as application/json" });
     }
 
     let data;
     try {
-        data = JSON.parse(event.body || "");
+        data = JSON.parse(rawBody);
     } catch (error) {
-        return {
-            statusCode: 400,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ error: "Invalid JSON request body" })
-        };
+        return jsonResponse(400, { errorCode: "INVALID_JSON", error: "Invalid JSON request body" });
     }
-
-    if (!data || typeof data !== "object" || Array.isArray(data)
-        || typeof data.settings !== "string" || !data.settings.trim()) {
-        return {
-            statusCode: 400,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ error: "A non-empty settings value is required" })
-        };
-    }
-
-    const opportunityCount = Number(data.opportunityCount);
-    if (!Number.isInteger(opportunityCount) || ![5, 10, 20].includes(opportunityCount)) {
-        return {
-            statusCode: 400,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ error: "Choose a supported opportunity count: 5, 10, or 20" })
-        };
-    }
-
-    const language = data.language === undefined ? "ar" : data.language;
-    if (language !== "ar" && language !== "en") {
-        return {
-            statusCode: 400,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ error: "Choose a supported report language: ar or en" })
-        };
-    }
-
-    const filterDescriptions = {
-        rtl_support: "RTL and right-to-left language support",
-        multi_tenant: "multi-tenant architecture with organization/workspace support",
-        arabic_localization: "Arabic localization and Arabic-language interface",
-        api_integrations: "API integrations",
-        ai_features: "AI features",
-        white_label: "white-label capability",
-        security_compliance: "security and regulatory compliance"
-    };
-    const filters = data.filters === undefined ? [] : data.filters;
-    if (!Array.isArray(filters)
-        || filters.some((filter) => typeof filter !== "string"
-            || !Object.prototype.hasOwnProperty.call(filterDescriptions, filter))
-        || new Set(filters).size !== filters.length) {
-        return {
-            statusCode: 400,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ error: "Choose valid, unique SaaS capability filters" })
-        };
-    }
-
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-        console.error("GEMINI_API_KEY is not configured");
-        return {
-            statusCode: 500,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ error: "The Gemini API key is not configured" })
-        };
-    }
-
-    const reportLanguage = language === "ar" ? "العربية" : "الإنجليزية";
-    const selectedFilters = filters.length
-        ? filters.map((filter) => filterDescriptions[filter]).join(", ")
-        : "No mandatory product capability filters";
-    const masterPrompt = `أنت محلل استثمارات SaaS خبير. ابحث على الويب عن فرص ومشاريع SaaS حقيقية وحديثة، ثم أعد تقريراً مفصلاً باللغة ${reportLanguage} بناءً على إعدادات المستخدم. أنشئ ${opportunityCount} فرص SaaS منفصلة بالضبط، ورقّم كل فرصة واجعلها واضحة ومستقلة في جدول المقارنة والتوصيات. طبّق خصائص SaaS المطلوبة التالية كمرشحات إلزامية، ولا تعرض فرصة على أنها مطابقة ما لم يدعمها مصدر موثوق: ${selectedFilters}. إذا تعذر العثور على ${opportunityCount} فرص تطابق المرشحات، اذكر العدد الذي أمكن التحقق منه ولا تختلق فرصاً ولا تخفف المرشحات. استخدم بحث الويب والاستشهادات لدعم الفرص، وأدرج روابط المصادر الحقيقية في التقرير. أضف تحليلاً مالياً وتوصية نهائية وخطة عمل واضحة. لا تختلق مصادر أو أرقاماً أو بيانات مالية؛ ميّز التقديرات عن الحقائق، واذكر بوضوح عندما لا تتوفر بيانات. استخدم الاستشهادات التي توفرها أداة البحث فقط.
-        إعدادات البحث المطلوبة: ${data.settings}`;
-
-    try {
-        const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "x-goog-api-key": apiKey
-            },
-            body: JSON.stringify({
-                model: "gemini-3.8-flash",
-                input: masterPrompt,
-                tools: [{ type: "google_search" }],
-                store: false
-            })
+    const validation = validateRequest(data, config);
+    if (validation.error) {
+        return jsonResponse(validation.statusCode, {
+            errorCode: validation.errorCode,
+            error: validation.error
         });
-
-        const resultData = await response.json();
-        if (!response.ok) {
-            console.error("Gemini API request failed", response.status, resultData.error?.message);
-            const quotaExceeded = response.status === 429
-                || resultData.error?.status === "RESOURCE_EXHAUSTED";
-            return {
-                statusCode: quotaExceeded ? 429 : 502,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    errorCode: quotaExceeded ? "AI_QUOTA_EXCEEDED" : "GEMINI_REQUEST_FAILED",
-                    error: quotaExceeded
-                        ? "The AI search quota is exceeded. Check Gemini API billing and usage limits, then try again."
-                        : "Gemini API request failed"
-                })
-            };
-        }
-
-        const generatedText = resultData.steps
-            ?.filter((step) => step.type === "model_output")
-            .flatMap((step) => step.content || [])
-            .map((part) => part.text)
-            .filter(Boolean)
-            .join("");
-        const sources = resultData.steps
-            ?.filter((step) => step.type === "model_output")
-            .flatMap((step) => step.content || [])
-            .flatMap((part) => part.annotations || [])
-            .filter((annotation) => annotation.type === "url_citation"
-                && typeof annotation.url === "string"
-                && /^https?:\/\//i.test(annotation.url))
-            .map((annotation) => ({ title: annotation.title, url: annotation.url }))
-            .filter((source, index, allSources) =>
-                allSources.findIndex((item) => item.url === source.url) === index);
-
-        if (!generatedText) {
-            console.error("Gemini API response did not contain generated text");
-            return {
-                statusCode: 502,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ error: "Gemini returned no generated text" })
-            };
-        }
-
-        return {
-            statusCode: 200,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ result: generatedText, sources })
-        };
-    } catch (error) {
-        console.error("Failed to generate the SaaS opportunity report", error);
-        return {
-            statusCode: 502,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ error: "Unable to generate the report" })
-        };
     }
+
+    const limit = await checkRateLimit(event, config);
+    if (!limit.allowed) {
+        const headers = limit.retryAfter ? { "Retry-After": String(limit.retryAfter) } : {};
+        return jsonResponse(limit.statusCode, { errorCode: limit.errorCode, error: limit.error }, headers);
+    }
+
+    const request = validation.value;
+    const prompt = buildResearchPrompt(request);
+    let providerResponse;
+    let providerData;
+    try {
+        providerResponse = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": config.apiKey
+                },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    tools: [{ googleSearch: {} }],
+                    generationConfig: {
+                        maxOutputTokens: config.maxOutputTokens,
+                        temperature: 0.2
+                    }
+                }),
+                signal: AbortSignal.timeout(config.requestTimeoutMs)
+            }
+        );
+        providerData = await providerResponse.json();
+    } catch (error) {
+        const timedOut = error.name === "TimeoutError" || error.name === "AbortError";
+        console.error("Gemini request failed", timedOut ? "timeout" : error.message);
+        try {
+            await persistRequest(config, {
+                requestedCount: request.opportunityCount,
+                language: request.language,
+                outcome: timedOut ? "timeout" : "network_error"
+            }, null, false);
+        } catch (usageError) {
+            console.error("Could not persist failed request usage", usageError.message);
+        }
+        return jsonResponse(timedOut ? 504 : 502, {
+            errorCode: timedOut ? "GEMINI_TIMEOUT" : "GEMINI_UNAVAILABLE",
+            error: timedOut ? "Gemini request timed out. Try again." : "Gemini could not be reached"
+        });
+    }
+
+    const candidate = providerData?.candidates?.[0];
+    const usage = providerData?.usageMetadata || null;
+    const groundingChunks = candidate?.groundingMetadata?.groundingChunks || [];
+
+    if (!providerResponse.ok) {
+        const providerMessage = safeProviderMessage(providerData);
+        const quotaExceeded = providerResponse.status === 429
+            || providerData?.error?.status === "RESOURCE_EXHAUSTED"
+            || /quota|resource.?exhausted|rate.?limit/i.test(providerMessage);
+        try {
+            await persistRequest(config, {
+                requestedCount: request.opportunityCount,
+                language: request.language,
+                providerStatus: providerResponse.status,
+                outcome: quotaExceeded ? "provider_quota_exceeded" : "provider_error"
+            }, usage, false);
+        } catch (usageError) {
+            console.error("Could not persist failed request usage", usageError.message);
+        }
+        console.error("Gemini API request failed", providerResponse.status, providerMessage);
+        return jsonResponse(quotaExceeded ? 429 : 502, {
+            errorCode: quotaExceeded ? "AI_QUOTA_EXCEEDED" : "GEMINI_REQUEST_FAILED",
+            error: quotaExceeded
+                ? "Gemini usage quota reached. Check the provider quota and try again later."
+                : "Gemini rejected the research request. Check server logs for provider details."
+        });
+    }
+
+    const responseText = candidate?.content?.parts
+        ?.map((part) => part.text)
+        .filter(Boolean)
+        .join("");
+    if (!responseText || candidate.finishReason === "MAX_TOKENS") {
+        const errorCode = candidate?.finishReason === "MAX_TOKENS" ? "OUTPUT_LIMIT_REACHED" : "EMPTY_MODEL_RESPONSE";
+        try {
+            await persistRequest(config, {
+                requestedCount: request.opportunityCount,
+                language: request.language,
+                outcome: errorCode.toLowerCase()
+            }, usage, groundingChunks.length > 0);
+        } catch (usageError) {
+            console.error("Could not persist incomplete request usage", usageError.message);
+        }
+        return jsonResponse(502, {
+            errorCode,
+            error: errorCode === "OUTPUT_LIMIT_REACHED"
+                ? "Gemini reached the configured output limit. Retry with fewer opportunities."
+                : "Gemini returned no research text"
+        });
+    }
+
+    const research = validateResearchResult(
+        responseText,
+        groundingChunks,
+        request.opportunityCount
+    );
+    if (research.error) {
+        try {
+            await persistRequest(config, {
+                requestedCount: request.opportunityCount,
+                outcome: research.errorCode
+            }, usage, groundingChunks.length > 0);
+        } catch (usageError) {
+            console.error("Could not persist invalid model response usage", usageError.message);
+        }
+        return jsonResponse(502, { errorCode: research.errorCode, error: research.error });
+    }
+
+    let accounting;
+    try {
+        accounting = await persistRequest(config, {
+            requestedCount: request.opportunityCount,
+            verifiedCount: research.value.verifiedCount,
+            excludedCount: research.value.excludedCount,
+            language: request.language,
+            outcome: "success"
+        }, usage, groundingChunks.length > 0);
+    } catch (error) {
+        console.error("Usage accounting failed; withholding report", error.message);
+        return jsonResponse(503, {
+            errorCode: "USAGE_ACCOUNTING_UNAVAILABLE",
+            error: "Usage tracking is temporarily unavailable. Please retry shortly."
+        });
+    }
+
+    return jsonResponse(200, {
+        ...research.value,
+        requestedCount: request.opportunityCount,
+        sources: [...new Map(groundingChunks
+            .map((chunk) => chunk?.web)
+            .filter((web) => web?.uri)
+            .map((web) => [web.uri, { title: web.title, url: web.uri }])).values()],
+        usage: {
+            promptTokens: usage?.promptTokenCount || 0,
+            completionTokens: usage?.candidatesTokenCount || 0,
+            thinkingTokens: usage?.thoughtsTokenCount || 0,
+            totalTokens: usage?.totalTokenCount || 0
+        },
+        estimatedCosts: accounting.costs,
+        billingNote: "Estimated provider cost only. Actual charges and shared project quotas are shown in Google AI Studio/Cloud billing.",
+        requestId: accounting.requestId
+    });
 };
