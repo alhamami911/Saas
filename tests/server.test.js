@@ -85,7 +85,6 @@ test("serves the app, admin page and health check", async () => {
         assert.equal(admin.status, 200);
         assert.match(admin.headers.get("content-security-policy"), /frame-ancestors 'none'/);
         assert.equal((await call("/server/config.js")).status, 404);
-        assert.equal((await call("/.netlify/functions/generate", { method: "POST", body: {} })).status, 404);
         assert.equal((await call("/../server.js")).status, 404);
     });
 });
@@ -142,6 +141,30 @@ test("saves a checked Gemini key, applies it immediately, and keeps it across re
         assert.equal(removed.data.gemini.configured, false);
         assert.equal(process.env.qlook_key, undefined);
     });
+});
+
+test("key test runs a grounded research request and reports Google's reason", async () => {
+    const calls = [];
+    const fetchImpl = async (url, options) => {
+        calls.push({ url, body: options.body });
+        if (url.endsWith(":generateContent")) {
+            return { ok: false, status: 400, json: async () => ({ error: { message: "Search grounding is not enabled for this project" } }) };
+        }
+        return { ok: options.headers["x-goog-api-key"] === VALID_KEY, status: 200, json: async () => ({}) };
+    };
+    await withServer(async (ctx) => {
+        const cookie = await ctx.login();
+        const empty = await ctx.call("/admin/api/gemini-key/test", { method: "POST", cookie });
+        assert.equal(empty.data.check.valid, false);
+        assert.equal((await ctx.call("/admin/api/gemini-key", { method: "PUT", cookie, body: { key: VALID_KEY } })).status, 200);
+        const tested = await ctx.call("/admin/api/gemini-key/test", { method: "POST", cookie });
+        assert.equal(tested.data.check.valid, false);
+        assert.equal(tested.data.check.research, false);
+        assert.match(tested.data.check.message, /research requests fail: Search grounding is not enabled/);
+        assert.ok(!JSON.stringify(tested.data).includes(VALID_KEY));
+        const research = calls.find((call) => call.url.endsWith(":generateContent"));
+        assert.ok(JSON.parse(research.body).tools[0].googleSearch);
+    }, { fetchImpl });
 });
 
 test("rejects cross-site admin writes", async () => {

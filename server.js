@@ -142,6 +142,35 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         }
     }
 
+    // Listing the model only proves the key exists. Research also needs
+    // generateContent with Google Search grounding, so the admin test runs a
+    // tiny grounded request and reports Google's own reason when it fails.
+    async function testGeminiResearch(key) {
+        const access = await testGeminiKey(key);
+        if (!access.valid) return access;
+        try {
+            const response = await fetchImpl(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: "Reply with the single word OK." }] }],
+                        tools: [{ googleSearch: {} }],
+                        generationConfig: { maxOutputTokens: 256 }
+                    }),
+                    signal: AbortSignal.timeout(30000)
+                }
+            );
+            if (response.ok) return { valid: true, research: true };
+            const data = await response.json().catch(() => ({}));
+            const message = typeof data?.error?.message === "string" ? data.error.message.slice(0, 300) : `HTTP ${response.status}`;
+            return { valid: false, reachable: true, research: false, status: response.status, message: `Key works, but research requests fail: ${message}` };
+        } catch (error) {
+            return { valid: false, reachable: false, research: false, message: "Google could not be reached to run a research test" };
+        }
+    }
+
     async function handleGenerate(req, res) {
         const body = await readBody(req);
         const headers = { ...req.headers, "x-qlook-client-ip": clientIp(req) };
@@ -205,7 +234,7 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
 
         if (route === "/gemini-key/test" && req.method === "POST") {
             if (!env.qlook_key) return sendJson(res, 200, { check: { valid: false, message: "No key is configured" } });
-            return sendJson(res, 200, { check: await testGeminiKey(env.qlook_key) });
+            return sendJson(res, 200, { check: await testGeminiResearch(env.qlook_key) });
         }
 
         if (route === "/password" && req.method === "PUT") {

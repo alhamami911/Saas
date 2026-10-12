@@ -192,7 +192,7 @@
             busy(event.currentTarget, async () => {
                 const { ok, data } = await api('/gemini-key/test', { method: 'POST' });
                 if (!ok) return showMsg('keyMsg', data.error || 'Test failed', false);
-                showMsg('keyMsg', data.check.valid ? 'Google accepted the current key.' : `Key check failed: ${data.check.message}`, data.check.valid);
+                showMsg('keyMsg', data.check.valid ? 'Google accepted the current key and a test research request succeeded.' : `Key check failed: ${data.check.message}`, data.check.valid);
             });
         });
 
