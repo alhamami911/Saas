@@ -527,6 +527,7 @@
                 loadingText: 'يتم البحث في الويب وتحليل الفرص',
                 sourcesTitle: 'المصادر المستخدمة في التقرير',
                 errorAlert: 'تم رصد خطأ في الاتصال بالخادم السحابي.',
+                quotaExceeded: 'تم تجاوز حصة استخدام Gemini. تحقق من إعدادات الفوترة وحدود الاستخدام في Google AI Studio ثم أعد المحاولة.',
                 invalidResponse: 'لم يُرجع الخادم تقريراً صالحاً.',
                 settingLabels: ['الدولة', 'الميزانية', 'القطاع', 'الاستراتيجية', 'عدد الفرص المطلوب توليدها', 'خصائص SaaS المطلوبة'],
                 noExtra: 'لا يوجد',
@@ -571,6 +572,7 @@
                 loadingText: 'Searching the web and analyzing opportunities',
                 sourcesTitle: 'Sources used in this report',
                 errorAlert: 'Error connecting to the cloud server.',
+                quotaExceeded: 'The Gemini API quota is exceeded. Check billing and usage limits in Google AI Studio, then try again.',
                 invalidResponse: 'The server did not return a valid report.',
                 settingLabels: ['Country', 'Budget', 'Industry', 'Strategy', 'Number of opportunities to generate', 'Required SaaS capabilities'],
                 noExtra: 'None',
@@ -661,6 +663,9 @@
                 const data = await response.json();
 
                 if (!response.ok) {
+                    if (data.errorCode === 'AI_QUOTA_EXCEEDED') {
+                        throw new Error(t.quotaExceeded);
+                    }
                     throw new Error(data.error || t.errorAlert);
                 }
                 if (typeof data.result !== 'string' || !data.result.trim()) {
