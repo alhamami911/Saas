@@ -1,0 +1,15 @@
+name: CI
+
+# The server deploys main by itself (see deploy/README.md). This workflow runs the
+# same Docker build, tests included, so a broken commit shows up red here first.
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image (runs the test suite)
+        run: docker build --build-arg GIT_SHA=${{ github.sha }} -t qlook:ci .

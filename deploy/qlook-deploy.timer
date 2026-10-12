@@ -1,0 +1,10 @@
+[Unit]
+Description=Check GitHub for new QLook commits every minute
+
+[Timer]
+OnBootSec=1min
+OnUnitInactiveSec=1min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
