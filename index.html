@@ -86,6 +86,9 @@
         .stat strong { display: block; font-size: 1.4rem; color: var(--primary-color); }
         .stat span { font-size: 0.85rem; color: var(--text-secondary); }
         .card-actions { margin-top: 12px; }
+        .via-official_api { background: #ecfdf5; color: #047857; }
+        .via-web_search { background: #eff6ff; color: #1d4ed8; }
+        .fit-note { margin: 8px 0 0; font-size: 0.88rem; }
         .commercial-use { margin: 10px 0 0; padding: 8px 10px; border-radius: 6px; font-size: 0.85rem; background: var(--secondary-color); }
         .commercial-allowed { border-inline-start: 3px solid #10b981; }
         .commercial-restricted { border-inline-start: 3px solid #dc2626; }
@@ -211,25 +214,30 @@
         const countrySelect = document.getElementById('country');
         const arabicCountryNames = new Intl.DisplayNames(['ar'], { type: 'region' });
         const englishCountryNames = new Intl.DisplayNames(['en'], { type: 'region' });
-        const countryOptions = [];
-        for (let first = 65; first <= 90; first += 1) {
-            for (let second = 65; second <= 90; second += 1) {
-                const code = String.fromCharCode(first, second);
-                const arabicName = arabicCountryNames.of(code);
-                const englishName = englishCountryNames.of(code);
-                if (arabicName && englishName && arabicName !== code && englishName !== code) {
-                    countryOptions.push({ code, arabicName, englishName });
-                }
-            }
-        }
-        countryOptions.sort((first, second) => first.arabicName.localeCompare(second.arabicName, 'ar'));
-        countryOptions.forEach(({ code, arabicName, englishName }) => {
-            const option = document.createElement('option');
-            option.value = code;
-            option.dataset.ar = arabicName;
-            option.dataset.en = englishName;
-            option.textContent = arabicName;
-            countrySelect.appendChild(option);
+        // QLook targets Saudi Arabia, the Gulf and the wider MENA region only.
+        const COUNTRY_GROUPS = [
+            { ar: 'السعودية', en: 'Saudi Arabia', codes: ['SA'] },
+            { ar: 'دول الخليج', en: 'Gulf (GCC)', codes: ['GCC', 'AE', 'KW', 'QA', 'BH', 'OM'] },
+            { ar: 'الشرق الأوسط وشمال أفريقيا', en: 'Middle East & North Africa', codes: ['MENA', 'EG', 'JO', 'IQ', 'LB', 'PS', 'SY', 'YE', 'MA', 'DZ', 'TN', 'LY', 'SD', 'MR'] }
+        ];
+        const REGION_NAMES = {
+            GCC: { ar: 'كل دول الخليج', en: 'All Gulf (GCC) countries' },
+            MENA: { ar: 'كل دول الشرق الأوسط وشمال أفريقيا', en: 'All MENA countries' }
+        };
+        COUNTRY_GROUPS.forEach((group) => {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = group.ar;
+            optgroup.dataset.ar = group.ar;
+            optgroup.dataset.en = group.en;
+            group.codes.forEach((code) => {
+                const option = document.createElement('option');
+                option.value = code;
+                option.dataset.ar = REGION_NAMES[code]?.ar || arabicCountryNames.of(code);
+                option.dataset.en = REGION_NAMES[code]?.en || englishCountryNames.of(code);
+                option.textContent = option.dataset.ar;
+                optgroup.appendChild(option);
+            });
+            countrySelect.appendChild(optgroup);
         });
 
         const translations = {
@@ -253,6 +261,8 @@
                 confidence: 'مستوى الثقة', lastVerified: 'آخر تحقق', high: 'مرتفع', medium: 'متوسط', low: 'منخفض',
                 verifiedFacts: 'معلومات موثقة', estimates: 'تقديرات', noOpportunities: 'لم يتم التحقق من فرص مطابقة؛ راجع الملاحظة أدناه.',
                 availability: 'الإتاحة', availability_available: 'متاحة (حسب المصدر)', availability_unknown: 'غير مؤكدة',
+                viaApi: 'من الواجهة الرسمية للسوق', viaSearch: 'من البحث داخل السوق', sales: 'المبيعات', rating: 'التقييم', updated: 'آخر تحديث',
+                fitNote: 'ملاءمة السوق المستهدف', coverage: 'المصادر التي فُحصت', coverageApi: 'واجهة رسمية', coverageError: 'تعذّر الوصول', coverageSearch: 'بحث داخل الأسواق الأخرى، عدد عمليات البحث',
                 errorCodes: {
                     RATE_LIMITED: 'أجريت عمليات بحث كثيرة خلال وقت قصير. انتظر دقيقة واحدة ثم حاول مرة أخرى.',
                     DAILY_LIMIT_REACHED: 'وصلت إلى الحد اليومي لعمليات البحث (30 بحثاً). يمكنك المحاولة مجدداً غداً.',
@@ -288,6 +298,8 @@
                 confidence: 'Confidence', lastVerified: 'Last verified', high: 'High', medium: 'Medium', low: 'Low',
                 verifiedFacts: 'Verified facts', estimates: 'Estimates', noOpportunities: 'No matching opportunities could be verified; see the note below.',
                 availability: 'Availability', availability_available: 'Available (per source)', availability_unknown: 'Not confirmed',
+                viaApi: 'From the official marketplace API', viaSearch: 'From a marketplace search', sales: 'Sales', rating: 'Rating', updated: 'Updated',
+                fitNote: 'Target market fit', coverage: 'Sources checked', coverageApi: 'official API', coverageError: 'unreachable', coverageSearch: 'search in other marketplaces, searches run',
                 errorCodes: {
                     RATE_LIMITED: 'Too many searches in a short time. Wait one minute and try again.',
                     DAILY_LIMIT_REACHED: 'You reached the daily search limit (30 searches). Try again tomorrow.',
@@ -368,6 +380,9 @@
             document.getElementById('loading').textContent = t.loading;
             document.querySelectorAll('select option[data-ar][data-en]').forEach((option) => {
                 option.textContent = option.dataset[language];
+            });
+            document.querySelectorAll('select optgroup[data-ar][data-en]').forEach((group) => {
+                group.label = group.dataset[language];
             });
             document.querySelectorAll('[data-i18n]').forEach((element) => {
                 const value = t[element.dataset.i18n];
@@ -489,6 +504,21 @@
             metaItem(meta, `${t.lastVerified}: ${opportunity.lastVerifiedDate}`);
             card.appendChild(meta);
 
+            if (opportunity.discoveredVia) {
+                const via = document.createElement('div');
+                via.className = 'opportunity-meta';
+                const badge = metaItem(via, opportunity.discoveredVia === 'official_api'
+                    ? `${t.viaApi} (${opportunity.catalogueSource})`
+                    : t.viaSearch);
+                badge.className = `status-label via-${opportunity.discoveredVia}`;
+                const stats = opportunity.stats || {};
+                if (stats.stars) metaItem(via, `★ ${stats.stars.toLocaleString(currentLang === 'ar' ? 'ar' : 'en')}`);
+                if (stats.sales) metaItem(via, `${t.sales}: ${stats.sales.toLocaleString(currentLang === 'ar' ? 'ar' : 'en')}`);
+                if (stats.rating) metaItem(via, `${t.rating}: ${stats.rating}`);
+                if (stats.updatedAt) metaItem(via, `${t.updated}: ${stats.updatedAt}`);
+                card.appendChild(via);
+            }
+
             const priceText = opportunity.price?.status === 'unknown'
                 ? t.unknown
                 : `${opportunity.price.amount || ''} ${opportunity.price.currency || ''} ${opportunity.price.period || ''} (${t[opportunity.price.status] || t.unverified})`.trim();
@@ -510,6 +540,15 @@
                 use.appendChild(label);
                 if (opportunity.commercialUse.note) use.append(document.createTextNode(` — ${opportunity.commercialUse.note}`));
                 card.appendChild(use);
+            }
+
+            if (opportunity.fitNote) {
+                const fit = document.createElement('p');
+                fit.className = 'fit-note';
+                const label = document.createElement('strong');
+                label.textContent = `${t.fitNote}: `;
+                fit.append(label, document.createTextNode(opportunity.fitNote));
+                card.appendChild(fit);
             }
 
             addSection(card, t.verifiedFacts, opportunity.verifiedFacts, t);
@@ -560,6 +599,14 @@
                 const excluded = document.createElement('p');
                 excluded.textContent = `${t.excluded}: ${data.excludedCount}`;
                 summary.appendChild(excluded);
+            }
+            if (Array.isArray(data.coverage) && data.coverage.length) {
+                const coverage = document.createElement('p');
+                coverage.className = 'hint';
+                coverage.textContent = `${t.coverage}: ` + data.coverage.map((entry) => entry.method === 'web_search'
+                    ? `${t.coverageSearch} (${entry.count})`
+                    : `${entry.source} — ${entry.status === 'ok' ? `${t.coverageApi}, ${entry.count}` : t.coverageError}`).join(' · ');
+                summary.appendChild(coverage);
             }
             output.appendChild(summary);
 
@@ -778,7 +825,17 @@
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ settings, language: 'ar', opportunityCount, filters: selectedFilters, website })
+                    body: JSON.stringify({
+                        settings,
+                        language: 'ar',
+                        opportunityCount,
+                        filters: selectedFilters,
+                        website,
+                        country: document.getElementById('country').value,
+                        budget: document.getElementById('budget').value,
+                        industry: document.getElementById('industry').value,
+                        goal: document.getElementById('goal').value
+                    })
                 });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok) throw new Error(t.errorCodes[data.errorCode] || t.error);

@@ -3,12 +3,17 @@
 const { getConfig, estimateCosts, searchAllowance } = require("./config");
 const { checkRateLimit } = require("./rate-limit");
 const { createUsageEvent, storeUsage, dailySpendUsd, addDailySpend } = require("./usage-store");
-const { buildResearchPrompt, validateRequest, validateResearchResult } = require("./research");
+const { buildResearchPrompt, validateRequest, validateResearchResult, applyCatalogue, catalogueChunks, RESEARCH_SCHEMA } = require("./research");
+const { collectCandidates } = require("./sources/catalog");
 const { runGeminiResearch } = require("./providers/gemini");
 const { runClaudeResearch } = require("./providers/claude");
 const { dropClosedListings } = require("./listing-check");
 
 const PROVIDER_LABELS = { claude: "Claude", gemini: "Gemini" };
+
+// Marketplaces without a public search API are reached through web search,
+// limited to their own domains. CodeCanyon joins them when no Envato token is set.
+const WEB_SEARCH_DOMAINS = ["codester.com", "sourceforge.net", "gumroad.com", "appsumo.com", "acquire.com", "flippa.com", "microns.io"];
 
 function jsonResponse(statusCode, payload, extraHeaders = {}) {
     return {
@@ -111,10 +116,16 @@ exports.handler = async function (event) {
 
     // Reports are always written in Arabic, whatever language the interface uses.
     const request = { ...validation.value, language: "ar" };
-    const prompt = buildResearchPrompt(request);
+    const catalogue = config.catalogEnabled
+        ? await collectCandidates(request, { envatoToken: config.envatoToken, githubToken: config.githubToken })
+        : { candidates: [], coverage: [] };
+    const webDomains = config.provider === "claude"
+        ? [...WEB_SEARCH_DOMAINS, ...(config.envatoToken ? [] : ["codecanyon.net"])]
+        : [];
+    const prompt = buildResearchPrompt({ ...request, candidates: catalogue.candidates, webDomains });
     const startedAt = Date.now();
     const result = config.provider === "claude"
-        ? await runClaudeResearch(config, prompt, { maxSearches: searchAllowance(config, request.opportunityCount) })
+        ? await runClaudeResearch(config, prompt, { maxSearches: searchAllowance(config, request.opportunityCount), allowedDomains: webDomains, schema: RESEARCH_SCHEMA })
         : await runGeminiResearch(config, prompt);
     const elapsedMs = Date.now() - startedAt;
     const baseFields = { requestedCount: request.opportunityCount, language: request.language, elapsedMs };
@@ -153,13 +164,13 @@ exports.handler = async function (event) {
         });
     }
 
-    const groundingChunks = result.sources.map((source) => ({ web: source }));
+    const groundingChunks = [...result.sources.map((source) => ({ web: source })), ...catalogueChunks(catalogue.candidates)];
     const research = validateResearchResult(result.text, groundingChunks, request.opportunityCount);
     if (research.error) {
         await persistFailure(config, { ...baseFields, outcome: research.errorCode }, result.usage, result.grounded);
         return jsonResponse(502, { errorCode: research.errorCode, error: research.error });
     }
-    research.value = await dropClosedListings(research.value);
+    research.value = await dropClosedListings(applyCatalogue(research.value, catalogue.candidates));
 
     let accounting;
     try {
@@ -184,6 +195,10 @@ exports.handler = async function (event) {
         provider: config.provider,
         model: config.model,
         elapsedMs,
+        coverage: [
+            ...catalogue.coverage,
+            { source: "web_search", method: "web_search", status: "ok", domains: webDomains, count: result.usage?.webSearchRequests || 0 }
+        ],
         sources: [...new Map(result.sources
             .filter((source) => source?.uri)
             .map((source) => [source.uri, { title: source.title, url: source.uri }])).values()],

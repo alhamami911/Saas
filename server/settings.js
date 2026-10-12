@@ -6,6 +6,7 @@ const { randomBytes, scryptSync, timingSafeEqual, createHash } = require("node:c
 
 const KEY_PATTERN = /^[A-Za-z0-9_\-.]{20,200}$/;
 const CLAUDE_KEY_PATTERN = /^sk-ant-[A-Za-z0-9_\-]{20,300}$/;
+const ENVATO_TOKEN_PATTERN = /^[A-Za-z0-9_-]{32,43}$/;
 const MIN_PASSWORD_LENGTH = 12;
 
 function sha256(value) {
@@ -61,6 +62,7 @@ function createSettingsStore({ dataDir, env = process.env }) {
     const envClaudeKey = env.qlook_claude_key;
     const envProvider = env.QL_PROVIDER;
     const envClaudeModel = env.QL_CLAUDE_MODEL;
+    const envEnvatoToken = env.qlook_envato_token;
     function applyValue(name, saved, fallback) {
         if (saved) env[name] = saved;
         else if (fallback) env[name] = fallback;
@@ -71,6 +73,7 @@ function createSettingsStore({ dataDir, env = process.env }) {
         applyValue("qlook_claude_key", state.claudeKey, envClaudeKey);
         applyValue("QL_PROVIDER", state.provider, envProvider);
         applyValue("QL_CLAUDE_MODEL", state.claudeModel, envClaudeModel);
+        applyValue("qlook_envato_token", state.envatoToken, envEnvatoToken);
     }
 
     function geminiStatus() {
@@ -127,6 +130,26 @@ function createSettingsStore({ dataDir, env = process.env }) {
         applyToEnv();
     }
 
+    function envatoStatus() {
+        const source = state.envatoToken ? "admin" : envEnvatoToken ? "environment" : null;
+        return { configured: Boolean(source), source, masked: maskKey(state.envatoToken || envEnvatoToken) };
+    }
+
+    function setEnvatoToken(token) {
+        const value = String(token || "").trim();
+        if (!ENVATO_TOKEN_PATTERN.test(value)) return { error: "That does not look like an Envato personal token" };
+        state.envatoToken = value;
+        save();
+        applyToEnv();
+        return { ok: true };
+    }
+
+    function clearEnvatoToken() {
+        delete state.envatoToken;
+        save();
+        applyToEnv();
+    }
+
     // Provider and model names are validated by the caller against config.js.
     function setResearchProvider({ provider, claudeModel }) {
         state.provider = provider;
@@ -170,6 +193,9 @@ function createSettingsStore({ dataDir, env = process.env }) {
         setClaudeKey,
         clearClaudeKey,
         setResearchProvider,
+        envatoStatus,
+        setEnvatoToken,
+        clearEnvatoToken,
         adminConfigured,
         verifyAdminPassword,
         setAdminPassword,

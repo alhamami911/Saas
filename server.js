@@ -173,6 +173,22 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         }
     }
 
+    // One small CodeCanyon search proves the Envato token can use the catalogue API.
+    async function testEnvatoToken(token) {
+        try {
+            const response = await fetchImpl(
+                "https://api.envato.com/v1/discovery/search/search/item?site=codecanyon.net&term=saas&page_size=1",
+                { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }, signal: AbortSignal.timeout(10000) }
+            );
+            if (response.ok) return { valid: true };
+            const data = await response.json().catch(() => ({}));
+            const message = typeof data?.error === "string" ? data.error.slice(0, 300) : `HTTP ${response.status}`;
+            return { valid: false, reachable: true, status: response.status, message };
+        } catch (error) {
+            return { valid: false, reachable: false, message: "Envato could not be reached to check the token" };
+        }
+    }
+
     async function handleGenerate(req, res) {
         const body = await readBody(req);
         const headers = { ...req.headers, "x-qlook-client-ip": clientIp(req) };
@@ -217,6 +233,7 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
             return sendJson(res, 200, {
                 gemini: { ...settings.geminiStatus(), model: geminiModel(env) },
                 claude: { ...settings.claudeStatus(), model: claudeModel(env) },
+                envato: settings.envatoStatus(),
                 research: { provider: researchProvider(env), providers: PROVIDERS, claudeModels: CLAUDE_MODELS },
                 version
             });
@@ -240,6 +257,26 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
             const saved = settings.setClaudeKey(trimmed);
             if (saved.error) return sendJson(res, 400, { error: saved.error });
             return sendJson(res, 200, { claude: settings.claudeStatus(), check });
+        }
+
+        if (route === "/envato-token" && req.method === "PUT") {
+            const { token } = await readJson(req);
+            const trimmed = String(token || "").trim();
+            const check = await testEnvatoToken(trimmed);
+            if (!check.valid && check.reachable) return sendJson(res, 422, { error: `Envato rejected this token: ${check.message}`, check });
+            const saved = settings.setEnvatoToken(trimmed);
+            if (saved.error) return sendJson(res, 400, { error: saved.error });
+            return sendJson(res, 200, { envato: settings.envatoStatus(), check });
+        }
+
+        if (route === "/envato-token" && req.method === "DELETE") {
+            settings.clearEnvatoToken();
+            return sendJson(res, 200, { envato: settings.envatoStatus() });
+        }
+
+        if (route === "/envato-token/test" && req.method === "POST") {
+            if (!env.qlook_envato_token) return sendJson(res, 200, { check: { valid: false, message: "No token is configured" } });
+            return sendJson(res, 200, { check: await testEnvatoToken(env.qlook_envato_token) });
         }
 
         if (route === "/claude-key" && req.method === "DELETE") {

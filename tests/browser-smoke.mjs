@@ -7,7 +7,8 @@ export default async function run(page) {
         language: document.documentElement.lang,
         direction: document.documentElement.dir,
         countOptions: Array.from(document.querySelectorAll('#opportunityCount option'), (option) => option.value),
-        countryOptions: document.querySelectorAll('#country option').length,
+        countryOptions: document.querySelectorAll("#country option").length,
+        countryCodes: Array.from(document.querySelectorAll("#country option"), (option) => option.value),
         industryOptions: document.querySelectorAll('#industry option').length,
         featureFilters: document.querySelectorAll('input[name="featureFilter"]').length,
         pageWidth: document.documentElement.scrollWidth,
@@ -15,7 +16,8 @@ export default async function run(page) {
     }));
     if (initial.language !== "ar" || initial.direction !== "rtl") failures.push("Arabic initial state");
     if (initial.countOptions.join(",") !== "5,10,20") failures.push("opportunity count options");
-    if (initial.countryOptions < 200 || initial.industryOptions < 10 || initial.featureFilters !== 7) {
+    if (initial.countryOptions !== 22 || !["SA", "GCC", "AE", "MENA", "EG", "MA"].every((code) => initial.countryCodes.includes(code))
+        || initial.countryCodes.includes("US") || initial.industryOptions < 10 || initial.featureFilters !== 7) {
         failures.push("preserved country, industry, or capability configuration");
     }
     if (initial.pageWidth > initial.viewportWidth) failures.push("mobile horizontal overflow before render");
@@ -32,7 +34,7 @@ export default async function run(page) {
     await page.locator('#appNav button[data-view="discover"]').click();
 
     await page.locator("#langToggle").click();
-    await page.locator("#country").selectOption({ index: 1 });
+    await page.locator("#country").selectOption("SA");
     await page.locator("#budget").selectOption("حتى 500 دولار");
     await page.locator("#industry").selectOption("جميع المجالات");
     await page.locator("#goal").selectOption("إطلاق SaaS جديد");

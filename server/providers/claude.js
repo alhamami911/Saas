@@ -15,9 +15,11 @@ function setClientFactory(factory) {
 }
 
 // Opus and Sonnet take the dynamic-filtering search tool; Haiku takes the basic one.
-function webSearchTool(model, maxUses) {
+function webSearchTool(model, maxUses, allowedDomains) {
     const type = /^claude-(opus|sonnet)-/.test(model) ? "web_search_20260209" : "web_search_20250305";
-    return { type, name: "web_search", max_uses: maxUses };
+    const tool = { type, name: "web_search", max_uses: maxUses };
+    if (allowedDomains?.length) tool.allowed_domains = allowedDomains;
+    return tool;
 }
 
 function collectSources(content, sources) {
@@ -49,7 +51,7 @@ function classifyError(error) {
 // Runs one Claude research turn with server-side web search and returns the shared
 // research result shape. Search results carry the real page URLs, so grounding
 // verification can compare them directly with the URLs in the report.
-async function runClaudeResearch(config, prompt, { maxSearches = config.claudeMaxSearches } = {}) {
+async function runClaudeResearch(config, prompt, { maxSearches = config.claudeMaxSearches, allowedDomains, schema } = {}) {
     const client = createClient({ apiKey: config.apiKey, maxRetries: 1, timeout: config.requestTimeoutMs });
     const signal = AbortSignal.timeout(config.requestTimeoutMs);
     const messages = [{ role: "user", content: prompt }];
@@ -63,8 +65,10 @@ async function runClaudeResearch(config, prompt, { maxSearches = config.claudeMa
             const stream = client.messages.stream({
                 model: config.model,
                 max_tokens: config.maxOutputTokens,
-                output_config: { effort: config.claudeEffort },
-                tools: [webSearchTool(config.model, maxSearches)],
+                output_config: schema
+                    ? { effort: config.claudeEffort, format: { type: "json_schema", schema } }
+                    : { effort: config.claudeEffort },
+                tools: [webSearchTool(config.model, maxSearches, allowedDomains)],
                 messages
             }, { signal });
             message = await stream.finalMessage();

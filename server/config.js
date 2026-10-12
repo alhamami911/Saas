@@ -59,6 +59,9 @@ function getConfig(env = process.env) {
         model,
         apiKey: provider === "claude" ? env.qlook_claude_key : env.qlook_key,
         claudeEffort: effort,
+        envatoToken: env.qlook_envato_token || null,
+        githubToken: env.GITHUB_TOKEN || null,
+        catalogEnabled: env.QL_CATALOG !== "off",
         // Upper bound on web searches per report; the actual allowance scales with
         // the requested count (see searchAllowance) so small reports stay cheap.
         claudeMaxSearches: numericSetting(env, "QL_CLAUDE_MAX_SEARCHES", 10, 1, 20),
@@ -72,9 +75,9 @@ function getConfig(env = process.env) {
         maxSettingsCharacters: numericSetting(env, "QL_MAX_SETTINGS_CHARACTERS", 4000, 100, 20000),
         maxRequestBodyBytes: numericSetting(env, "QL_MAX_REQUEST_BODY_BYTES", 16000, 1000, 100000),
         maxOutputTokens: numericSetting(env, "QL_MAX_OUTPUT_TOKENS", 16384, 512, 32768),
-        // nginx waits 90 s for the app, so a Claude research turn must finish before that.
+        // nginx waits 90 s for the app; the catalogue and listing checks need ~10 s of that.
         requestTimeoutMs: provider === "claude"
-            ? numericSetting(env, "QL_CLAUDE_TIMEOUT_MS", 85000, 5000, 85000)
+            ? numericSetting(env, "QL_CLAUDE_TIMEOUT_MS", 75000, 5000, 75000)
             : numericSetting(env, "QL_GEMINI_TIMEOUT_MS", 25000, 1000, 55000),
         inputUsdPerMillionTokens: numericSetting(env, "QL_INPUT_USD_PER_MILLION", prices.input ?? 0.75, 0, 1000),
         outputUsdPerMillionTokens: numericSetting(env, "QL_OUTPUT_USD_PER_MILLION", prices.output ?? 3.75, 0, 1000),

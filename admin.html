@@ -114,6 +114,26 @@
         </section>
 
         <section class="card">
+            <h1>CodeCanyon (Envato) token</h1>
+            <p class="sub">Optional. With a token QLook searches CodeCanyon through the official Envato API (real prices and sales). Without it CodeCanyon is reached through web search.</p>
+            <dl>
+                <dt>Status</dt><dd id="envatoStatus">…</dd>
+                <dt>Token</dt><dd><code id="envatoMasked">—</code></dd>
+            </dl>
+            <form id="envatoForm">
+                <label for="envatoToken">Paste a personal token</label>
+                <input id="envatoToken" name="envato-token" type="password" autocomplete="new-password" data-lpignore="true" data-1p-ignore spellcheck="false" placeholder="32–43 characters" required>
+                <div class="hint">Create one free at build.envato.com → Create a token (no extra permissions needed for search).</div>
+                <div class="row">
+                    <button class="primary" type="submit">Save token</button>
+                    <button class="secondary" type="button" id="testEnvato">Test current token</button>
+                    <button class="secondary" type="button" id="removeEnvato">Remove token</button>
+                </div>
+                <div class="msg" id="envatoMsg"></div>
+            </form>
+        </section>
+
+        <section class="card">
             <h1>Gemini API key</h1>
             <p class="sub">QLook uses this key for every research request. It is stored on the server only and never shown again in full.</p>
             <dl>
@@ -171,7 +191,7 @@
         // Browsers like to autofill the saved admin password into key fields.
         function looksLike(key, pattern, msgId, prefix) {
             if (pattern.test(key)) return true;
-            showMsg(msgId, `This is not an API key: it should start with "${prefix}" (you entered ${key.length} characters). `
+            showMsg(msgId, `This is not a valid key: it should look like ${prefix} (you entered ${key.length} characters). `
                 + 'Your browser may have filled in a saved password - clear the field and paste the key.', false);
             return false;
         }
@@ -223,7 +243,47 @@
                 $('claudeModel').value = data.claude.model;
             }
             if (data.research) $('provider').value = data.research.provider;
+            if (data.envato) renderEnvato(data.envato);
+            $('envatoToken').value = '';
         }
+
+        function renderEnvato(envato) {
+            $('envatoStatus').innerHTML = envato.configured
+                ? '<span class="pill ok">Configured — CodeCanyon uses the official API</span>'
+                : '<span class="pill bad">Not configured — CodeCanyon uses web search</span>';
+            $('envatoMasked').textContent = envato.masked || '—';
+        }
+
+        $('envatoForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            busy(event.submitter, async () => {
+                const token = $('envatoToken').value.trim();
+                if (!looksLike(token, /^[A-Za-z0-9_-]{32,43}$/, 'envatoMsg', 'a 32–43 character token')) return;
+                const { ok, data } = await api('/envato-token', { method: 'PUT', body: JSON.stringify({ token }) });
+                if (!ok) return showMsg('envatoMsg', data.error || 'Could not save the token', false);
+                $('envatoToken').value = '';
+                renderEnvato(data.envato);
+                showMsg('envatoMsg', 'Saved. Envato accepted the token; CodeCanyon now uses the official API.', true);
+            });
+        });
+
+        $('testEnvato').addEventListener('click', (event) => {
+            busy(event.currentTarget, async () => {
+                const { ok, data } = await api('/envato-token/test', { method: 'POST' });
+                if (!ok) return showMsg('envatoMsg', data.error || 'Test failed', false);
+                showMsg('envatoMsg', data.check.valid ? 'Envato accepted the token.' : `Token check failed: ${data.check.message}`, data.check.valid);
+            });
+        });
+
+        $('removeEnvato').addEventListener('click', (event) => {
+            if (!confirm('Remove the Envato token? CodeCanyon will fall back to web search.')) return;
+            busy(event.currentTarget, async () => {
+                const { ok, data } = await api('/envato-token', { method: 'DELETE' });
+                if (!ok) return showMsg('envatoMsg', data.error || 'Could not remove the token', false);
+                renderEnvato(data.envato);
+                showMsg('envatoMsg', 'Token removed.', true);
+            });
+        });
 
         $('providerForm').addEventListener('submit', (event) => {
             event.preventDefault();
@@ -242,7 +302,7 @@
             event.preventDefault();
             busy(event.submitter, async () => {
                 const key = $('claudeKey').value.trim();
-                if (!looksLike(key, /^sk-ant-[A-Za-z0-9_-]{20,}$/, 'claudeMsg', 'sk-ant-')) return;
+                if (!looksLike(key, /^sk-ant-[A-Za-z0-9_-]{20,}$/, 'claudeMsg', '"sk-ant-…"')) return;
                 let result = await api('/claude-key', { method: 'PUT', body: JSON.stringify({ key }) });
                 if (result.status === 422 && confirm(`${result.data.error}\n\nSave it anyway?`)) {
                     result = await api('/claude-key', { method: 'PUT', body: JSON.stringify({ key, skipCheck: true }) });
@@ -294,7 +354,7 @@
             event.preventDefault();
             busy(event.submitter, async () => {
                 const key = $('geminiKey').value.trim();
-                if (!looksLike(key, /^AIza[A-Za-z0-9_-]{20,}$/, 'keyMsg', 'AIza')) return;
+                if (!looksLike(key, /^AIza[A-Za-z0-9_-]{20,}$/, 'keyMsg', '"AIza…"')) return;
                 let result = await api('/gemini-key', { method: 'PUT', body: JSON.stringify({ key }) });
                 if (result.status === 422 && confirm(`${result.data.error}\n\nSave it anyway?`)) {
                     result = await api('/gemini-key', { method: 'PUT', body: JSON.stringify({ key, skipCheck: true }) });

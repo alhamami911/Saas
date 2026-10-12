@@ -35,13 +35,14 @@ function mockResponse(data, status = 200) {
 }
 
 async function withTestEnvironment(run, overrides = { QL_PROVIDER: "gemini" }) {
-    const names = ["qlook_key", "qlook_claude_key", "QL_PROVIDER", "QL_CLAUDE_MODEL", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"];
+    const names = ["qlook_key", "qlook_claude_key", "QL_PROVIDER", "QL_CLAUDE_MODEL", "QL_CATALOG", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"];
     const oldValues = Object.fromEntries(names.map((name) => [name, process.env[name]]));
     for (const name of names) delete process.env[name];
     Object.assign(process.env, {
         qlook_key: "test-only-key",
         UPSTASH_REDIS_REST_URL: "https://redis.example",
-        UPSTASH_REDIS_REST_TOKEN: "test-only-token"
+        UPSTASH_REDIS_REST_TOKEN: "test-only-token",
+        QL_CATALOG: "off"
     }, overrides);
     try {
         await run();
@@ -180,7 +181,7 @@ test("defaults to Claude Haiku 5.5 and validates provider and model settings", (
     assert.equal(defaults.provider, "claude");
     assert.equal(defaults.model, "claude-haiku-5-5");
     assert.equal(defaults.apiKey, "sk-ant-test");
-    assert.equal(defaults.requestTimeoutMs, 85000);
+    assert.equal(defaults.requestTimeoutMs, 75000);
     assert.equal(getConfig({ QL_CLAUDE_MODEL: "claude-sonnet-5-5" }).model, "claude-sonnet-5-5");
     assert.throws(() => getConfig({ QL_CLAUDE_MODEL: "claude-unknown" }), /QL_CLAUDE_MODEL/);
     assert.throws(() => getConfig({ QL_PROVIDER: "openai" }), /QL_PROVIDER/);

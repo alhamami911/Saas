@@ -49,13 +49,14 @@ function fakeClient(responses, calls) {
 }
 
 async function withClaude(responses, run) {
-    const names = ["qlook_key", "qlook_claude_key", "QL_PROVIDER", "QL_CLAUDE_MODEL", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"];
+    const names = ["qlook_key", "qlook_claude_key", "QL_PROVIDER", "QL_CLAUDE_MODEL", "QL_CATALOG", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"];
     const old = Object.fromEntries(names.map((name) => [name, process.env[name]]));
     for (const name of names) delete process.env[name];
     Object.assign(process.env, {
         qlook_claude_key: "sk-ant-test-only-key-0123456789",
         UPSTASH_REDIS_REST_URL: "https://redis.example",
-        UPSTASH_REDIS_REST_TOKEN: "test-only-token"
+        UPSTASH_REDIS_REST_TOKEN: "test-only-token",
+        QL_CATALOG: "off"
     });
     const calls = [];
     const previous = setClientFactory(fakeClient(responses, calls));
@@ -117,8 +118,17 @@ test("Claude research resumes paused turns and verifies real search URLs", async
         assert.equal(calls.length, 2);
         const first = calls[0].params;
         assert.equal(first.model, "claude-haiku-5-5");
-        assert.deepEqual(first.tools, [{ type: "web_search_20250305", name: "web_search", max_uses: 6 }]);
-        assert.deepEqual(first.output_config, { effort: "low" });
+        assert.equal(first.tools.length, 1);
+        assert.equal(first.tools[0].type, "web_search_20250305");
+        assert.equal(first.tools[0].max_uses, 6);
+        // Search stays inside marketplaces without an official API; CodeCanyon joins
+        // them because no Envato token is set, GitHub never does.
+        assert.ok(first.tools[0].allowed_domains.includes("flippa.com"));
+        assert.ok(first.tools[0].allowed_domains.includes("codecanyon.net"));
+        assert.ok(!first.tools[0].allowed_domains.includes("github.com"));
+        assert.equal(first.output_config.effort, "low");
+        assert.equal(first.output_config.format.type, "json_schema");
+        assert.ok(first.output_config.format.schema.properties.opportunities);
         assert.match(first.messages[0].content, /Return ONLY a JSON object in Arabic/);
         assert.match(first.messages[0].content, /CodeCanyon, Codester, GitHub/);
         assert.ok(calls[0].options.signal);
