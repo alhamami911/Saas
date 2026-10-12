@@ -79,6 +79,7 @@
                 <dt>Key</dt><dd><code id="keyMasked">—</code></dd>
                 <dt>Source</dt><dd id="keySource">—</dd>
                 <dt>Updated</dt><dd id="keyUpdated">—</dd>
+                <dt>Model</dt><dd><code id="keyModel">—</code></dd>
             </dl>
             <form id="keyForm">
                 <label for="geminiKey">Paste a new key</label>
@@ -135,6 +136,7 @@
                 ? '<span class="pill ok">Configured</span>'
                 : '<span class="pill bad">Not configured — the app cannot run research</span>';
             $('keyMasked').textContent = gemini.masked || '—';
+            if (gemini.model) $('keyModel').textContent = gemini.model;
             $('keySource').textContent = gemini.source === 'admin' ? 'Saved from this page'
                 : gemini.source === 'environment' ? 'Server environment' : '—';
             $('keyUpdated').textContent = gemini.updatedAt ? new Date(gemini.updatedAt).toLocaleString() : '—';

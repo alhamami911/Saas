@@ -121,7 +121,13 @@ test("rate limiter enforces shared minute, per-IP day and global-day limits", as
     }
 });
 
-test("prompt requests JSON without asking Gemini 2.5 for schema-enforced tool output", () => {
+test("uses the current Gemini model and accepts a valid override only", () => {
+    assert.equal(getConfig({}).model, "gemini-3.8-flash");
+    assert.equal(getConfig({ QL_GEMINI_MODEL: "gemini-3.8-pro" }).model, "gemini-3.8-pro");
+    assert.throws(() => getConfig({ QL_GEMINI_MODEL: "../evil" }), /QL_GEMINI_MODEL/);
+});
+
+test("prompt requests JSON without asking Gemini for schema-enforced tool output", () => {
     const prompt = buildResearchPrompt({ settings: "budget test", opportunityCount: 10, language: "ar", filters: [] });
     assert.match(prompt, /Return ONLY a JSON object in Arabic/);
     assert.match(prompt, /Produce at most 10 opportunities/);
@@ -160,6 +166,7 @@ test("mocked handler accepts 5, 10, and 20 results and returns per-opportunity c
                 const command = JSON.parse(options.body);
                 return mockResponse({ result: command[1].includes("local results") ? [1, 1, 1] : Number(command[6]) ? 1 : 0 });
             }
+            assert.match(String(url), /\/models\/gemini-3\.8-flash:generateContent$/);
             const request = JSON.parse(options.body);
             lastPrompt = request.contents[0].parts[0].text;
             assert.equal(request.tools[0].googleSearch !== undefined, true);

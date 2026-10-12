@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { createHmac, randomBytes, timingSafeEqual } = require("node:crypto");
 const { createSettingsStore } = require("./server/settings");
+const { geminiModel } = require("./server/config");
 
 const MAX_BODY_BYTES = 128 * 1024;
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
@@ -130,7 +131,7 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
     async function testGeminiKey(key) {
         try {
             const response = await fetchImpl(
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash",
+                `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel(env)}`,
                 { headers: { "x-goog-api-key": key }, signal: AbortSignal.timeout(10000) }
             );
             if (response.ok) return { valid: true };
@@ -150,7 +151,7 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         if (!access.valid) return access;
         try {
             const response = await fetchImpl(
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+                `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel(env)}:generateContent`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
@@ -212,7 +213,7 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         if (!hasSession(req)) return sendJson(res, 401, { error: "Sign in required" });
 
         if (route === "/settings" && req.method === "GET") {
-            return sendJson(res, 200, { gemini: settings.geminiStatus(), version });
+            return sendJson(res, 200, { gemini: { ...settings.geminiStatus(), model: geminiModel(env) }, version });
         }
 
         if (route === "/gemini-key" && req.method === "PUT") {

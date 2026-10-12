@@ -11,9 +11,18 @@ function numericSetting(env, name, fallback, minimum, maximum) {
     return value;
 }
 
+// Google retired gemini-2.5-flash for new users; QL_GEMINI_MODEL overrides the default.
+const DEFAULT_MODEL = "gemini-3.8-flash";
+
+function geminiModel(env = process.env) {
+    const model = env.QL_GEMINI_MODEL || DEFAULT_MODEL;
+    if (!/^gemini-[a-z0-9.-]{1,60}$/.test(model)) throw new Error("QL_GEMINI_MODEL is not a valid Gemini model name");
+    return model;
+}
+
 function getConfig(env = process.env) {
     return {
-        model: "gemini-2.5-flash",
+        model: geminiModel(env),
         apiKey: env.qlook_key,
         redisUrl: env.UPSTASH_REDIS_REST_URL?.replace(/\/$/, ""),
         redisToken: env.UPSTASH_REDIS_REST_TOKEN,
@@ -51,4 +60,4 @@ function estimateCosts(usage, config, isSearchBillable) {
     };
 }
 
-module.exports = { getConfig, estimateCosts };
+module.exports = { getConfig, geminiModel, estimateCosts, DEFAULT_MODEL };

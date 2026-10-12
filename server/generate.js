@@ -19,7 +19,7 @@ function safeProviderMessage(data) {
 }
 
 async function persistRequest(config, fields, usage, grounded) {
-    const event = createUsageEvent({ ...fields, usage: usage || null, grounded });
+    const event = createUsageEvent({ model: config.model, ...fields, usage: usage || null, grounded });
     const stored = await storeUsage(config, event, grounded);
     const costs = estimateCosts(
         usage,

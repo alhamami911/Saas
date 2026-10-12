@@ -55,7 +55,6 @@ function createUsageEvent(fields) {
         requestId: randomUUID(),
         createdAt: new Date().toISOString(),
         provider: "google_gemini",
-        model: "gemini-2.5-flash",
         actualProviderBilling: "not_available_from_api_response",
         ...fields
     };
