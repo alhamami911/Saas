@@ -55,14 +55,21 @@ async function checkRateLimit(event, config, now = Date.now()) {
             || [minuteCount, dayCount, globalCount].some((count) => count < 0)) {
             throw new Error("Rate limit storage returned invalid counters");
         }
-        if (minuteCount > config.maxRequestsPerMinutePerIp
-            || dayCount > config.maxRequestsPerDayPerIp
-            || globalCount > config.maxRequestsPerDayGlobal) {
+        if (dayCount > config.maxRequestsPerDayPerIp || globalCount > config.maxRequestsPerDayGlobal) {
+            return {
+                allowed: false,
+                statusCode: 429,
+                errorCode: "DAILY_LIMIT_REACHED",
+                error: `Today's search limit has been reached (${config.maxRequestsPerDayPerIp} searches per day). Try again tomorrow.`,
+                retryAfter: secondsToNextDay
+            };
+        }
+        if (minuteCount > config.maxRequestsPerMinutePerIp) {
             return {
                 allowed: false,
                 statusCode: 429,
                 errorCode: "RATE_LIMITED",
-                error: "Request quota reached. Try again later.",
+                error: "Too many searches in a short time. Wait one minute and try again.",
                 retryAfter: 60
             };
         }

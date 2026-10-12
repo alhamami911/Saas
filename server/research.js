@@ -90,10 +90,10 @@ function commercialUseFor(license, item, groundedSources) {
     if (license.status === "verified") {
         const name = license.name;
         if (/regular license/i.test(name)) {
-            return { status: "restricted", note: "رخصة Envato العادية لا تسمح بتحصيل رسوم من المستخدمين النهائيين؛ تشغيله كـ SaaS مدفوع يتطلب الرخصة الموسعة (Extended).", sourceUrl: license.sourceUrl };
+            return { status: "restricted", note: "الرخصة العادية (Regular) في أسواق الأكواد لا تسمح عادةً بتحصيل رسوم من المستخدمين النهائيين؛ تشغيله كـ SaaS مدفوع يتطلب غالباً الرخصة الموسعة (Extended). راجع شروط السوق.", sourceUrl: license.sourceUrl };
         }
         if (/extended license/i.test(name)) {
-            return { status: "allowed", note: "الرخصة الموسعة من Envato تسمح بمنتج نهائي يُحصَّل منه رسوم.", sourceUrl: license.sourceUrl };
+            return { status: "allowed", note: "الرخصة الموسعة (Extended) تسمح عادةً بمنتج نهائي يُحصَّل منه رسوم. راجع شروط السوق.", sourceUrl: license.sourceUrl };
         }
         if (RESTRICTED_LICENSE.test(name)) {
             return { status: "restricted", note: "ترخيص مقيِّد أو مُلزِم بالمشاركة: تقديمه كخدمة قد يُلزم بنشر الكود المصدري أو بشراء ترخيص تجاري.", sourceUrl: license.sourceUrl };
@@ -276,6 +276,7 @@ function buildResearchPrompt({ settings, opportunityCount, language, filters }) 
 }
 
 module.exports = {
+    CLOSED_LISTING,
     buildResearchPrompt,
     normalizePublicUrl,
     validateRequest,

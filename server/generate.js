@@ -6,6 +6,7 @@ const { createUsageEvent, storeUsage, dailySpendUsd, addDailySpend } = require("
 const { buildResearchPrompt, validateRequest, validateResearchResult } = require("./research");
 const { runGeminiResearch } = require("./providers/gemini");
 const { runClaudeResearch } = require("./providers/claude");
+const { dropClosedListings } = require("./listing-check");
 
 const PROVIDER_LABELS = { claude: "Claude", gemini: "Gemini" };
 
@@ -158,6 +159,7 @@ exports.handler = async function (event) {
         await persistFailure(config, { ...baseFields, outcome: research.errorCode }, result.usage, result.grounded);
         return jsonResponse(502, { errorCode: research.errorCode, error: research.error });
     }
+    research.value = await dropClosedListings(research.value);
 
     let accounting;
     try {

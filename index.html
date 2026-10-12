@@ -253,6 +253,17 @@
                 confidence: 'مستوى الثقة', lastVerified: 'آخر تحقق', high: 'مرتفع', medium: 'متوسط', low: 'منخفض',
                 verifiedFacts: 'معلومات موثقة', estimates: 'تقديرات', noOpportunities: 'لم يتم التحقق من فرص مطابقة؛ راجع الملاحظة أدناه.',
                 availability: 'الإتاحة', availability_available: 'متاحة (حسب المصدر)', availability_unknown: 'غير مؤكدة',
+                errorCodes: {
+                    RATE_LIMITED: 'أجريت عمليات بحث كثيرة خلال وقت قصير. انتظر دقيقة واحدة ثم حاول مرة أخرى.',
+                    DAILY_LIMIT_REACHED: 'وصلت إلى الحد اليومي لعمليات البحث (30 بحثاً). يمكنك المحاولة مجدداً غداً.',
+                    DAILY_BUDGET_REACHED: 'استُهلكت ميزانية البحث المخصصة لليوم. يمكنك المحاولة مجدداً غداً.',
+                    AI_QUOTA_EXCEEDED: 'رصيد خدمة الذكاء الاصطناعي غير كافٍ حالياً. يرجى إبلاغ مسؤول الموقع.',
+                    AI_TIMEOUT: 'استغرق البحث وقتاً أطول من المسموح. حاول مرة أخرى، أو اطلب عدداً أقل من الفرص.',
+                    OUTPUT_LIMIT_REACHED: 'التقرير أطول من الحد المسموح. اطلب عدداً أقل من الفرص.',
+                    CLAUDE_KEY_MISSING: 'خدمة البحث غير مهيأة بعد. يرجى إبلاغ مسؤول الموقع.',
+                    GEMINI_KEY_MISSING: 'خدمة البحث غير مهيأة بعد. يرجى إبلاغ مسؤول الموقع.',
+                    INVALID_SETTINGS: 'يرجى اختيار جميع الحقول المطلوبة.'
+                },
                 commercialUse: 'الاستخدام التجاري كـ SaaS', commercial_allowed: 'مسموح', commercial_restricted: 'مقيَّد', commercial_unclear: 'غير واضح — راجع الترخيص قبل الشراء',
                 modelCost: 'تكلفة النموذج المقدرة', searchCost: 'رسوم البحث المقدرة', totalCost: 'الإجمالي المقدر',
                 actualBilling: 'الفوترة الفعلية: راجع Google AI Studio أو Cloud Billing', billingNote: 'هذه تقديرات وليست سجلاً للفوترة الفعلية.'
@@ -277,6 +288,17 @@
                 confidence: 'Confidence', lastVerified: 'Last verified', high: 'High', medium: 'Medium', low: 'Low',
                 verifiedFacts: 'Verified facts', estimates: 'Estimates', noOpportunities: 'No matching opportunities could be verified; see the note below.',
                 availability: 'Availability', availability_available: 'Available (per source)', availability_unknown: 'Not confirmed',
+                errorCodes: {
+                    RATE_LIMITED: 'Too many searches in a short time. Wait one minute and try again.',
+                    DAILY_LIMIT_REACHED: 'You reached the daily search limit (30 searches). Try again tomorrow.',
+                    DAILY_BUDGET_REACHED: "Today's research budget has been used. Try again tomorrow.",
+                    AI_QUOTA_EXCEEDED: 'The AI service is out of credit right now. Please tell the site administrator.',
+                    AI_TIMEOUT: 'The search took too long. Try again, or request fewer opportunities.',
+                    OUTPUT_LIMIT_REACHED: 'The report was too long. Request fewer opportunities.',
+                    CLAUDE_KEY_MISSING: 'Search is not set up yet. Please tell the site administrator.',
+                    GEMINI_KEY_MISSING: 'Search is not set up yet. Please tell the site administrator.',
+                    INVALID_SETTINGS: 'Please fill in all required fields.'
+                },
                 commercialUse: 'Commercial SaaS use', commercial_allowed: 'Allowed', commercial_restricted: 'Restricted', commercial_unclear: 'Unclear — check the license before buying',
                 modelCost: 'Estimated model cost', searchCost: 'Estimated search fee', totalCost: 'Estimated total',
                 actualBilling: 'Actual billing: check Google AI Studio or Cloud Billing', billingNote: 'These are estimates, not actual billing records.'
@@ -758,8 +780,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ settings, language: 'ar', opportunityCount, filters: selectedFilters, website })
                 });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || t.error);
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(t.errorCodes[data.errorCode] || t.error);
                 if (!Array.isArray(data.opportunities) || !Number.isInteger(data.verifiedCount)) throw new Error(t.invalid);
                 renderReport(output, data, t);
                 output.style.display = 'block';

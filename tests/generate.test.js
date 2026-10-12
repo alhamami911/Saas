@@ -126,6 +126,50 @@ test("rate limiter enforces shared minute, per-IP day and global-day limits", as
         );
         assert.equal(result.allowed, false);
         assert.equal(result.statusCode, 429);
+        assert.equal(result.errorCode, "RATE_LIMITED");
+        assert.equal(result.retryAfter, 60);
+
+        global.fetch = async () => mockResponse({ result: [1, 31, 1] });
+        const daily = await checkRateLimit(
+            { headers: { "x-qlook-client-ip": "203.0.113.4" } },
+            { ...getConfig({}), redisUrl: "https://redis.example", redisToken: "test", rateLimitSalt: "salt" }
+        );
+        assert.equal(daily.errorCode, "DAILY_LIMIT_REACHED");
+        assert.match(daily.error, /30 searches per day/);
+        assert.ok(daily.retryAfter > 60);
+    } finally {
+        global.fetch = originalFetch;
+    }
+});
+
+test("live listing check drops sold Flippa listings and keeps other sources", async () => {
+    const { dropClosedListings } = require("../server/listing-check");
+    const page = (title) => ({
+        ok: true,
+        url: "https://flippa.com/x",
+        body: new Response(`<html><head><title>${title}</title></head></html>`).body
+    });
+    const originalFetch = global.fetch;
+    const fetched = [];
+    global.fetch = async (url) => {
+        fetched.push(url);
+        if (url.endsWith("/1")) return page("GetAdReady | SaaS Listing Ended on Flippa");
+        if (url.endsWith("/2")) return page("Profitable SaaS | SaaS & Software Projects for Sale");
+        throw new Error("offline");
+    };
+    try {
+        const listing = (id) => ({ productName: id, directUrl: `https://flippa.com/${id}`, availability: { status: "unknown" } });
+        const result = await dropClosedListings({
+            opportunities: [listing("1"), listing("2"), listing("3"), { productName: "repo", directUrl: "https://github.com/a/b" }],
+            verifiedCount: 4,
+            excludedCount: 1
+        });
+        assert.deepEqual(result.opportunities.map((o) => o.productName), ["2", "3", "repo"]);
+        assert.equal(result.verifiedCount, 3);
+        assert.equal(result.excludedCount, 2);
+        assert.equal(result.opportunities[0].availability.status, "available");
+        assert.equal(result.opportunities[1].availability.status, "unknown");
+        assert.ok(!fetched.some((url) => url.includes("github.com")));
     } finally {
         global.fetch = originalFetch;
     }
@@ -310,7 +354,7 @@ test("handler maps provider quota responses and enforces rate limit before Gemin
             if (String(url).startsWith("https://redis.example")) {
                 const command = JSON.parse(options.body);
                 return mockResponse({ result: command[1].includes("local results")
-                    ? mode === "limited" ? [3, 1, 1] : [1, 1, 1]
+                    ? mode === "limited" ? [4, 1, 1] : [1, 1, 1]
                     : 0 });
             }
             geminiCalls += 1;
