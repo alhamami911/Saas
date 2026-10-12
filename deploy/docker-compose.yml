@@ -1,0 +1,44 @@
+# Installed at /opt/qlook/docker-compose.yml. The server's copy is what runs;
+# IMAGE_TAG comes from /opt/qlook/.env, which deploy.sh rewrites on every deploy.
+name: qlook
+
+services:
+  app:
+    image: qlook:${IMAGE_TAG:?IMAGE_TAG is not set}
+    container_name: qlook
+    restart: unless-stopped
+    env_file: app.env
+    environment:
+      TRUST_PROXY: "1"
+      UPSTASH_REDIS_REST_URL: http://redis-http:80
+    ports:
+      - "127.0.0.1:8098:8080"
+    volumes:
+      - qlook_data:/data
+    depends_on:
+      - redis-http
+
+  # Local stand-in for Upstash: the app's rate limiter and usage log speak the
+  # Upstash REST protocol, and serverless-redis-http serves it from plain Redis.
+  redis-http:
+    image: hiett/serverless-redis-http:latest
+    container_name: qlook-redis-http
+    restart: unless-stopped
+    env_file: redis.env
+    environment:
+      SRH_MODE: env
+      SRH_CONNECTION_STRING: redis://redis:6379
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: qlook-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy noeviction
+    volumes:
+      - qlook_redis:/data
+
+volumes:
+  qlook_data:
+  qlook_redis:

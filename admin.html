@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>QLook Admin</title>
+    <style>
+        :root {
+            --bg-color: #f9fafb; --surface-color: #ffffff; --text-primary: #111827; --text-secondary: #4b5563;
+            --border-color: #e5e7eb; --primary-color: #2563eb; --primary-hover: #1d4ed8;
+            --secondary-color: #f3f4f6; --secondary-hover: #e5e7eb; --radius: 8px;
+            --ok-bg: #ecfdf5; --ok-fg: #047857; --bad-bg: #fef2f2; --bad-fg: #b91c1c;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #111827; --surface-color: #1f2937; --text-primary: #f9fafb; --text-secondary: #d1d5db;
+                --border-color: #374151; --primary-color: #3b82f6; --primary-hover: #2563eb;
+                --secondary-color: #374151; --secondary-hover: #4b5563;
+                --ok-bg: #064e3b; --ok-fg: #a7f3d0; --bad-bg: #7f1d1d; --bad-fg: #fecaca;
+            }
+        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-color); color: var(--text-primary); margin: 0; padding: 32px 16px; display: flex; flex-direction: column; align-items: center; }
+        .card { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: var(--radius); box-shadow: var(--shadow); width: 100%; max-width: 560px; padding: 24px; margin-bottom: 16px; }
+        h1 { font-size: 1.4rem; margin: 0 0 4px; }
+        h2 { font-size: 1.05rem; margin: 0 0 12px; }
+        p.sub { margin: 0 0 20px; color: var(--text-secondary); font-size: 0.9rem; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin: 12px 0 6px; }
+        input { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--bg-color); color: var(--text-primary); font-size: 0.95rem; font-family: inherit; }
+        input:focus { outline: 2px solid var(--primary-color); outline-offset: 1px; }
+        .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+        button { padding: 10px 16px; border-radius: var(--radius); border: 1px solid transparent; font-size: 0.9rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+        button.primary { background: var(--primary-color); color: #fff; }
+        button.primary:hover { background: var(--primary-hover); }
+        button.secondary { background: var(--secondary-color); color: var(--text-primary); border-color: var(--border-color); }
+        button.secondary:hover { background: var(--secondary-hover); }
+        button:disabled { opacity: 0.6; cursor: wait; }
+        dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; font-size: 0.9rem; }
+        dt { color: var(--text-secondary); }
+        dd { margin: 0; overflow-wrap: anywhere; }
+        code { font-family: Consolas, 'Courier New', monospace; }
+        .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+        .pill.ok { background: var(--ok-bg); color: var(--ok-fg); }
+        .pill.bad { background: var(--bad-bg); color: var(--bad-fg); }
+        .msg { margin-top: 12px; padding: 10px 12px; border-radius: var(--radius); font-size: 0.88rem; display: none; }
+        .msg.ok { display: block; background: var(--ok-bg); color: var(--ok-fg); }
+        .msg.bad { display: block; background: var(--bad-bg); color: var(--bad-fg); }
+        .hint { font-size: 0.8rem; color: var(--text-secondary); margin-top: 6px; }
+        .topbar { width: 100%; max-width: 560px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.85rem; color: var(--text-secondary); }
+        a { color: var(--primary-color); }
+        [hidden] { display: none !important; }
+    </style>
+</head>
+<body>
+    <section class="card" id="loginView" hidden>
+        <h1>QLook Admin</h1>
+        <p class="sub">Sign in to manage the Gemini API key.</p>
+        <form id="loginForm">
+            <label for="password">Admin password</label>
+            <input id="password" type="password" autocomplete="current-password" required>
+            <div class="row"><button class="primary" type="submit">Sign in</button></div>
+            <div class="msg" id="loginMsg"></div>
+        </form>
+    </section>
+
+    <div id="adminView" hidden style="width:100%;display:flex;flex-direction:column;align-items:center;">
+        <div class="topbar">
+            <span>Deployed version <code id="version">…</code></span>
+            <span><a href="/">Open app</a> · <a href="#" id="logout">Sign out</a></span>
+        </div>
+
+        <section class="card">
+            <h1>Gemini API key</h1>
+            <p class="sub">QLook uses this key for every research request. It is stored on the server only and never shown again in full.</p>
+            <dl>
+                <dt>Status</dt><dd id="keyStatus">…</dd>
+                <dt>Key</dt><dd><code id="keyMasked">—</code></dd>
+                <dt>Source</dt><dd id="keySource">—</dd>
+                <dt>Updated</dt><dd id="keyUpdated">—</dd>
+            </dl>
+            <form id="keyForm">
+                <label for="geminiKey">Paste a new key</label>
+                <input id="geminiKey" type="password" autocomplete="off" spellcheck="false" placeholder="AIza…" required>
+                <div class="hint">Get one from Google AI Studio → API keys. Saving checks the key with Google first.</div>
+                <div class="row">
+                    <button class="primary" type="submit">Save key</button>
+                    <button class="secondary" type="button" id="testKey">Test current key</button>
+                    <button class="secondary" type="button" id="removeKey">Remove key</button>
+                </div>
+                <div class="msg" id="keyMsg"></div>
+            </form>
+        </section>
+
+        <section class="card">
+            <h2>Change admin password</h2>
+            <form id="passwordForm">
+                <label for="currentPassword">Current password</label>
+                <input id="currentPassword" type="password" autocomplete="current-password" required>
+                <label for="newPassword">New password (12+ characters)</label>
+                <input id="newPassword" type="password" autocomplete="new-password" minlength="12" required>
+                <div class="row"><button class="primary" type="submit">Change password</button></div>
+                <div class="msg" id="passwordMsg"></div>
+            </form>
+        </section>
+    </div>
+
+    <script>
+        const $ = (id) => document.getElementById(id);
+
+        async function api(path, options = {}) {
+            const response = await fetch(`/admin/api${path}`, {
+                ...options,
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin'
+            });
+            const data = await response.json().catch(() => ({}));
+            return { ok: response.ok, status: response.status, data };
+        }
+
+        function showMsg(id, text, ok) {
+            const el = $(id);
+            el.textContent = text;
+            el.className = `msg ${ok ? 'ok' : 'bad'}`;
+        }
+
+        async function busy(button, run) {
+            button.disabled = true;
+            try { await run(); } finally { button.disabled = false; }
+        }
+
+        function renderKey(gemini) {
+            $('keyStatus').innerHTML = gemini.configured
+                ? '<span class="pill ok">Configured</span>'
+                : '<span class="pill bad">Not configured — the app cannot run research</span>';
+            $('keyMasked').textContent = gemini.masked || '—';
+            $('keySource').textContent = gemini.source === 'admin' ? 'Saved from this page'
+                : gemini.source === 'environment' ? 'Server environment' : '—';
+            $('keyUpdated').textContent = gemini.updatedAt ? new Date(gemini.updatedAt).toLocaleString() : '—';
+        }
+
+        async function loadSettings() {
+            const { ok, status, data } = await api('/settings');
+            if (status === 401) {
+                $('adminView').hidden = true;
+                $('loginView').hidden = false;
+                $('password').focus();
+                return;
+            }
+            if (!ok) return showMsg('loginMsg', data.error || 'Could not load settings', false);
+            $('loginView').hidden = true;
+            $('adminView').hidden = false;
+            $('version').textContent = (data.version || 'dev').slice(0, 7);
+            renderKey(data.gemini);
+        }
+
+        $('loginForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            busy(event.submitter, async () => {
+                const { ok, data } = await api('/login', { method: 'POST', body: JSON.stringify({ password: $('password').value }) });
+                if (!ok) return showMsg('loginMsg', data.error || 'Sign in failed', false);
+                $('password').value = '';
+                await loadSettings();
+            });
+        });
+
+        $('logout').addEventListener('click', async (event) => {
+            event.preventDefault();
+            await api('/logout', { method: 'POST' });
+            await loadSettings();
+        });
+
+        $('keyForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            busy(event.submitter, async () => {
+                const key = $('geminiKey').value.trim();
+                let result = await api('/gemini-key', { method: 'PUT', body: JSON.stringify({ key }) });
+                if (result.status === 422 && confirm(`${result.data.error}\n\nSave it anyway?`)) {
+                    result = await api('/gemini-key', { method: 'PUT', body: JSON.stringify({ key, skipCheck: true }) });
+                }
+                if (!result.ok) return showMsg('keyMsg', result.data.error || 'Could not save the key', false);
+                $('geminiKey').value = '';
+                renderKey(result.data.gemini);
+                const check = result.data.check || {};
+                showMsg('keyMsg', check.valid ? 'Saved. Google accepted the key; it is live now.'
+                    : `Saved, but it could not be verified: ${check.message || 'unknown error'}`, Boolean(check.valid));
+            });
+        });
+
+        $('testKey').addEventListener('click', (event) => {
+            busy(event.currentTarget, async () => {
+                const { ok, data } = await api('/gemini-key/test', { method: 'POST' });
+                if (!ok) return showMsg('keyMsg', data.error || 'Test failed', false);
+                showMsg('keyMsg', data.check.valid ? 'Google accepted the current key.' : `Key check failed: ${data.check.message}`, data.check.valid);
+            });
+        });
+
+        $('removeKey').addEventListener('click', (event) => {
+            if (!confirm('Remove the saved Gemini key? Research will stop working until a new key is added.')) return;
+            busy(event.currentTarget, async () => {
+                const { ok, data } = await api('/gemini-key', { method: 'DELETE' });
+                if (!ok) return showMsg('keyMsg', data.error || 'Could not remove the key', false);
+                renderKey(data.gemini);
+                showMsg('keyMsg', 'Saved key removed.', true);
+            });
+        });
+
+        $('passwordForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            busy(event.submitter, async () => {
+                const { ok, data } = await api('/password', {
+                    method: 'PUT',
+                    body: JSON.stringify({ current: $('currentPassword').value, next: $('newPassword').value })
+                });
+                if (!ok) return showMsg('passwordMsg', data.error || 'Could not change the password', false);
+                $('currentPassword').value = '';
+                $('newPassword').value = '';
+                showMsg('passwordMsg', 'Password changed.', true);
+            });
+        });
+
+        loadSettings();
+    </script>
+</body>
+</html>
