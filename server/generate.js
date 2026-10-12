@@ -4,6 +4,10 @@ const { getConfig, estimateCosts } = require("./config");
 const { checkRateLimit } = require("./rate-limit");
 const { createUsageEvent, storeUsage } = require("./usage-store");
 const { buildResearchPrompt, validateRequest, validateResearchResult } = require("./research");
+const { runGeminiResearch } = require("./providers/gemini");
+const { runClaudeResearch } = require("./providers/claude");
+
+const PROVIDER_LABELS = { claude: "Claude", gemini: "Gemini" };
 
 function jsonResponse(statusCode, payload, extraHeaders = {}) {
     return {
@@ -13,13 +17,8 @@ function jsonResponse(statusCode, payload, extraHeaders = {}) {
     };
 }
 
-function safeProviderMessage(data) {
-    const message = data?.error?.message;
-    return typeof message === "string" ? message.slice(0, 500) : "No provider error details";
-}
-
 async function persistRequest(config, fields, usage, grounded) {
-    const event = createUsageEvent({ model: config.model, ...fields, usage: usage || null, grounded });
+    const event = createUsageEvent({ provider: config.provider, model: config.model, ...fields, usage: usage || null, grounded });
     const stored = await storeUsage(config, event, grounded);
     const costs = estimateCosts(
         usage,
@@ -30,6 +29,14 @@ async function persistRequest(config, fields, usage, grounded) {
     event.estimatedCosts = costs;
     await storeUsage(config, event, false);
     return { requestId: event.requestId, usage: event.usage, costs };
+}
+
+async function persistFailure(config, fields, usage, grounded) {
+    try {
+        await persistRequest(config, fields, usage, grounded);
+    } catch (error) {
+        console.error("Could not persist failed request usage", error.message);
+    }
 }
 
 exports.handler = async function (event) {
@@ -44,9 +51,13 @@ exports.handler = async function (event) {
         console.error("Invalid QLook environment configuration", error.message);
         return jsonResponse(500, { errorCode: "INVALID_SERVER_CONFIGURATION", error: "Server configuration is invalid" });
     }
+    const label = PROVIDER_LABELS[config.provider];
     if (!config.apiKey) {
-        console.error("qlook_key is not configured");
-        return jsonResponse(503, { errorCode: "GEMINI_KEY_MISSING", error: "Gemini service is not configured" });
+        console.error(`${label} API key is not configured`);
+        return jsonResponse(503, {
+            errorCode: config.provider === "claude" ? "CLAUDE_KEY_MISSING" : "GEMINI_KEY_MISSING",
+            error: `${label} service is not configured`
+        });
     }
 
     const rawBody = event.isBase64Encoded
@@ -83,124 +94,62 @@ exports.handler = async function (event) {
     // Reports are always written in Arabic, whatever language the interface uses.
     const request = { ...validation.value, language: "ar" };
     const prompt = buildResearchPrompt(request);
-    let providerResponse;
-    let providerData;
-    try {
-        providerResponse = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "x-goog-api-key": config.apiKey
-                },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    tools: [{ googleSearch: {} }],
-                    generationConfig: {
-                        maxOutputTokens: config.maxOutputTokens,
-                        temperature: 0.2
-                    }
-                }),
-                signal: AbortSignal.timeout(config.requestTimeoutMs)
-            }
-        );
-        providerData = await providerResponse.json();
-    } catch (error) {
-        const timedOut = error.name === "TimeoutError" || error.name === "AbortError";
-        console.error("Gemini request failed", timedOut ? "timeout" : error.message);
-        try {
-            await persistRequest(config, {
-                requestedCount: request.opportunityCount,
-                language: request.language,
-                outcome: timedOut ? "timeout" : "network_error"
-            }, null, false);
-        } catch (usageError) {
-            console.error("Could not persist failed request usage", usageError.message);
+    const startedAt = Date.now();
+    const result = config.provider === "claude"
+        ? await runClaudeResearch(config, prompt)
+        : await runGeminiResearch(config, prompt);
+    const elapsedMs = Date.now() - startedAt;
+    const baseFields = { requestedCount: request.opportunityCount, language: request.language, elapsedMs };
+    console.log(`${label} research finished`, result.ok ? "ok" : result.kind, `${elapsedMs}ms`, `${result.sources?.length || 0} sources`);
+
+    if (!result.ok) {
+        await persistFailure(config, {
+            ...baseFields,
+            providerStatus: result.status,
+            outcome: result.kind === "quota" ? "provider_quota_exceeded" : result.kind
+        }, result.usage, false);
+        console.error(`${label} request failed`, result.kind, result.status || "", result.message);
+        if (result.kind === "timeout" || result.kind === "network") {
+            const timedOut = result.kind === "timeout";
+            return jsonResponse(timedOut ? 504 : 502, {
+                errorCode: timedOut ? "AI_TIMEOUT" : "AI_UNAVAILABLE",
+                error: timedOut ? `${label} request timed out. Try again.` : `${label} could not be reached`
+            });
         }
-        return jsonResponse(timedOut ? 504 : 502, {
-            errorCode: timedOut ? "GEMINI_TIMEOUT" : "GEMINI_UNAVAILABLE",
-            error: timedOut ? "Gemini request timed out. Try again." : "Gemini could not be reached"
+        return jsonResponse(result.kind === "quota" ? 429 : 502, {
+            errorCode: result.kind === "quota" ? "AI_QUOTA_EXCEEDED" : "AI_REQUEST_FAILED",
+            error: result.kind === "quota"
+                ? `${label} usage quota or credit is exhausted. Check the provider account and try again later.`
+                : `${label} rejected the research request. Check the admin key test for details.`
         });
     }
 
-    const candidate = providerData?.candidates?.[0];
-    const usage = providerData?.usageMetadata || null;
-    const groundingChunks = candidate?.groundingMetadata?.groundingChunks || [];
-
-    if (!providerResponse.ok) {
-        const providerMessage = safeProviderMessage(providerData);
-        const quotaExceeded = providerResponse.status === 429
-            || providerData?.error?.status === "RESOURCE_EXHAUSTED"
-            || /quota|resource.?exhausted|rate.?limit/i.test(providerMessage);
-        try {
-            await persistRequest(config, {
-                requestedCount: request.opportunityCount,
-                language: request.language,
-                providerStatus: providerResponse.status,
-                outcome: quotaExceeded ? "provider_quota_exceeded" : "provider_error"
-            }, usage, false);
-        } catch (usageError) {
-            console.error("Could not persist failed request usage", usageError.message);
-        }
-        console.error("Gemini API request failed", providerResponse.status, providerMessage);
-        return jsonResponse(quotaExceeded ? 429 : 502, {
-            errorCode: quotaExceeded ? "AI_QUOTA_EXCEEDED" : "GEMINI_REQUEST_FAILED",
-            error: quotaExceeded
-                ? "Gemini usage quota reached. Check the provider quota and try again later."
-                : "Gemini rejected the research request. Check server logs for provider details."
-        });
-    }
-
-    const responseText = candidate?.content?.parts
-        ?.map((part) => part.text)
-        .filter(Boolean)
-        .join("");
-    if (!responseText || candidate.finishReason === "MAX_TOKENS") {
-        const errorCode = candidate?.finishReason === "MAX_TOKENS" ? "OUTPUT_LIMIT_REACHED" : "EMPTY_MODEL_RESPONSE";
-        try {
-            await persistRequest(config, {
-                requestedCount: request.opportunityCount,
-                language: request.language,
-                outcome: errorCode.toLowerCase()
-            }, usage, groundingChunks.length > 0);
-        } catch (usageError) {
-            console.error("Could not persist incomplete request usage", usageError.message);
-        }
+    if (!result.text || result.truncated) {
+        const errorCode = result.truncated ? "OUTPUT_LIMIT_REACHED" : "EMPTY_MODEL_RESPONSE";
+        await persistFailure(config, { ...baseFields, outcome: errorCode.toLowerCase() }, result.usage, result.grounded);
         return jsonResponse(502, {
             errorCode,
-            error: errorCode === "OUTPUT_LIMIT_REACHED"
-                ? "Gemini reached the configured output limit. Retry with fewer opportunities."
-                : "Gemini returned no research text"
+            error: result.truncated
+                ? `${label} reached the configured output limit. Retry with fewer opportunities.`
+                : `${label} returned no research text`
         });
     }
 
-    const research = validateResearchResult(
-        responseText,
-        groundingChunks,
-        request.opportunityCount
-    );
+    const groundingChunks = result.sources.map((source) => ({ web: source }));
+    const research = validateResearchResult(result.text, groundingChunks, request.opportunityCount);
     if (research.error) {
-        try {
-            await persistRequest(config, {
-                requestedCount: request.opportunityCount,
-                outcome: research.errorCode
-            }, usage, groundingChunks.length > 0);
-        } catch (usageError) {
-            console.error("Could not persist invalid model response usage", usageError.message);
-        }
+        await persistFailure(config, { ...baseFields, outcome: research.errorCode }, result.usage, result.grounded);
         return jsonResponse(502, { errorCode: research.errorCode, error: research.error });
     }
 
     let accounting;
     try {
         accounting = await persistRequest(config, {
-            requestedCount: request.opportunityCount,
+            ...baseFields,
             verifiedCount: research.value.verifiedCount,
             excludedCount: research.value.excludedCount,
-            language: request.language,
             outcome: "success"
-        }, usage, groundingChunks.length > 0);
+        }, result.usage, result.grounded);
     } catch (error) {
         console.error("Usage accounting failed; withholding report", error.message);
         return jsonResponse(503, {
@@ -209,21 +158,25 @@ exports.handler = async function (event) {
         });
     }
 
+    const usage = result.usage || {};
     return jsonResponse(200, {
         ...research.value,
         requestedCount: request.opportunityCount,
-        sources: [...new Map(groundingChunks
-            .map((chunk) => chunk?.web)
-            .filter((web) => web?.uri)
-            .map((web) => [web.uri, { title: web.title, url: web.uri }])).values()],
+        provider: config.provider,
+        model: config.model,
+        elapsedMs,
+        sources: [...new Map(result.sources
+            .filter((source) => source?.uri)
+            .map((source) => [source.uri, { title: source.title, url: source.uri }])).values()],
         usage: {
-            promptTokens: usage?.promptTokenCount || 0,
-            completionTokens: usage?.candidatesTokenCount || 0,
-            thinkingTokens: usage?.thoughtsTokenCount || 0,
-            totalTokens: usage?.totalTokenCount || 0
+            promptTokens: usage.promptTokenCount || 0,
+            completionTokens: usage.candidatesTokenCount || 0,
+            thinkingTokens: usage.thoughtsTokenCount || 0,
+            totalTokens: usage.totalTokenCount || 0,
+            webSearches: usage.webSearchRequests || 0
         },
         estimatedCosts: accounting.costs,
-        billingNote: "Estimated provider cost only. Actual charges and shared project quotas are shown in Google AI Studio/Cloud billing.",
+        billingNote: `Estimated provider cost only. Actual charges are shown in the ${label} billing console.`,
         requestId: accounting.requestId
     });
 };

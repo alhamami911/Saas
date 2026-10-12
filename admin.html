@@ -28,8 +28,8 @@
         h2 { font-size: 1.05rem; margin: 0 0 12px; }
         p.sub { margin: 0 0 20px; color: var(--text-secondary); font-size: 0.9rem; }
         label { display: block; font-size: 0.85rem; font-weight: 600; margin: 12px 0 6px; }
-        input { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--bg-color); color: var(--text-primary); font-size: 0.95rem; font-family: inherit; }
-        input:focus { outline: 2px solid var(--primary-color); outline-offset: 1px; }
+        input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--bg-color); color: var(--text-primary); font-size: 0.95rem; font-family: inherit; }
+        input:focus, select:focus { outline: 2px solid var(--primary-color); outline-offset: 1px; }
         .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
         button { padding: 10px 16px; border-radius: var(--radius); border: 1px solid transparent; font-size: 0.9rem; font-weight: 600; cursor: pointer; font-family: inherit; }
         button.primary { background: var(--primary-color); color: #fff; }
@@ -56,7 +56,7 @@
 <body>
     <section class="card" id="loginView" hidden>
         <h1>QLook Admin</h1>
-        <p class="sub">Sign in to manage the Gemini API key.</p>
+        <p class="sub">Sign in to manage the AI provider and API keys.</p>
         <form id="loginForm">
             <label for="password">Admin password</label>
             <input id="password" type="password" autocomplete="current-password" required>
@@ -70,6 +70,48 @@
             <span>Deployed version <code id="version">…</code></span>
             <span><a href="/">Open app</a> · <a href="#" id="logout">Sign out</a></span>
         </div>
+
+        <section class="card">
+            <h1>Research provider</h1>
+            <p class="sub">Choose which AI runs research. The change applies to the next search, no redeploy needed.</p>
+            <form id="providerForm">
+                <label for="provider">Provider</label>
+                <select id="provider">
+                    <option value="claude">Claude (Anthropic) — web search with direct source links</option>
+                    <option value="gemini">Gemini (Google) — Google Search grounding</option>
+                </select>
+                <label for="claudeModel">Claude model</label>
+                <select id="claudeModel">
+                    <option value="claude-haiku-5-5">Claude Haiku 5.5 — lowest cost</option>
+                    <option value="claude-sonnet-5-5">Claude Sonnet 5.5 — deeper analysis, higher cost</option>
+                </select>
+                <div class="row"><button class="primary" type="submit">Save provider</button></div>
+                <div class="msg" id="providerMsg"></div>
+            </form>
+        </section>
+
+        <section class="card">
+            <h1>Claude API key</h1>
+            <p class="sub">Used when the provider is Claude. Stored on the server only and never shown again in full.</p>
+            <dl>
+                <dt>Status</dt><dd id="claudeStatus">…</dd>
+                <dt>Key</dt><dd><code id="claudeMasked">—</code></dd>
+                <dt>Source</dt><dd id="claudeSource">—</dd>
+                <dt>Updated</dt><dd id="claudeUpdated">—</dd>
+                <dt>Model</dt><dd><code id="claudeModelName">—</code></dd>
+            </dl>
+            <form id="claudeForm">
+                <label for="claudeKey">Paste a new key</label>
+                <input id="claudeKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…" required>
+                <div class="hint">Get one from platform.claude.com → API keys. Saving checks the key with Anthropic first (free). “Test current key” also runs one small web search (about $0.01).</div>
+                <div class="row">
+                    <button class="primary" type="submit">Save key</button>
+                    <button class="secondary" type="button" id="testClaudeKey">Test current key</button>
+                    <button class="secondary" type="button" id="removeClaudeKey">Remove key</button>
+                </div>
+                <div class="msg" id="claudeMsg"></div>
+            </form>
+        </section>
 
         <section class="card">
             <h1>Gemini API key</h1>
@@ -142,6 +184,17 @@
             $('keyUpdated').textContent = gemini.updatedAt ? new Date(gemini.updatedAt).toLocaleString() : '—';
         }
 
+        function renderClaude(claude) {
+            $('claudeStatus').innerHTML = claude.configured
+                ? '<span class="pill ok">Configured</span>'
+                : '<span class="pill bad">Not configured</span>';
+            $('claudeMasked').textContent = claude.masked || '—';
+            if (claude.model) $('claudeModelName').textContent = claude.model;
+            $('claudeSource').textContent = claude.source === 'admin' ? 'Saved from this page'
+                : claude.source === 'environment' ? 'Server environment' : '—';
+            $('claudeUpdated').textContent = claude.updatedAt ? new Date(claude.updatedAt).toLocaleString() : '—';
+        }
+
         async function loadSettings() {
             const { ok, status, data } = await api('/settings');
             if (status === 401) {
@@ -155,7 +208,60 @@
             $('adminView').hidden = false;
             $('version').textContent = (data.version || 'dev').slice(0, 7);
             renderKey(data.gemini);
+            if (data.claude) {
+                renderClaude(data.claude);
+                $('claudeModel').value = data.claude.model;
+            }
+            if (data.research) $('provider').value = data.research.provider;
         }
+
+        $('providerForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            busy(event.submitter, async () => {
+                const { ok, data } = await api('/provider', {
+                    method: 'PUT',
+                    body: JSON.stringify({ provider: $('provider').value, claudeModel: $('claudeModel').value })
+                });
+                if (!ok) return showMsg('providerMsg', data.error || 'Could not save the provider', false);
+                $('claudeModelName').textContent = data.research.claudeModel;
+                showMsg('providerMsg', `Saved. Research now uses ${data.research.provider === 'claude' ? data.research.claudeModel : 'Gemini'}.`, true);
+            });
+        });
+
+        $('claudeForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            busy(event.submitter, async () => {
+                const key = $('claudeKey').value.trim();
+                let result = await api('/claude-key', { method: 'PUT', body: JSON.stringify({ key }) });
+                if (result.status === 422 && confirm(`${result.data.error}\n\nSave it anyway?`)) {
+                    result = await api('/claude-key', { method: 'PUT', body: JSON.stringify({ key, skipCheck: true }) });
+                }
+                if (!result.ok) return showMsg('claudeMsg', result.data.error || 'Could not save the key', false);
+                $('claudeKey').value = '';
+                renderClaude(result.data.claude);
+                const check = result.data.check || {};
+                showMsg('claudeMsg', check.valid ? 'Saved. Anthropic accepted the key; it is live now.'
+                    : `Saved, but it could not be verified: ${check.message || 'unknown error'}`, Boolean(check.valid));
+            });
+        });
+
+        $('testClaudeKey').addEventListener('click', (event) => {
+            busy(event.currentTarget, async () => {
+                const { ok, data } = await api('/claude-key/test', { method: 'POST' });
+                if (!ok) return showMsg('claudeMsg', data.error || 'Test failed', false);
+                showMsg('claudeMsg', data.check.valid ? 'Anthropic accepted the key and a test web search succeeded.' : `Key check failed: ${data.check.message}`, data.check.valid);
+            });
+        });
+
+        $('removeClaudeKey').addEventListener('click', (event) => {
+            if (!confirm('Remove the saved Claude key? Research with Claude will stop until a new key is added.')) return;
+            busy(event.currentTarget, async () => {
+                const { ok, data } = await api('/claude-key', { method: 'DELETE' });
+                if (!ok) return showMsg('claudeMsg', data.error || 'Could not remove the key', false);
+                renderClaude(data.claude);
+                showMsg('claudeMsg', 'Saved key removed.', true);
+            });
+        });
 
         $('loginForm').addEventListener('submit', (event) => {
             event.preventDefault();

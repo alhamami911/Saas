@@ -6,12 +6,13 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { createApp } = require("../server");
+const { setClientFactory } = require("../server/providers/claude");
 
 const VALID_KEY = "AIzaTestKey_0123456789abcdefghij";
 
 async function withServer(run, { envOverrides = {}, fetchImpl } = {}) {
     const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "qlook-"));
-    const names = ["qlook_key", "ADMIN_PASSWORD", "SESSION_SECRET", "GIT_SHA"];
+    const names = ["qlook_key", "qlook_claude_key", "QL_PROVIDER", "QL_CLAUDE_MODEL", "ADMIN_PASSWORD", "SESSION_SECRET", "GIT_SHA"];
     const oldValues = Object.fromEntries(names.map((name) => [name, process.env[name]]));
     for (const name of names) delete process.env[name];
     Object.assign(process.env, { ADMIN_PASSWORD: "initial-admin-password", SESSION_SECRET: "test-secret", GIT_SHA: "abc1234def" }, envOverrides);
@@ -167,6 +168,60 @@ test("key test runs a grounded research request and reports Google's reason", as
     }, { fetchImpl });
 });
 
+test("admin saves a checked Claude key and switches provider and model", async () => {
+    const CLAUDE_KEY = "sk-ant-api03-test_only_key_0123456789abcdef";
+    const checked = [];
+    const previous = setClientFactory(({ apiKey }) => ({
+        models: {
+            retrieve: async (model) => {
+                checked.push({ apiKey, model });
+                if (apiKey !== CLAUDE_KEY) throw Object.assign(new Error("invalid x-api-key"), { status: 401 });
+                return { id: model };
+            }
+        },
+        messages: {
+            create: async () => ({ stop_reason: "end_turn", content: [], usage: { server_tool_use: { web_search_requests: 1 } } })
+        }
+    }));
+    try {
+        await withServer(async (ctx) => {
+            const cookie = await ctx.login();
+            const initial = await ctx.call("/admin/api/settings", { cookie });
+            assert.equal(initial.data.research.provider, "claude");
+            assert.equal(initial.data.claude.model, "claude-haiku-5-5");
+            assert.equal(initial.data.claude.configured, false);
+
+            const wrong = await ctx.call("/admin/api/claude-key", { method: "PUT", cookie, body: { key: "sk-ant-api03-wrong_key_0123456789abcdefgh" } });
+            assert.equal(wrong.status, 422);
+            assert.equal(process.env.qlook_claude_key, undefined);
+
+            const saved = await ctx.call("/admin/api/claude-key", { method: "PUT", cookie, body: { key: CLAUDE_KEY } });
+            assert.equal(saved.status, 200);
+            assert.equal(saved.data.claude.masked, "sk-a••••cdef");
+            assert.equal(process.env.qlook_claude_key, CLAUDE_KEY);
+            assert.ok(!JSON.stringify(saved.data).includes(CLAUDE_KEY));
+
+            const tested = await ctx.call("/admin/api/claude-key/test", { method: "POST", cookie });
+            assert.deepEqual(tested.data.check, { valid: true, research: true });
+
+            const badProvider = await ctx.call("/admin/api/provider", { method: "PUT", cookie, body: { provider: "openai", claudeModel: "claude-haiku-5-5" } });
+            assert.equal(badProvider.status, 400);
+            const switched = await ctx.call("/admin/api/provider", { method: "PUT", cookie, body: { provider: "claude", claudeModel: "claude-sonnet-5-5" } });
+            assert.deepEqual(switched.data.research, { provider: "claude", claudeModel: "claude-sonnet-5-5" });
+            assert.equal(process.env.QL_CLAUDE_MODEL, "claude-sonnet-5-5");
+
+            await ctx.restart();
+            const after = await ctx.call("/admin/api/settings", { cookie });
+            assert.equal(after.data.claude.model, "claude-sonnet-5-5");
+            assert.equal(after.data.claude.source, "admin");
+            assert.equal((await ctx.call("/admin/api/provider", { method: "PUT", body: { provider: "gemini", claudeModel: "claude-haiku-5-5" } })).status, 401);
+        });
+    } finally {
+        setClientFactory(previous);
+    }
+    assert.ok(checked.every((entry) => entry.model.startsWith("claude-")));
+});
+
 test("rejects cross-site admin writes", async () => {
     await withServer(async (ctx) => {
         const noHeaderLogin = await ctx.call("/admin/api/login", { method: "POST", body: { password: "initial-admin-password" }, csrf: false });
@@ -203,7 +258,7 @@ test("generate endpoint runs the research handler", async () => {
     await withServer(async ({ call }) => {
         const missingKey = await call("/api/generate", { method: "POST", body: { settings: "x", opportunityCount: 5 } });
         assert.equal(missingKey.status, 503);
-        assert.equal(missingKey.data.errorCode, "GEMINI_KEY_MISSING");
+        assert.equal(missingKey.data.errorCode, "CLAUDE_KEY_MISSING");
         assert.equal((await call("/api/generate")).status, 405);
     });
 });

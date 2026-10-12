@@ -5,7 +5,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { createHmac, randomBytes, timingSafeEqual } = require("node:crypto");
 const { createSettingsStore } = require("./server/settings");
-const { geminiModel } = require("./server/config");
+const { geminiModel, claudeModel, researchProvider, CLAUDE_MODELS, PROVIDERS } = require("./server/config");
+const { testClaudeKey } = require("./server/providers/claude");
 
 const MAX_BODY_BYTES = 128 * 1024;
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
@@ -213,7 +214,42 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         if (!hasSession(req)) return sendJson(res, 401, { error: "Sign in required" });
 
         if (route === "/settings" && req.method === "GET") {
-            return sendJson(res, 200, { gemini: { ...settings.geminiStatus(), model: geminiModel(env) }, version });
+            return sendJson(res, 200, {
+                gemini: { ...settings.geminiStatus(), model: geminiModel(env) },
+                claude: { ...settings.claudeStatus(), model: claudeModel(env) },
+                research: { provider: researchProvider(env), providers: PROVIDERS, claudeModels: CLAUDE_MODELS },
+                version
+            });
+        }
+
+        if (route === "/provider" && req.method === "PUT") {
+            const { provider, claudeModel: model } = await readJson(req);
+            if (!PROVIDERS.includes(provider)) return sendJson(res, 400, { error: `Provider must be one of ${PROVIDERS.join(", ")}` });
+            if (!CLAUDE_MODELS.includes(model)) return sendJson(res, 400, { error: `Claude model must be one of ${CLAUDE_MODELS.join(", ")}` });
+            settings.setResearchProvider({ provider, claudeModel: model });
+            return sendJson(res, 200, { research: { provider: researchProvider(env), claudeModel: claudeModel(env) } });
+        }
+
+        if (route === "/claude-key" && req.method === "PUT") {
+            const { key, skipCheck } = await readJson(req);
+            const trimmed = String(key || "").trim();
+            const check = await testClaudeKey(trimmed, claudeModel(env));
+            if (!check.valid && check.reachable && !skipCheck) {
+                return sendJson(res, 422, { error: `Anthropic rejected this key: ${check.message}`, check });
+            }
+            const saved = settings.setClaudeKey(trimmed);
+            if (saved.error) return sendJson(res, 400, { error: saved.error });
+            return sendJson(res, 200, { claude: settings.claudeStatus(), check });
+        }
+
+        if (route === "/claude-key" && req.method === "DELETE") {
+            settings.clearClaudeKey();
+            return sendJson(res, 200, { claude: settings.claudeStatus() });
+        }
+
+        if (route === "/claude-key/test" && req.method === "POST") {
+            if (!env.qlook_claude_key) return sendJson(res, 200, { check: { valid: false, message: "No key is configured" } });
+            return sendJson(res, 200, { check: await testClaudeKey(env.qlook_claude_key, claudeModel(env), { research: true }) });
         }
 
         if (route === "/gemini-key" && req.method === "PUT") {

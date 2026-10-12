@@ -34,14 +34,15 @@ function mockResponse(data, status = 200) {
     return { ok: status >= 200 && status < 300, status, json: async () => data };
 }
 
-async function withTestEnvironment(run) {
-    const names = ["qlook_key", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"];
+async function withTestEnvironment(run, overrides = { QL_PROVIDER: "gemini" }) {
+    const names = ["qlook_key", "qlook_claude_key", "QL_PROVIDER", "QL_CLAUDE_MODEL", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"];
     const oldValues = Object.fromEntries(names.map((name) => [name, process.env[name]]));
+    for (const name of names) delete process.env[name];
     Object.assign(process.env, {
         qlook_key: "test-only-key",
         UPSTASH_REDIS_REST_URL: "https://redis.example",
         UPSTASH_REDIS_REST_TOKEN: "test-only-token"
-    });
+    }, overrides);
     try {
         await run();
     } finally {
@@ -96,14 +97,23 @@ test("rejects invalid JSON and caps results to the requested count", () => {
 });
 
 test("separates model and search cost estimates", () => {
-    const pricing = getConfig({});
-    assert.deepEqual(estimateCosts({ promptTokenCount: 1000000, candidatesTokenCount: 1000000 }, pricing, true), {
-        modelUsd: "2.800000",
+    const gemini = getConfig({ QL_PROVIDER: "gemini" });
+    assert.deepEqual(estimateCosts({ promptTokenCount: 1000000, candidatesTokenCount: 1000000 }, gemini, true), {
+        modelUsd: "4.500000",
         searchUsd: "0.035000",
-        totalUsd: "2.835000",
+        totalUsd: "4.535000",
         estimateBasis: "conservative_list_price"
     });
-    assert.equal(estimateCosts({ promptTokenCount: 1000, candidatesTokenCount: 1000 }, pricing, false).searchUsd, "0.000000");
+    assert.equal(estimateCosts({ promptTokenCount: 1000, candidatesTokenCount: 1000 }, gemini, false).searchUsd, "0.000000");
+
+    // Claude bills each web search ($10 per 1,000) on top of Haiku 5.5 token prices.
+    const claude = getConfig({});
+    assert.deepEqual(estimateCosts({ promptTokenCount: 1000000, candidatesTokenCount: 1000000, webSearchRequests: 3 }, claude, true), {
+        modelUsd: "0.600000",
+        searchUsd: "0.030000",
+        totalUsd: "0.630000",
+        estimateBasis: "conservative_list_price"
+    });
 });
 
 test("rate limiter enforces shared minute, per-IP day and global-day limits", async () => {
@@ -121,10 +131,28 @@ test("rate limiter enforces shared minute, per-IP day and global-day limits", as
     }
 });
 
-test("uses the current Gemini model and accepts a valid override only", () => {
-    assert.equal(getConfig({}).model, "gemini-3.8-flash");
-    assert.equal(getConfig({ QL_GEMINI_MODEL: "gemini-3.8-pro" }).model, "gemini-3.8-pro");
-    assert.throws(() => getConfig({ QL_GEMINI_MODEL: "../evil" }), /QL_GEMINI_MODEL/);
+test("defaults to Claude Haiku 5.5 and validates provider and model settings", () => {
+    const defaults = getConfig({ qlook_claude_key: "sk-ant-test", qlook_key: "AIza-test" });
+    assert.equal(defaults.provider, "claude");
+    assert.equal(defaults.model, "claude-haiku-5-5");
+    assert.equal(defaults.apiKey, "sk-ant-test");
+    assert.equal(defaults.requestTimeoutMs, 85000);
+    assert.equal(getConfig({ QL_CLAUDE_MODEL: "claude-sonnet-5-5" }).model, "claude-sonnet-5-5");
+    assert.throws(() => getConfig({ QL_CLAUDE_MODEL: "claude-unknown" }), /QL_CLAUDE_MODEL/);
+    assert.throws(() => getConfig({ QL_PROVIDER: "openai" }), /QL_PROVIDER/);
+
+    const gemini = getConfig({ QL_PROVIDER: "gemini", qlook_key: "AIza-test" });
+    assert.equal(gemini.model, "gemini-3.8-flash");
+    assert.equal(gemini.apiKey, "AIza-test");
+    assert.equal(getConfig({ QL_PROVIDER: "gemini", QL_GEMINI_MODEL: "gemini-3.8-pro" }).model, "gemini-3.8-pro");
+    assert.throws(() => getConfig({ QL_PROVIDER: "gemini", QL_GEMINI_MODEL: "../evil" }), /QL_GEMINI_MODEL/);
+});
+
+test("extracts the JSON object when the model adds text around it", () => {
+    const fixture = groundedResults(1);
+    const result = validateResearchResult(`Here is the report:\n${fixture.text}\nDone.`, fixture.chunks, 5);
+    assert.equal(result.value.verifiedCount, 1);
+    assert.equal(validateResearchResult("no json at all", [], 5).errorCode, "INVALID_MODEL_JSON");
 });
 
 test("prompt requests JSON without asking Gemini for schema-enforced tool output", () => {
@@ -170,7 +198,7 @@ test("mocked handler accepts 5, 10, and 20 results and returns per-opportunity c
             const request = JSON.parse(options.body);
             lastPrompt = request.contents[0].parts[0].text;
             assert.equal(request.tools[0].googleSearch !== undefined, true);
-            assert.equal(request.generationConfig.maxOutputTokens, getConfig({}).maxOutputTokens);
+            assert.equal(request.generationConfig.maxOutputTokens, getConfig({ QL_PROVIDER: "gemini" }).maxOutputTokens);
             const count = Number(request.contents[0].parts[0].text.match(/Produce at most (\d+) opportunities/)[1]);
             const fixture = groundedResults(count);
             return mockResponse({
@@ -263,7 +291,7 @@ test("handler converts Gemini timeout into a bounded 504 response", async () => 
                 body: JSON.stringify({ settings: "UAT", opportunityCount: 5 })
             });
             assert.equal(response.statusCode, 504);
-            assert.equal(JSON.parse(response.body).errorCode, "GEMINI_TIMEOUT");
+            assert.equal(JSON.parse(response.body).errorCode, "AI_TIMEOUT");
         } finally {
             global.fetch = originalFetch;
         }

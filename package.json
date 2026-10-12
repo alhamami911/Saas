@@ -6,6 +6,9 @@
     "start": "node server.js",
     "test": "node --test tests/*.test.js"
   },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.133.0"
+  },
   "engines": {
     "node": ">=20"
   }

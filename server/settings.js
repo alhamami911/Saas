@@ -5,6 +5,7 @@ const path = require("node:path");
 const { randomBytes, scryptSync, timingSafeEqual, createHash } = require("node:crypto");
 
 const KEY_PATTERN = /^[A-Za-z0-9_\-.]{20,200}$/;
+const CLAUDE_KEY_PATTERN = /^sk-ant-[A-Za-z0-9_\-]{20,300}$/;
 const MIN_PASSWORD_LENGTH = 12;
 
 function sha256(value) {
@@ -54,13 +55,22 @@ function createSettingsStore({ dataDir, env = process.env }) {
         fs.renameSync(tmp, file);
     }
 
-    // The research handler reads its key from process.env.qlook_key; a key saved
-    // from the admin page takes precedence over one supplied by the environment.
+    // The research handler reads its keys and provider from process.env; values saved
+    // from the admin page take precedence over ones supplied by the environment.
     const envKey = env.qlook_key;
+    const envClaudeKey = env.qlook_claude_key;
+    const envProvider = env.QL_PROVIDER;
+    const envClaudeModel = env.QL_CLAUDE_MODEL;
+    function applyValue(name, saved, fallback) {
+        if (saved) env[name] = saved;
+        else if (fallback) env[name] = fallback;
+        else delete env[name];
+    }
     function applyToEnv() {
-        if (state.geminiKey) env.qlook_key = state.geminiKey;
-        else if (envKey) env.qlook_key = envKey;
-        else delete env.qlook_key;
+        applyValue("qlook_key", state.geminiKey, envKey);
+        applyValue("qlook_claude_key", state.claudeKey, envClaudeKey);
+        applyValue("QL_PROVIDER", state.provider, envProvider);
+        applyValue("QL_CLAUDE_MODEL", state.claudeModel, envClaudeModel);
     }
 
     function geminiStatus() {
@@ -88,6 +98,42 @@ function createSettingsStore({ dataDir, env = process.env }) {
         delete state.geminiKeyUpdatedAt;
         save();
         applyToEnv();
+    }
+
+    function claudeStatus() {
+        const source = state.claudeKey ? "admin" : envClaudeKey ? "environment" : null;
+        return {
+            configured: Boolean(source),
+            source,
+            masked: maskKey(state.claudeKey || envClaudeKey),
+            updatedAt: state.claudeKey ? state.claudeKeyUpdatedAt || null : null
+        };
+    }
+
+    function setClaudeKey(key) {
+        const value = String(key || "").trim();
+        if (!CLAUDE_KEY_PATTERN.test(value)) return { error: "That does not look like a Claude API key" };
+        state.claudeKey = value;
+        state.claudeKeyUpdatedAt = new Date().toISOString();
+        save();
+        applyToEnv();
+        return { ok: true };
+    }
+
+    function clearClaudeKey() {
+        delete state.claudeKey;
+        delete state.claudeKeyUpdatedAt;
+        save();
+        applyToEnv();
+    }
+
+    // Provider and model names are validated by the caller against config.js.
+    function setResearchProvider({ provider, claudeModel }) {
+        state.provider = provider;
+        state.claudeModel = claudeModel;
+        save();
+        applyToEnv();
+        return { ok: true };
     }
 
     function adminConfigured() {
@@ -120,6 +166,10 @@ function createSettingsStore({ dataDir, env = process.env }) {
         geminiStatus,
         setGeminiKey,
         clearGeminiKey,
+        claudeStatus,
+        setClaudeKey,
+        clearClaudeKey,
+        setResearchProvider,
         adminConfigured,
         verifyAdminPassword,
         setAdminPassword,

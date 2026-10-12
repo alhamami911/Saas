@@ -11,8 +11,23 @@ function numericSetting(env, name, fallback, minimum, maximum) {
     return value;
 }
 
+const PROVIDERS = ["claude", "gemini"];
+const DEFAULT_PROVIDER = "claude";
+
 // Google retired gemini-2.5-flash for new users; QL_GEMINI_MODEL overrides the default.
 const DEFAULT_MODEL = "gemini-3.8-flash";
+const DEFAULT_CLAUDE_MODEL = "claude-haiku-5-5";
+const CLAUDE_MODELS = ["claude-haiku-5-5", "claude-sonnet-5-5"];
+const CLAUDE_EFFORTS = ["low", "medium", "high"];
+
+// Estimated list prices in USD. Claude prices come from Anthropic's pricing page;
+// Gemini 3.8 Flash prices are third-party reports and only feed estimates.
+const MODEL_PRICES = {
+    "claude-haiku-5-5": { input: 0.10, output: 0.50 },
+    "claude-sonnet-5-5": { input: 2.00, output: 10.00 },
+    "gemini-3.8-flash": { input: 0.75, output: 3.75 }
+};
+const CLAUDE_SEARCH_USD_PER_1000 = 10;
 
 function geminiModel(env = process.env) {
     const model = env.QL_GEMINI_MODEL || DEFAULT_MODEL;
@@ -20,37 +35,66 @@ function geminiModel(env = process.env) {
     return model;
 }
 
+function claudeModel(env = process.env) {
+    const model = env.QL_CLAUDE_MODEL || DEFAULT_CLAUDE_MODEL;
+    if (!CLAUDE_MODELS.includes(model)) throw new Error(`QL_CLAUDE_MODEL must be one of ${CLAUDE_MODELS.join(", ")}`);
+    return model;
+}
+
+function researchProvider(env = process.env) {
+    const provider = env.QL_PROVIDER || DEFAULT_PROVIDER;
+    if (!PROVIDERS.includes(provider)) throw new Error(`QL_PROVIDER must be one of ${PROVIDERS.join(", ")}`);
+    return provider;
+}
+
 function getConfig(env = process.env) {
+    const provider = researchProvider(env);
+    const model = provider === "claude" ? claudeModel(env) : geminiModel(env);
+    const effort = env.QL_CLAUDE_EFFORT || "low";
+    if (!CLAUDE_EFFORTS.includes(effort)) throw new Error(`QL_CLAUDE_EFFORT must be one of ${CLAUDE_EFFORTS.join(", ")}`);
+    const prices = MODEL_PRICES[model] || {};
+
     return {
-        model: geminiModel(env),
-        apiKey: env.qlook_key,
+        provider,
+        model,
+        apiKey: provider === "claude" ? env.qlook_claude_key : env.qlook_key,
+        claudeEffort: effort,
+        claudeMaxSearches: numericSetting(env, "QL_CLAUDE_MAX_SEARCHES", 6, 1, 20),
         redisUrl: env.UPSTASH_REDIS_REST_URL?.replace(/\/$/, ""),
         redisToken: env.UPSTASH_REDIS_REST_TOKEN,
-        rateLimitSalt: env.QL_RATE_LIMIT_SALT || env.qlook_key,
+        rateLimitSalt: env.QL_RATE_LIMIT_SALT || env.qlook_key || env.qlook_claude_key,
         maxRequestsPerMinutePerIp: numericSetting(env, "QL_MAX_REQUESTS_PER_MINUTE_PER_IP", 2, 1, 100),
         maxRequestsPerDayPerIp: numericSetting(env, "QL_MAX_REQUESTS_PER_DAY_PER_IP", 10, 1, 1000),
         maxRequestsPerDayGlobal: numericSetting(env, "QL_MAX_REQUESTS_PER_DAY_GLOBAL", 100, 1, 100000),
         maxSettingsCharacters: numericSetting(env, "QL_MAX_SETTINGS_CHARACTERS", 4000, 100, 20000),
         maxRequestBodyBytes: numericSetting(env, "QL_MAX_REQUEST_BODY_BYTES", 16000, 1000, 100000),
         maxOutputTokens: numericSetting(env, "QL_MAX_OUTPUT_TOKENS", 16384, 512, 32768),
-        requestTimeoutMs: numericSetting(env, "QL_GEMINI_TIMEOUT_MS", 25000, 1000, 55000),
-        inputUsdPerMillionTokens: numericSetting(env, "QL_GEMINI_INPUT_USD_PER_MILLION", 0.30, 0, 1000),
-        outputUsdPerMillionTokens: numericSetting(env, "QL_GEMINI_OUTPUT_USD_PER_MILLION", 2.50, 0, 1000),
+        // nginx waits 90 s for the app, so a Claude research turn must finish before that.
+        requestTimeoutMs: provider === "claude"
+            ? numericSetting(env, "QL_CLAUDE_TIMEOUT_MS", 85000, 5000, 85000)
+            : numericSetting(env, "QL_GEMINI_TIMEOUT_MS", 25000, 1000, 55000),
+        inputUsdPerMillionTokens: numericSetting(env, "QL_INPUT_USD_PER_MILLION", prices.input ?? 0.75, 0, 1000),
+        outputUsdPerMillionTokens: numericSetting(env, "QL_OUTPUT_USD_PER_MILLION", prices.output ?? 3.75, 0, 1000),
         searchUsdPerThousandGroundedPrompts: numericSetting(env, "QL_SEARCH_USD_PER_1000_GROUNDED_PROMPTS", 35, 0, 10000),
+        claudeSearchUsdPerThousand: CLAUDE_SEARCH_USD_PER_1000,
         searchFreeDailyPrompts: numericSetting(env, "QL_SEARCH_FREE_DAILY_PROMPTS", 0, 0, 1000000),
         usageRetentionDays: numericSetting(env, "QL_USAGE_RETENTION_DAYS", 90, 1, 365)
     };
 }
 
+// Gemini bills one fee per grounded prompt; Claude bills each web search it runs.
 function estimateCosts(usage, config, isSearchBillable) {
     const promptTokens = Number(usage?.promptTokenCount) || 0;
     const completionTokens = (Number(usage?.candidatesTokenCount) || 0)
         + (Number(usage?.thoughtsTokenCount) || 0);
     const modelUsd = (promptTokens * config.inputUsdPerMillionTokens
         + completionTokens * config.outputUsdPerMillionTokens) / 1000000;
-    const searchUsd = isSearchBillable
-        ? config.searchUsdPerThousandGroundedPrompts / 1000
-        : 0;
+    let searchUsd = 0;
+    if (config.provider === "claude") {
+        searchUsd = (Number(usage?.webSearchRequests) || 0) * config.claudeSearchUsdPerThousand / 1000;
+    } else if (isSearchBillable) {
+        searchUsd = config.searchUsdPerThousandGroundedPrompts / 1000;
+    }
 
     return {
         modelUsd: modelUsd.toFixed(6),
@@ -60,4 +104,14 @@ function estimateCosts(usage, config, isSearchBillable) {
     };
 }
 
-module.exports = { getConfig, geminiModel, estimateCosts, DEFAULT_MODEL };
+module.exports = {
+    getConfig,
+    geminiModel,
+    claudeModel,
+    researchProvider,
+    estimateCosts,
+    DEFAULT_MODEL,
+    DEFAULT_CLAUDE_MODEL,
+    CLAUDE_MODELS,
+    PROVIDERS
+};
