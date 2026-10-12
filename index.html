@@ -427,15 +427,14 @@
             </div>
             <div class="source-field">
                 <div class="form-group">
-                    <label id="lblSources" for="sourceCount">عدد المصادر المطلوب البحث فيها</label>
-                    <span class="field-hint" id="sourceHint">سيستخدم البحث المباشر ويعرض روابط المصادر التي استند إليها التقرير. العدد هدف إرشادي وقد يختلف حسب النتائج.</span>
+                    <label id="lblOpportunityCount" for="opportunityCount">عدد الفرص المطلوب توليدها</label>
+                    <span class="field-hint" id="opportunityHint">اختر عدد أفكار SaaS التي تريد تحليلها. ستُعرض مصادر البحث لكل فرصة.</span>
                 </div>
-                <select id="sourceCount" required>
+                <select id="opportunityCount" required>
                     <option value="" data-ar="اختر العدد" data-en="Select a count" selected disabled>اختر العدد</option>
-                    <option value="3" data-ar="3 مصادر" data-en="3 sources">3 مصادر</option>
-                    <option value="5" data-ar="5 مصادر" data-en="5 sources">5 مصادر</option>
-                    <option value="8" data-ar="8 مصادر" data-en="8 sources">8 مصادر</option>
-                    <option value="10" data-ar="10 مصادر" data-en="10 sources">10 مصادر</option>
+                    <option value="5" data-ar="5 فرص" data-en="5 opportunities">5 فرص</option>
+                    <option value="10" data-ar="10 فرص" data-en="10 opportunities">10 فرص</option>
+                    <option value="20" data-ar="20 فرصة" data-en="20 opportunities">20 فرصة</option>
                 </select>
             </div>
             <div class="advanced-options">
@@ -520,8 +519,8 @@
                 filterWhiteLabel: 'إمكانية العلامة البيضاء',
                 filterSecurity: 'أمن وامتثال',
                 lblGoal: 'استراتيجية الاستثمار',
-                lblSources: 'عدد المصادر المطلوب البحث فيها',
-                sourceHint: 'سيستخدم البحث المباشر ويعرض روابط المصادر التي استند إليها التقرير. العدد هدف إرشادي وقد يختلف حسب النتائج.',
+                lblOpportunityCount: 'عدد فرص SaaS المطلوب توليدها',
+                opportunityHint: 'اختر عدد الفرص التي تريد تحليلها. ستُعرض مصادر البحث المستخدمة لكل فرصة.',
                 advTitle: '⚙️ خيارات متقدمة (Prompt Override)',
                 advPlaceholder: 'اكتب هنا توجيهات دقيقة للمحرك... مثال: ركز على المشاريع التي تحقق أرباحاً شهرية متكررة (MRR) تفوق 100$...',
                 btnText: 'ابدأ البحث والتحليل',
@@ -529,7 +528,7 @@
                 sourcesTitle: 'المصادر المستخدمة في التقرير',
                 errorAlert: 'تم رصد خطأ في الاتصال بالخادم السحابي.',
                 invalidResponse: 'لم يُرجع الخادم تقريراً صالحاً.',
-                settingLabels: ['الدولة', 'الميزانية', 'القطاع', 'الاستراتيجية', 'عدد المصادر المستهدف', 'خصائص SaaS المطلوبة'],
+                settingLabels: ['الدولة', 'الميزانية', 'القطاع', 'الاستراتيجية', 'عدد الفرص المطلوب توليدها', 'خصائص SaaS المطلوبة'],
                 noExtra: 'لا يوجد',
                 noFilters: 'لا توجد خصائص محددة',
                 filterOptions: {
@@ -564,8 +563,8 @@
                 filterWhiteLabel: 'White-label capability',
                 filterSecurity: 'Security and compliance',
                 lblGoal: 'Investment Strategy',
-                lblSources: 'Target number of sources',
-                sourceHint: 'Live search is enabled and source links used by the report will be shown. This is a target; actual results may vary.',
+                lblOpportunityCount: 'Number of opportunities to generate',
+                opportunityHint: 'Choose how many SaaS opportunities to analyze. Research citations will be shown for the opportunities.',
                 advTitle: '⚙️ Advanced Options (Prompt Override)',
                 advPlaceholder: 'Enter precise instructions... e.g., focus on projects with recurring monthly revenue (MRR) above $100...',
                 btnText: 'Search & analyze',
@@ -573,7 +572,7 @@
                 sourcesTitle: 'Sources used in this report',
                 errorAlert: 'Error connecting to the cloud server.',
                 invalidResponse: 'The server did not return a valid report.',
-                settingLabels: ['Country', 'Budget', 'Industry', 'Strategy', 'Target source count', 'Required SaaS capabilities'],
+                settingLabels: ['Country', 'Budget', 'Industry', 'Strategy', 'Number of opportunities to generate', 'Required SaaS capabilities'],
                 noExtra: 'None',
                 noFilters: 'No specific capabilities',
                 filterOptions: {
@@ -615,8 +614,8 @@
             document.getElementById('filterWhiteLabel').textContent = t.filterWhiteLabel;
             document.getElementById('filterSecurity').textContent = t.filterSecurity;
             document.getElementById('lblGoal').textContent = t.lblGoal;
-            document.getElementById('lblSources').textContent = t.lblSources;
-            document.getElementById('sourceHint').textContent = t.sourceHint;
+            document.getElementById('lblOpportunityCount').textContent = t.lblOpportunityCount;
+            document.getElementById('opportunityHint').textContent = t.opportunityHint;
             document.getElementById('advTitle').textContent = t.advTitle;
             document.getElementById('advanced').placeholder = t.advPlaceholder;
             document.getElementById('startBtn').textContent = t.btnText;
@@ -644,10 +643,10 @@
             const t = translations[currentLang];
 
             const advancedText = document.getElementById('advanced').value.trim();
-            const sourceCount = Number(document.getElementById('sourceCount').value);
+            const opportunityCount = Number(document.getElementById('opportunityCount').value);
             const selectedFilters = Array.from(document.querySelectorAll('input[name="featureFilter"]:checked'), (input) => input.value);
             const selectedFilterLabels = selectedFilters.map((filter) => t.filterOptions[filter]);
-            const settings = `${t.settingLabels[0]}: ${getSelectedLabel('country')}, ${t.settingLabels[1]}: ${getSelectedLabel('budget')}, ${t.settingLabels[2]}: ${getSelectedLabel('industry')}, ${t.settingLabels[3]}: ${getSelectedLabel('goal')}, ${t.settingLabels[4]}: ${sourceCount}, ${t.settingLabels[5]}: ${selectedFilterLabels.join(', ') || t.noFilters}. ${currentLang === 'ar' ? 'محددات إضافية من المستخدم' : 'Additional user requirements'}: ${advancedText || t.noExtra}. ${currentLang === 'ar' ? 'يرجى إعداد التقرير باللغة' : 'Please write the report in'} ${t.reportLanguage}.`;
+            const settings = `${t.settingLabels[0]}: ${getSelectedLabel('country')}, ${t.settingLabels[1]}: ${getSelectedLabel('budget')}, ${t.settingLabels[2]}: ${getSelectedLabel('industry')}, ${t.settingLabels[3]}: ${getSelectedLabel('goal')}, ${t.settingLabels[4]}: ${opportunityCount}, ${t.settingLabels[5]}: ${selectedFilterLabels.join(', ') || t.noFilters}. ${currentLang === 'ar' ? 'محددات إضافية من المستخدم' : 'Additional user requirements'}: ${advancedText || t.noExtra}. ${currentLang === 'ar' ? 'يرجى إعداد التقرير باللغة' : 'Please write the report in'} ${t.reportLanguage}.`;
 
             btn.disabled = true;
             loading.style.display = 'block';
@@ -657,7 +656,7 @@
                 const response = await fetch('/.netlify/functions/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ settings, sourceCount, language: currentLang, filters: selectedFilters })
+                    body: JSON.stringify({ settings, opportunityCount, language: currentLang, filters: selectedFilters })
                 });
                 const data = await response.json();
 
