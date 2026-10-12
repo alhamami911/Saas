@@ -1,8 +1,8 @@
 "use strict";
 
-const { getConfig, estimateCosts } = require("./config");
+const { getConfig, estimateCosts, searchAllowance } = require("./config");
 const { checkRateLimit } = require("./rate-limit");
-const { createUsageEvent, storeUsage } = require("./usage-store");
+const { createUsageEvent, storeUsage, dailySpendUsd, addDailySpend } = require("./usage-store");
 const { buildResearchPrompt, validateRequest, validateResearchResult } = require("./research");
 const { runGeminiResearch } = require("./providers/gemini");
 const { runClaudeResearch } = require("./providers/claude");
@@ -27,6 +27,7 @@ async function persistRequest(config, fields, usage, grounded) {
     );
     event.groundedPromptsToday = stored.groundedPromptsToday;
     event.estimatedCosts = costs;
+    event.spentTodayUsd = await addDailySpend(config, Number(costs.totalUsd));
     await storeUsage(config, event, false);
     return { requestId: event.requestId, usage: event.usage, costs };
 }
@@ -91,12 +92,28 @@ exports.handler = async function (event) {
         return jsonResponse(limit.statusCode, { errorCode: limit.errorCode, error: limit.error }, headers);
     }
 
+    // Stop before spending once today's estimated provider cost reaches the budget.
+    let spentToday;
+    try {
+        spentToday = await dailySpendUsd(config);
+    } catch (error) {
+        console.error("Daily budget check failed", error.message);
+        return jsonResponse(503, { errorCode: "BUDGET_CHECK_UNAVAILABLE", error: "Research is temporarily unavailable. Please retry shortly." });
+    }
+    if (spentToday >= config.dailyBudgetUsd) {
+        console.error("Daily research budget reached", spentToday.toFixed(4), config.dailyBudgetUsd);
+        return jsonResponse(429, {
+            errorCode: "DAILY_BUDGET_REACHED",
+            error: "Today's research budget has been used. Please try again tomorrow."
+        }, { "Retry-After": "3600" });
+    }
+
     // Reports are always written in Arabic, whatever language the interface uses.
     const request = { ...validation.value, language: "ar" };
     const prompt = buildResearchPrompt(request);
     const startedAt = Date.now();
     const result = config.provider === "claude"
-        ? await runClaudeResearch(config, prompt)
+        ? await runClaudeResearch(config, prompt, { maxSearches: searchAllowance(config, request.opportunityCount) })
         : await runGeminiResearch(config, prompt);
     const elapsedMs = Date.now() - startedAt;
     const baseFields = { requestedCount: request.opportunityCount, language: request.language, elapsedMs };

@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { getConfig, estimateCosts } = require("../server/config");
+const { getConfig, estimateCosts, searchAllowance } = require("../server/config");
 const { checkRateLimit } = require("../server/rate-limit");
 const { buildResearchPrompt, normalizePublicUrl, validateRequest, validateResearchResult } = require("../server/research");
 
@@ -146,6 +146,72 @@ test("defaults to Claude Haiku 5.5 and validates provider and model settings", (
     assert.equal(gemini.apiKey, "AIza-test");
     assert.equal(getConfig({ QL_PROVIDER: "gemini", QL_GEMINI_MODEL: "gemini-3.8-pro" }).model, "gemini-3.8-pro");
     assert.throws(() => getConfig({ QL_PROVIDER: "gemini", QL_GEMINI_MODEL: "../evil" }), /QL_GEMINI_MODEL/);
+});
+
+test("drops sold or ended listings and classifies commercial SaaS use from evidence", () => {
+    const url = (name) => `https://${name}.example/item`;
+    const item = (name, extra = {}) => ({
+        productName: name, directUrl: url(name), originName: "Market", originType: "marketplace", originUrl: url(name),
+        supportingSources: [], license: { name: null, status: "unverified", sourceUrl: null },
+        price: { status: "unknown" }, verifiedFacts: [], estimates: [], ...extra
+    });
+    const verified = (name, license) => ({ license: { name: license, status: "verified", sourceUrl: url(name) } });
+    const text = JSON.stringify({ summary: "", verificationNote: "", opportunities: [
+        item("sold"),
+        item("claimed-ended", { availability: { status: "ended", sourceUrl: url("claimed-ended") } }),
+        item("agpl", verified("agpl", "AGPL-3.0")),
+        item("mit", { ...verified("mit", "MIT"), availability: { status: "available", sourceUrl: url("mit") } }),
+        item("regular", verified("regular", "Regular License")),
+        item("lgpl", verified("lgpl", "LGPL-2.1")),
+        item("unsourced", { commercialUse: { status: "allowed", note: "trust me", sourceUrl: "https://elsewhere.example/" } })
+    ] });
+    const chunks = ["sold", "claimed-ended", "agpl", "mit", "regular", "lgpl", "unsourced"].map((name) => ({
+        web: { uri: url(name), title: name === "sold" ? "Profitable SaaS | SaaS Sold on Flippa" : name }
+    }));
+    const result = validateResearchResult(text, chunks, 20).value;
+    assert.equal(result.excludedCount, 2);
+    const byName = Object.fromEntries(result.opportunities.map((o) => [o.productName, o]));
+    assert.deepEqual(Object.keys(byName), ["agpl", "mit", "regular", "lgpl", "unsourced"]);
+    assert.equal(byName.agpl.commercialUse.status, "restricted");
+    assert.equal(byName.regular.commercialUse.status, "restricted");
+    assert.equal(byName.mit.commercialUse.status, "allowed");
+    assert.equal(byName.lgpl.commercialUse.status, "allowed");
+    assert.equal(byName.unsourced.commercialUse.status, "unclear");
+    assert.equal(byName.mit.availability.status, "available");
+    assert.equal(byName.agpl.availability.status, "unknown");
+});
+
+test("search allowance scales with the requested count within the cap", () => {
+    const config = getConfig({});
+    assert.deepEqual([5, 10, 20].map((count) => searchAllowance(config, count)), [6, 8, 10]);
+    assert.equal(searchAllowance(getConfig({ QL_CLAUDE_MAX_SEARCHES: "4" }), 20), 4);
+    assert.equal(config.dailyBudgetUsd, 2);
+});
+
+test("handler stops before calling the provider once the daily budget is spent", async () => {
+    await withTestEnvironment(async () => {
+        const originalFetch = global.fetch;
+        let providerCalls = 0;
+        global.fetch = async (url, options) => {
+            if (!String(url).startsWith("https://redis.example")) { providerCalls += 1; throw new Error("provider must not be called"); }
+            const command = JSON.parse(options.body);
+            if (command[0] === "GET") return mockResponse({ result: "2.150000" });
+            return mockResponse({ result: command[1].includes("local results") ? [1, 1, 1] : 0 });
+        };
+        try {
+            const { handler } = require("../server/generate");
+            const response = await handler({
+                httpMethod: "POST",
+                headers: { "content-type": "application/json" },
+                body: JSON.stringify({ settings: "UAT", opportunityCount: 5 })
+            });
+            assert.equal(response.statusCode, 429);
+            assert.equal(JSON.parse(response.body).errorCode, "DAILY_BUDGET_REACHED");
+            assert.equal(providerCalls, 0);
+        } finally {
+            global.fetch = originalFetch;
+        }
+    });
 });
 
 test("extracts the JSON object when the model adds text around it", () => {

@@ -86,6 +86,10 @@
         .stat strong { display: block; font-size: 1.4rem; color: var(--primary-color); }
         .stat span { font-size: 0.85rem; color: var(--text-secondary); }
         .card-actions { margin-top: 12px; }
+        .commercial-use { margin: 10px 0 0; padding: 8px 10px; border-radius: 6px; font-size: 0.85rem; background: var(--secondary-color); }
+        .commercial-allowed { border-inline-start: 3px solid #10b981; }
+        .commercial-restricted { border-inline-start: 3px solid #dc2626; }
+        .commercial-unclear { border-inline-start: 3px solid #d97706; }
         .btn-secondary { padding: 7px 12px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--secondary-color); color: var(--text-primary); font: inherit; font-size: 0.85rem; cursor: pointer; }
         .btn-secondary:hover { background: var(--secondary-hover); }
         .btn-secondary:disabled { opacity: 0.6; cursor: default; }
@@ -248,6 +252,8 @@
                 verified: 'متحقق', unverified: 'غير متحقق', estimate: 'تقديري', unknown: 'غير معروف',
                 confidence: 'مستوى الثقة', lastVerified: 'آخر تحقق', high: 'مرتفع', medium: 'متوسط', low: 'منخفض',
                 verifiedFacts: 'معلومات موثقة', estimates: 'تقديرات', noOpportunities: 'لم يتم التحقق من فرص مطابقة؛ راجع الملاحظة أدناه.',
+                availability: 'الإتاحة', availability_available: 'متاحة (حسب المصدر)', availability_unknown: 'غير مؤكدة',
+                commercialUse: 'الاستخدام التجاري كـ SaaS', commercial_allowed: 'مسموح', commercial_restricted: 'مقيَّد', commercial_unclear: 'غير واضح — راجع الترخيص قبل الشراء',
                 modelCost: 'تكلفة النموذج المقدرة', searchCost: 'رسوم البحث المقدرة', totalCost: 'الإجمالي المقدر',
                 actualBilling: 'الفوترة الفعلية: راجع Google AI Studio أو Cloud Billing', billingNote: 'هذه تقديرات وليست سجلاً للفوترة الفعلية.'
             },
@@ -270,6 +276,8 @@
                 verified: 'Verified', unverified: 'Unverified', estimate: 'Estimate', unknown: 'Unknown',
                 confidence: 'Confidence', lastVerified: 'Last verified', high: 'High', medium: 'Medium', low: 'Low',
                 verifiedFacts: 'Verified facts', estimates: 'Estimates', noOpportunities: 'No matching opportunities could be verified; see the note below.',
+                availability: 'Availability', availability_available: 'Available (per source)', availability_unknown: 'Not confirmed',
+                commercialUse: 'Commercial SaaS use', commercial_allowed: 'Allowed', commercial_restricted: 'Restricted', commercial_unclear: 'Unclear — check the license before buying',
                 modelCost: 'Estimated model cost', searchCost: 'Estimated search fee', totalCost: 'Estimated total',
                 actualBilling: 'Actual billing: check Google AI Studio or Cloud Billing', billingNote: 'These are estimates, not actual billing records.'
             }
@@ -436,13 +444,27 @@
             }
             card.appendChild(title);
 
+            // Each field is its own element so the flex gap separates them.
+            const metaItem = (container, text) => {
+                const item = document.createElement('span');
+                item.textContent = text;
+                container.appendChild(item);
+                return item;
+            };
             const meta = document.createElement('div');
             meta.className = 'opportunity-meta';
             const origin = safeHttpUrl(opportunity.originUrl);
-            const originText = origin ? `${opportunity.originName}: ${origin.href}` : opportunity.originName;
-            meta.append(document.createTextNode(`${t.origin}: ${originText}`));
-            meta.append(document.createTextNode(`${t.confidence}: ${t[opportunity.confidence] || t.low}`));
-            meta.append(document.createTextNode(`${t.lastVerified}: ${opportunity.lastVerifiedDate}`));
+            const originItem = metaItem(meta, `${t.origin}: ${opportunity.originName}`);
+            if (origin) {
+                const originLink = document.createElement('a');
+                originLink.href = origin.href;
+                originLink.target = '_blank';
+                originLink.rel = 'noopener noreferrer';
+                originLink.textContent = ` ↗`;
+                originItem.appendChild(originLink);
+            }
+            metaItem(meta, `${t.confidence}: ${t[opportunity.confidence] || t.low}`);
+            metaItem(meta, `${t.lastVerified}: ${opportunity.lastVerifiedDate}`);
             card.appendChild(meta);
 
             const priceText = opportunity.price?.status === 'unknown'
@@ -451,9 +473,22 @@
             const licenseText = `${opportunity.license?.name || t.unknown} (${opportunity.license?.status === 'verified' ? t.verified : t.unverified})`;
             const facts = document.createElement('div');
             facts.className = 'opportunity-meta opportunity-section';
-            facts.append(document.createTextNode(`${t.price}: ${priceText}`));
-            facts.append(document.createTextNode(`${t.license}: ${licenseText}`));
+            metaItem(facts, `${t.price}: ${priceText}`);
+            metaItem(facts, `${t.license}: ${licenseText}`);
+            if (opportunity.availability) {
+                metaItem(facts, `${t.availability}: ${t[`availability_${opportunity.availability.status}`] || t.unknown}`);
+            }
             card.appendChild(facts);
+
+            if (opportunity.commercialUse) {
+                const use = document.createElement('p');
+                use.className = `commercial-use commercial-${opportunity.commercialUse.status}`;
+                const label = document.createElement('strong');
+                label.textContent = `${t.commercialUse}: ${t[`commercial_${opportunity.commercialUse.status}`] || t.commercial_unclear}`;
+                use.appendChild(label);
+                if (opportunity.commercialUse.note) use.append(document.createTextNode(` — ${opportunity.commercialUse.note}`));
+                card.appendChild(use);
+            }
 
             addSection(card, t.verifiedFacts, opportunity.verifiedFacts, t);
             addSection(card, t.estimates, opportunity.estimates, t);

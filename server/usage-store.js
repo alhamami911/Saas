@@ -50,6 +50,39 @@ async function storeUsage(config, usageEvent, grounded, now = Date.now()) {
     return { requestId: usageEvent.requestId, groundedPromptsToday: Number(data.result) || 0 };
 }
 
+const ADD_SPEND = `
+local total = redis.call('INCRBYFLOAT', KEYS[1], ARGV[1])
+redis.call('EXPIRE', KEYS[1], ARGV[2])
+return total
+`;
+
+async function redisCommand(config, command) {
+    if (!config.redisUrl || !config.redisToken) throw new Error("Usage storage is not configured");
+    const response = await fetch(config.redisUrl, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${config.redisToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify(command),
+        signal: AbortSignal.timeout(3000)
+    });
+    const data = await response.json();
+    if (!response.ok || data.error) throw new Error("Usage storage rejected the request");
+    return data.result;
+}
+
+// Estimated provider spend for the current UTC day, used to keep research
+// within the daily budget the operator sets.
+async function dailySpendUsd(config, now = Date.now()) {
+    const { day } = utcDayInfo(now);
+    return Number(await redisCommand(config, ["GET", `ql:spend:usd:${day}`])) || 0;
+}
+
+async function addDailySpend(config, usd, now = Date.now()) {
+    if (!(usd > 0)) return dailySpendUsd(config, now);
+    const { day, secondsUntilTomorrow } = utcDayInfo(now);
+    const total = await redisCommand(config, ["EVAL", ADD_SPEND, 1, `ql:spend:usd:${day}`, usd.toFixed(6), secondsUntilTomorrow]);
+    return Number(total) || 0;
+}
+
 function createUsageEvent(fields) {
     return {
         requestId: randomUUID(),
@@ -60,4 +93,4 @@ function createUsageEvent(fields) {
     };
 }
 
-module.exports = { createUsageEvent, storeUsage, utcDayInfo };
+module.exports = { createUsageEvent, storeUsage, utcDayInfo, dailySpendUsd, addDailySpend };

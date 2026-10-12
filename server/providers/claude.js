@@ -49,7 +49,7 @@ function classifyError(error) {
 // Runs one Claude research turn with server-side web search and returns the shared
 // research result shape. Search results carry the real page URLs, so grounding
 // verification can compare them directly with the URLs in the report.
-async function runClaudeResearch(config, prompt) {
+async function runClaudeResearch(config, prompt, { maxSearches = config.claudeMaxSearches } = {}) {
     const client = createClient({ apiKey: config.apiKey, maxRetries: 1, timeout: config.requestTimeoutMs });
     const signal = AbortSignal.timeout(config.requestTimeoutMs);
     const messages = [{ role: "user", content: prompt }];
@@ -64,7 +64,7 @@ async function runClaudeResearch(config, prompt) {
                 model: config.model,
                 max_tokens: config.maxOutputTokens,
                 output_config: { effort: config.claudeEffort },
-                tools: [webSearchTool(config.model, config.claudeMaxSearches)],
+                tools: [webSearchTool(config.model, maxSearches)],
                 messages
             }, { signal });
             message = await stream.finalMessage();

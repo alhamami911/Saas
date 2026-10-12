@@ -59,7 +59,10 @@ function getConfig(env = process.env) {
         model,
         apiKey: provider === "claude" ? env.qlook_claude_key : env.qlook_key,
         claudeEffort: effort,
-        claudeMaxSearches: numericSetting(env, "QL_CLAUDE_MAX_SEARCHES", 6, 1, 20),
+        // Upper bound on web searches per report; the actual allowance scales with
+        // the requested count (see searchAllowance) so small reports stay cheap.
+        claudeMaxSearches: numericSetting(env, "QL_CLAUDE_MAX_SEARCHES", 10, 1, 20),
+        dailyBudgetUsd: numericSetting(env, "QL_DAILY_BUDGET_USD", 2, 0.1, 1000),
         redisUrl: env.UPSTASH_REDIS_REST_URL?.replace(/\/$/, ""),
         redisToken: env.UPSTASH_REDIS_REST_TOKEN,
         rateLimitSalt: env.QL_RATE_LIMIT_SALT || env.qlook_key || env.qlook_claude_key,
@@ -80,6 +83,14 @@ function getConfig(env = process.env) {
         searchFreeDailyPrompts: numericSetting(env, "QL_SEARCH_FREE_DAILY_PROMPTS", 0, 0, 1000000),
         usageRetentionDays: numericSetting(env, "QL_USAGE_RETENTION_DAYS", 90, 1, 365)
     };
+}
+
+// At $10 per 1,000 searches this keeps a report at about $0.06 (5), $0.08 (10)
+// and $0.10 (20) in search fees.
+const SEARCHES_BY_COUNT = { 5: 6, 10: 8, 20: 10 };
+
+function searchAllowance(config, opportunityCount) {
+    return Math.min(config.claudeMaxSearches, SEARCHES_BY_COUNT[opportunityCount] || 6);
 }
 
 // Gemini bills one fee per grounded prompt; Claude bills each web search it runs.
@@ -110,6 +121,7 @@ module.exports = {
     claudeModel,
     researchProvider,
     estimateCosts,
+    searchAllowance,
     DEFAULT_MODEL,
     DEFAULT_CLAUDE_MODEL,
     CLAUDE_MODELS,
