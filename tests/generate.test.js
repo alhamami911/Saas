@@ -2,9 +2,9 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { getConfig, estimateCosts } = require("../netlify/functions/config");
-const { checkRateLimit } = require("../netlify/functions/rate-limit");
-const { buildResearchPrompt, normalizePublicUrl, validateRequest, validateResearchResult } = require("../netlify/functions/research");
+const { getConfig, estimateCosts } = require("../netlify/lib/config");
+const { checkRateLimit } = require("../netlify/lib/rate-limit");
+const { buildResearchPrompt, normalizePublicUrl, validateRequest, validateResearchResult } = require("../netlify/lib/research");
 
 const config = getConfig({});
 
