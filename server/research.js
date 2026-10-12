@@ -395,6 +395,8 @@ function applyCatalogue(research, candidates) {
             ...opportunity,
             discoveredVia: "official_api",
             catalogueSource: match.source,
+            // Official records are first-hand evidence; popularity raises confidence further.
+            confidence: (match.stars ?? 0) >= 100 || (match.sales ?? 0) >= 50 ? "high" : "medium",
             license,
             price,
             commercialUse: match.license ? commercialUseFor(license, {}, new Map()) : opportunity.commercialUse,
