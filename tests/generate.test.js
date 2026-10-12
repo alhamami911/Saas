@@ -2,9 +2,9 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { getConfig, estimateCosts } = require("../netlify/lib/config");
-const { checkRateLimit } = require("../netlify/lib/rate-limit");
-const { buildResearchPrompt, normalizePublicUrl, validateRequest, validateResearchResult } = require("../netlify/lib/research");
+const { getConfig, estimateCosts } = require("../server/config");
+const { checkRateLimit } = require("../server/rate-limit");
+const { buildResearchPrompt, normalizePublicUrl, validateRequest, validateResearchResult } = require("../server/research");
 
 const config = getConfig({});
 
@@ -111,7 +111,7 @@ test("rate limiter enforces shared minute, per-IP day and global-day limits", as
     global.fetch = async () => mockResponse({ result: [3, 1, 1] });
     try {
         const result = await checkRateLimit(
-            { headers: { "x-nf-client-connection-ip": "203.0.113.4" } },
+            { headers: { "x-qlook-client-ip": "203.0.113.4" } },
             { redisUrl: "https://redis.example", redisToken: "test", rateLimitSalt: "salt", maxRequestsPerMinutePerIp: 2, maxRequestsPerDayPerIp: 10, maxRequestsPerDayGlobal: 100 }
         );
         assert.equal(result.allowed, false);
@@ -135,7 +135,7 @@ test("handler rejects missing key and invalid input without calling providers", 
         global.fetch = async () => { fetchCalls += 1; throw new Error("unexpected network request"); };
         try {
             delete process.env.qlook_key;
-            const { handler } = require("../netlify/functions/generate");
+            const { handler } = require("../server/generate");
             const missingKey = await handler({ httpMethod: "POST", body: "{}" });
             assert.equal(missingKey.statusCode, 503);
             assert.equal(JSON.parse(missingKey.body).errorCode, "GEMINI_KEY_MISSING");
@@ -154,12 +154,14 @@ test("handler rejects missing key and invalid input without calling providers", 
 test("mocked handler accepts 5, 10, and 20 results and returns per-opportunity citations", async () => {
     await withTestEnvironment(async () => {
         const originalFetch = global.fetch;
+        let lastPrompt = "";
         global.fetch = async (url, options) => {
             if (String(url).startsWith("https://redis.example")) {
                 const command = JSON.parse(options.body);
                 return mockResponse({ result: command[1].includes("local results") ? [1, 1, 1] : Number(command[6]) ? 1 : 0 });
             }
             const request = JSON.parse(options.body);
+            lastPrompt = request.contents[0].parts[0].text;
             assert.equal(request.tools[0].googleSearch !== undefined, true);
             assert.equal(request.generationConfig.maxOutputTokens, getConfig({}).maxOutputTokens);
             const count = Number(request.contents[0].parts[0].text.match(/Produce at most (\d+) opportunities/)[1]);
@@ -174,15 +176,17 @@ test("mocked handler accepts 5, 10, and 20 results and returns per-opportunity c
             });
         };
         try {
-            const { handler } = require("../netlify/functions/generate");
+            const { handler } = require("../server/generate");
             for (const count of [5, 10, 20]) {
                 const response = await handler({
                     httpMethod: "POST",
-                    headers: { "content-type": "application/json", "x-nf-client-connection-ip": "203.0.113.5" },
-                    body: JSON.stringify({ settings: "UAT", opportunityCount: count, language: "ar" })
+                    headers: { "content-type": "application/json", "x-qlook-client-ip": "203.0.113.5" },
+                    // An English interface still gets an Arabic report.
+                    body: JSON.stringify({ settings: "UAT", opportunityCount: count, language: count === 10 ? "en" : "ar" })
                 });
                 assert.equal(response.statusCode, 200);
                 const data = JSON.parse(response.body);
+                assert.match(lastPrompt, /Return ONLY a JSON object in Arabic/);
                 assert.equal(data.verifiedCount, count);
                 assert.equal(data.requestedCount, count);
                 assert.equal(data.opportunities.length, count);
@@ -214,7 +218,7 @@ test("handler maps provider quota responses and enforces rate limit before Gemin
                 : mockResponse({ candidates: [], usageMetadata: {} });
         };
         try {
-            const { handler } = require("../netlify/functions/generate");
+            const { handler } = require("../server/generate");
             const input = { httpMethod: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ settings: "UAT", opportunityCount: 5 }) };
             const quota = await handler(input);
             assert.equal(quota.statusCode, 429);
@@ -245,7 +249,7 @@ test("handler converts Gemini timeout into a bounded 504 response", async () => 
             throw error;
         };
         try {
-            const { handler } = require("../netlify/functions/generate");
+            const { handler } = require("../server/generate");
             const response = await handler({
                 httpMethod: "POST",
                 headers: { "content-type": "application/json" },

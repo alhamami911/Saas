@@ -14,10 +14,7 @@ return results
 
 function getClientIp(event) {
     const headers = event.headers || {};
-    return headers["x-nf-client-connection-ip"]
-        || headers["X-Nf-Client-Connection-Ip"]
-        || event.requestContext?.identity?.sourceIp
-        || "unknown";
+    return headers["x-qlook-client-ip"] || "unknown";
 }
 
 async function checkRateLimit(event, config, now = Date.now()) {

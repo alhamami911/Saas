@@ -54,7 +54,7 @@ function createSettingsStore({ dataDir, env = process.env }) {
         fs.renameSync(tmp, file);
     }
 
-    // The Netlify handler reads its key from process.env.qlook_key; a key saved
+    // The research handler reads its key from process.env.qlook_key; a key saved
     // from the admin page takes precedence over one supplied by the environment.
     const envKey = env.qlook_key;
     function applyToEnv() {

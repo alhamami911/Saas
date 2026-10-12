@@ -10,7 +10,6 @@ ENV NODE_ENV=production PORT=8080 DATA_DIR=/data GIT_SHA=${GIT_SHA}
 WORKDIR /app
 COPY --from=test /app/server.js /app/index.html /app/admin.html ./
 COPY --from=test /app/server ./server
-COPY --from=test /app/netlify ./netlify
 RUN mkdir -p /data && chown node:node /data
 USER node
 VOLUME /data

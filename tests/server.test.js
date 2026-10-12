@@ -33,10 +33,15 @@ async function withServer(run, { envOverrides = {}, fetchImpl } = {}) {
             await new Promise((resolve) => server.close(resolve));
             server = await start();
         },
-        async call(pathname, { method = "GET", body, cookie, headers = {} } = {}) {
+        async call(pathname, { method = "GET", body, cookie, headers = {}, csrf = true } = {}) {
             const response = await fetch(`${ctx.base}${pathname}`, {
                 method,
-                headers: { "Content-Type": "application/json", ...(cookie ? { Cookie: cookie } : {}), ...headers },
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(csrf ? { "X-QLook-Admin": "1" } : {}),
+                    ...(cookie ? { Cookie: cookie } : {}),
+                    ...headers
+                },
                 body: body === undefined ? undefined : JSON.stringify(body)
             });
             const text = await response.text();
@@ -70,10 +75,17 @@ test("serves the app, admin page and health check", async () => {
         const index = await call("/");
         assert.equal(index.status, 200);
         assert.match(index.data, /fetch\('\/api\/generate'/);
+        assert.doesNotMatch(index.data, /admin\/api|ADMIN_PASSWORD|qlook_key/);
+        assert.equal(index.headers.get("x-frame-options"), "DENY");
+        assert.match(index.headers.get("content-security-policy"), /frame-ancestors 'none'/);
+        assert.equal(index.headers.get("strict-transport-security"), null);
+        const secure = await call("/", { headers: { "X-Forwarded-Proto": "https" } });
+        assert.match(secure.headers.get("strict-transport-security"), /max-age=31536000/);
         const admin = await call("/admin");
         assert.equal(admin.status, 200);
         assert.match(admin.headers.get("content-security-policy"), /frame-ancestors 'none'/);
-        assert.equal((await call("/netlify/lib/config.js")).status, 404);
+        assert.equal((await call("/server/config.js")).status, 404);
+        assert.equal((await call("/.netlify/functions/generate", { method: "POST", body: {} })).status, 404);
         assert.equal((await call("/../server.js")).status, 404);
     });
 });
@@ -99,6 +111,10 @@ test("locks out an IP after repeated failed logins", async () => {
 
 test("saves a checked Gemini key, applies it immediately, and keeps it across restarts", async () => {
     await withServer(async (ctx) => {
+        const secureLogin = await ctx.call("/admin/api/login", {
+            method: "POST", body: { password: "initial-admin-password" }, headers: { "X-Forwarded-Proto": "https" }
+        });
+        assert.match(secureLogin.headers.get("set-cookie"), /HttpOnly; SameSite=Strict;.*Secure/);
         const cookie = await ctx.login();
         const empty = await ctx.call("/admin/api/settings", { cookie });
         assert.equal(empty.data.gemini.configured, false);
@@ -130,7 +146,12 @@ test("saves a checked Gemini key, applies it immediately, and keeps it across re
 
 test("rejects cross-site admin writes", async () => {
     await withServer(async (ctx) => {
+        const noHeaderLogin = await ctx.call("/admin/api/login", { method: "POST", body: { password: "initial-admin-password" }, csrf: false });
+        assert.equal(noHeaderLogin.status, 403);
         const cookie = await ctx.login();
+        const noHeaderWrite = await ctx.call("/admin/api/gemini-key", { method: "PUT", cookie, body: { key: VALID_KEY }, csrf: false });
+        assert.equal(noHeaderWrite.status, 403);
+        assert.equal((await ctx.call("/admin/api/gemini-key", { method: "DELETE", cookie, csrf: false })).status, 403);
         const result = await ctx.call("/admin/api/gemini-key", {
             method: "PUT", cookie, body: { key: VALID_KEY }, headers: { Origin: "https://evil.example" }
         });
@@ -155,13 +176,11 @@ test("changing the admin password signs out old sessions", async () => {
     });
 });
 
-test("generate endpoint runs the research handler on both paths", async () => {
+test("generate endpoint runs the research handler", async () => {
     await withServer(async ({ call }) => {
-        for (const pathname of ["/api/generate", "/.netlify/functions/generate"]) {
-            const missingKey = await call(pathname, { method: "POST", body: { settings: "x", opportunityCount: 5 } });
-            assert.equal(missingKey.status, 503);
-            assert.equal(missingKey.data.errorCode, "GEMINI_KEY_MISSING");
-        }
+        const missingKey = await call("/api/generate", { method: "POST", body: { settings: "x", opportunityCount: 5 } });
+        assert.equal(missingKey.status, 503);
+        assert.equal(missingKey.data.errorCode, "GEMINI_KEY_MISSING");
         assert.equal((await call("/api/generate")).status, 405);
     });
 });

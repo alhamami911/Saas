@@ -20,6 +20,17 @@ export default async function run(page) {
     }
     if (initial.pageWidth > initial.viewportWidth) failures.push("mobile horizontal overflow before render");
 
+    const navigation = await page.evaluate(() => ({
+        views: Array.from(document.querySelectorAll("#appNav button"), (button) => button.dataset.view),
+        overviewVisible: !document.getElementById("view-overview").classList.contains("hidden"),
+        adminLinks: document.querySelectorAll('a[href*="admin"], form[action*="admin"]').length
+    }));
+    if (navigation.views.join(",") !== "overview,discover,results,watchlist,settings" || !navigation.overviewVisible) {
+        failures.push("dashboard sections");
+    }
+    if (navigation.adminLinks !== 0) failures.push("admin controls exposed on public page");
+    await page.locator('#appNav button[data-view="discover"]').click();
+
     await page.locator("#langToggle").click();
     await page.locator("#country").selectOption({ index: 1 });
     await page.locator("#budget").selectOption("حتى 500 دولار");
@@ -61,7 +72,7 @@ export default async function run(page) {
         }]
     };
     let submittedPayload = null;
-    await page.route("**/.netlify/functions/generate", async (route) => {
+    await page.route("**/api/generate", async (route) => {
         submittedPayload = JSON.parse(route.request().postData() || "{}");
         await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(mockResponse) });
     });
@@ -83,11 +94,31 @@ export default async function run(page) {
         failures.push("submit payload contract");
     }
     if (rendered.pageWidth > rendered.viewportWidth) failures.push("mobile horizontal overflow after render");
+    if (!submittedPayload?.settings?.includes("Write the report in Arabic")) failures.push("report language is not Arabic");
+    if (await page.locator("#view-results").isHidden()) failures.push("results view not shown after search");
+
+    await page.locator(".opportunity .card-actions button").first().click();
+    await page.locator('#appNav button[data-view="watchlist"]').click();
+    const watchlistCards = await page.locator("#watchlistItems .opportunity").count();
+    if (watchlistCards !== 1) failures.push("watchlist save");
+
+    await page.locator('#appNav button[data-view="settings"]').click();
+    await page.locator("#default-opportunityCount").selectOption("10");
+    await page.locator("#settingsForm button[type=submit]").click();
+    const appliedCount = await page.locator("#opportunityCount").inputValue();
+    if (appliedCount !== "10") failures.push("research settings defaults");
+
+    await page.locator('#appNav button[data-view="overview"]').click();
+    const overviewStats = await page.evaluate(() => ({
+        reports: document.getElementById("statReports").textContent,
+        watchlist: document.getElementById("statWatchlist").textContent
+    }));
+    if (overviewStats.reports !== "1" || overviewStats.watchlist !== "1") failures.push("overview stats");
 
     await page.setViewportSize({ width: 1440, height: 900 });
     const desktop = await page.evaluate(() => ({ pageWidth: document.documentElement.scrollWidth, viewportWidth: window.innerWidth }));
     if (desktop.pageWidth > desktop.viewportWidth) failures.push("desktop horizontal overflow");
     if (failures.length) throw new Error(`Browser smoke failures: ${failures.join(", ")}`);
 
-    return { title: initial.title, mobile: initial, rendered, desktop, advancedOpen, submittedPayload, passed: true };
+    return { title: initial.title, mobile: initial, navigation, rendered, watchlistCards, appliedCount, overviewStats, desktop, advancedOpen, submittedPayload, passed: true };
 }

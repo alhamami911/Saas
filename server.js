@@ -12,19 +12,24 @@ const LOGIN_MAX_FAILURES = 5;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
 const SESSION_COOKIE = "ql_admin";
 
+const CSRF_HEADER = "x-qlook-admin";
+
 const BASE_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin"
 };
-const ADMIN_HEADERS = {
-    ...BASE_HEADERS,
+const PAGE_HEADERS = {
     "X-Frame-Options": "DENY",
-    "Cache-Control": "no-store",
-    "Content-Security-Policy": "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+    "Content-Security-Policy": "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
 };
+const ADMIN_HEADERS = { ...PAGE_HEADERS, "Cache-Control": "no-store" };
 
 function send(res, statusCode, body, headers = {}) {
-    res.writeHead(statusCode, { ...BASE_HEADERS, ...headers });
+    // nginx terminates TLS and forwards the original scheme.
+    const hsts = res.req?.headers["x-forwarded-proto"] === "https"
+        ? { "Strict-Transport-Security": "max-age=31536000; includeSubDomains" }
+        : {};
+    res.writeHead(statusCode, { ...BASE_HEADERS, ...hsts, ...headers });
     res.end(body);
 }
 
@@ -70,7 +75,7 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
     const settings = createSettingsStore({ dataDir: dataDir || env.DATA_DIR || path.join(rootDir, "data"), env });
     settings.load();
     // Loaded after the settings store so the handler sees the saved Gemini key.
-    const { handler } = require("./netlify/functions/generate");
+    const { handler } = require("./server/generate");
 
     const sessionSecret = env.SESSION_SECRET || randomBytes(32).toString("hex");
     const trustProxy = env.TRUST_PROXY === "1";
@@ -108,9 +113,11 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         return actual.length === expected.length && timingSafeEqual(actual, expected);
     }
 
-    // Admin writes must come from this site: SameSite=Strict covers browsers,
-    // and the Origin check rejects any cross-site form or script that slips by.
+    // Admin writes must come from the admin page: SameSite=Strict covers browsers,
+    // the Origin check rejects cross-site requests, and the custom header cannot
+    // be sent cross-site without a CORS preflight that this server never grants.
     function sameOrigin(req) {
+        if (req.headers[CSRF_HEADER] !== "1") return false;
         const origin = req.headers.origin;
         if (!origin) return true;
         try {
@@ -137,7 +144,7 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
 
     async function handleGenerate(req, res) {
         const body = await readBody(req);
-        const headers = { ...req.headers, "x-nf-client-connection-ip": clientIp(req) };
+        const headers = { ...req.headers, "x-qlook-client-ip": clientIp(req) };
         const result = await handler({ httpMethod: req.method, headers, body, isBase64Encoded: false });
         send(res, result.statusCode, result.body, { "Cache-Control": "no-store", ...result.headers });
     }
@@ -217,7 +224,7 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         const { pathname } = new URL(req.url, "http://localhost");
 
         if (pathname === "/healthz") return sendJson(res, 200, { ok: true, version });
-        if (pathname === "/api/generate" || pathname === "/.netlify/functions/generate") return handleGenerate(req, res);
+        if (pathname === "/api/generate") return handleGenerate(req, res);
         if (pathname.startsWith("/admin/api/")) return handleAdminApi(req, res, pathname.slice("/admin/api".length));
         if (pathname === "/admin" || pathname === "/admin/") {
             return send(res, 200, pages.admin, { ...ADMIN_HEADERS, "Content-Type": "text/html; charset=utf-8" });
@@ -225,6 +232,7 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         if (pathname === "/" || pathname === "/index.html") {
             if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, "Method Not Allowed", { Allow: "GET, HEAD" });
             return send(res, 200, req.method === "HEAD" ? undefined : pages.index, {
+                ...PAGE_HEADERS,
                 "Content-Type": "text/html; charset=utf-8",
                 "Cache-Control": "no-cache"
             });

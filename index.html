@@ -74,12 +74,54 @@
         .opportunity-section li { margin: 4px 0; }
         .status-label { display: inline-block; padding: 3px 8px; border-radius: 999px; background: var(--secondary-color); font-size: 0.8rem; }
         .bot-trap { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+        .view-wide { width: 100%; max-width: 800px; }
+        .app-nav { width: 100%; max-width: 800px; display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+        .app-nav button { flex: 1 1 auto; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--surface-color); color: var(--text-primary); font: inherit; font-size: 0.9rem; cursor: pointer; }
+        .app-nav button[aria-current="page"] { background: var(--primary-color); border-color: var(--primary-color); color: white; font-weight: 600; }
+        .view-title { margin: 0 0 8px; font-size: 1.4rem; }
+        .view-text { margin: 0 0 16px; color: var(--text-secondary); }
+        .overview-steps { margin: 0 0 18px; padding-inline-start: 22px; line-height: 1.8; }
+        .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+        .stat { padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--secondary-color); }
+        .stat strong { display: block; font-size: 1.4rem; color: var(--primary-color); }
+        .stat span { font-size: 0.85rem; color: var(--text-secondary); }
+        .card-actions { margin-top: 12px; }
+        .btn-secondary { padding: 7px 12px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--secondary-color); color: var(--text-primary); font: inherit; font-size: 0.85rem; cursor: pointer; }
+        .btn-secondary:hover { background: var(--secondary-hover); }
+        .btn-secondary:disabled { opacity: 0.6; cursor: default; }
+        .button-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+        .button-row .btn-primary { width: auto; margin-top: 0; }
+        .status-msg { min-height: 1.2em; margin-top: 10px; font-size: 0.85rem; color: #059669; }
         @media (max-width: 480px) { body { padding: 12px; } .dashboard-container, .report-container { padding: 20px 16px; } }
     </style>
 </head>
 <body>
     <div class="top-bar"><button class="lang-btn" id="langToggle" type="button">English</button></div>
-    <main class="dashboard-container">
+    <nav class="app-nav" id="appNav" aria-label="QLook">
+        <button type="button" data-view="overview" data-i18n="navOverview" aria-current="page">نظرة عامة</button>
+        <button type="button" data-view="discover" data-i18n="navDiscover">اكتشاف الفرص</button>
+        <button type="button" data-view="results" data-i18n="navResults">نتائج الفرص</button>
+        <button type="button" data-view="watchlist" data-i18n="navWatchlist">قائمة المتابعة</button>
+        <button type="button" data-view="settings" data-i18n="navSettings">إعدادات البحث</button>
+    </nav>
+
+    <section class="dashboard-container view" id="view-overview">
+        <h1 class="view-title" data-i18n="overviewTitle">QLook — باحث فرص SaaS</h1>
+        <p class="view-text" data-i18n="overviewText">أداة تجريبية تبحث في الويب مباشرة عن فرص برمجيات قابلة للتشغيل كخدمة SaaS، وتعرض لكل فرصة مصادرها وترخيصها وسعرها عند توفرها.</p>
+        <ol class="overview-steps">
+            <li data-i18n="overviewStep1">حدّد الدولة والميزانية والقطاع والاستراتيجية في «اكتشاف الفرص».</li>
+            <li data-i18n="overviewStep2">ابدأ البحث المباشر؛ تُكتب التقارير دائماً باللغة العربية.</li>
+            <li data-i18n="overviewStep3">احفظ الفرص المهمة في «قائمة المتابعة» لمراجعتها لاحقاً.</li>
+        </ol>
+        <div class="stat-row">
+            <div class="stat"><strong id="statReports">0</strong><span data-i18n="statReports">تقارير أُنشئت على هذا الجهاز</span></div>
+            <div class="stat"><strong id="statWatchlist">0</strong><span data-i18n="statWatchlist">فرص في قائمة المتابعة</span></div>
+            <div class="stat"><strong id="statLastRun">—</strong><span data-i18n="statLastRun">آخر بحث</span></div>
+        </div>
+        <button type="button" class="btn-primary" data-go="discover" data-i18n="overviewStart">ابدأ اكتشاف الفرص</button>
+    </section>
+
+    <main class="dashboard-container view hidden" id="view-discover">
         <div class="header">
             <span class="badge" id="badgeText">بحث ويب مباشر • مدعوم بالذكاء الاصطناعي</span>
             <h2 id="titleText">إعدادات باحث فرص SaaS</h2>
@@ -123,7 +165,34 @@
             <div id="loading" role="status" aria-live="polite">يتم البحث في الويب وتحليل الفرص... يرجى الانتظار</div>
         </form>
     </main>
-    <section class="report-container" id="reportOutput" aria-live="polite"></section>
+
+    <section class="view view-wide hidden" id="view-results">
+        <div class="dashboard-container" id="resultsEmpty">
+            <h2 class="view-title" data-i18n="navResults">نتائج الفرص</h2>
+            <p class="view-text" data-i18n="resultsEmpty">لا توجد نتائج بعد. ابدأ بحثاً من «اكتشاف الفرص».</p>
+            <button type="button" class="btn-secondary" data-go="discover" data-i18n="overviewStart">ابدأ اكتشاف الفرص</button>
+        </div>
+        <section class="report-container" id="reportOutput" aria-live="polite"></section>
+    </section>
+
+    <section class="dashboard-container view hidden" id="view-watchlist">
+        <h2 class="view-title" data-i18n="navWatchlist">قائمة المتابعة</h2>
+        <p class="view-text" data-i18n="watchlistText">الفرص المحفوظة تبقى في هذا المتصفح فقط.</p>
+        <div class="opportunity-list" id="watchlistItems"></div>
+    </section>
+
+    <section class="dashboard-container view hidden" id="view-settings">
+        <h2 class="view-title" data-i18n="navSettings">إعدادات البحث</h2>
+        <p class="view-text" data-i18n="settingsText">قيم افتراضية تُملأ تلقائياً في «اكتشاف الفرص». تُحفظ في هذا المتصفح فقط، والتقارير تُكتب دائماً بالعربية.</p>
+        <form id="settingsForm">
+            <div class="grid-layout" id="settingsFields"></div>
+            <div class="button-row">
+                <button type="submit" class="btn-primary" data-i18n="settingsSave">حفظ الإعدادات الافتراضية</button>
+                <button type="button" class="btn-secondary" id="settingsReset" data-i18n="settingsReset">مسح الإعدادات</button>
+            </div>
+            <div class="status-msg" id="settingsMsg" role="status"></div>
+        </form>
+    </section>
 
     <script>
         const advancedToggle = document.getElementById('advancedToggle');
@@ -205,6 +274,34 @@
                 actualBilling: 'Actual billing: check Google AI Studio or Cloud Billing', billingNote: 'These are estimates, not actual billing records.'
             }
         };
+        Object.assign(translations.ar, {
+            navOverview: 'نظرة عامة', navDiscover: 'اكتشاف الفرص', navResults: 'نتائج الفرص', navWatchlist: 'قائمة المتابعة', navSettings: 'إعدادات البحث',
+            overviewTitle: 'QLook — باحث فرص SaaS',
+            overviewText: 'أداة تجريبية تبحث في الويب مباشرة عن فرص برمجيات قابلة للتشغيل كخدمة SaaS، وتعرض لكل فرصة مصادرها وترخيصها وسعرها عند توفرها.',
+            overviewStep1: 'حدّد الدولة والميزانية والقطاع والاستراتيجية في «اكتشاف الفرص».',
+            overviewStep2: 'ابدأ البحث المباشر؛ تُكتب التقارير دائماً باللغة العربية.',
+            overviewStep3: 'احفظ الفرص المهمة في «قائمة المتابعة» لمراجعتها لاحقاً.',
+            overviewStart: 'ابدأ اكتشاف الفرص', statReports: 'تقارير أُنشئت على هذا الجهاز', statWatchlist: 'فرص في قائمة المتابعة', statLastRun: 'آخر بحث',
+            resultsEmpty: 'لا توجد نتائج بعد. ابدأ بحثاً من «اكتشاف الفرص».',
+            watchlistText: 'الفرص المحفوظة تبقى في هذا المتصفح فقط.', watchlistEmpty: 'لم تُحفظ أي فرصة بعد. استخدم زر «أضف إلى قائمة المتابعة» في نتائج الفرص.',
+            watchAdd: 'أضف إلى قائمة المتابعة', watchSaved: 'محفوظة في قائمة المتابعة', watchRemove: 'إزالة من قائمة المتابعة', savedOn: 'حُفظت في',
+            settingsText: 'قيم افتراضية تُملأ تلقائياً في «اكتشاف الفرص». تُحفظ في هذا المتصفح فقط، والتقارير تُكتب دائماً بالعربية.',
+            settingsSave: 'حفظ الإعدادات الافتراضية', settingsReset: 'مسح الإعدادات', settingsSaved: 'تم حفظ الإعدادات وتطبيقها على «اكتشاف الفرص».', settingsCleared: 'تم مسح الإعدادات الافتراضية.'
+        });
+        Object.assign(translations.en, {
+            navOverview: 'Overview', navDiscover: 'Discover Opportunities', navResults: 'Opportunity Results', navWatchlist: 'Watchlist', navSettings: 'Research Settings',
+            overviewTitle: 'QLook — SaaS Opportunity Hunter',
+            overviewText: 'An experimental tool that searches the live web for software you can run as a SaaS, with sources, license and price for each opportunity when available.',
+            overviewStep1: 'Choose country, budget, industry and strategy in Discover Opportunities.',
+            overviewStep2: 'Start the live search. Reports are always written in Arabic.',
+            overviewStep3: 'Save promising opportunities to your Watchlist to review later.',
+            overviewStart: 'Start discovering', statReports: 'Reports created on this device', statWatchlist: 'Opportunities in your watchlist', statLastRun: 'Last search',
+            resultsEmpty: 'No results yet. Start a search from Discover Opportunities.',
+            watchlistText: 'Saved opportunities stay in this browser only.', watchlistEmpty: 'Nothing saved yet. Use “Add to watchlist” on an opportunity result.',
+            watchAdd: 'Add to watchlist', watchSaved: 'Saved to watchlist', watchRemove: 'Remove from watchlist', savedOn: 'Saved on',
+            settingsText: 'Defaults that prefill Discover Opportunities. They are kept in this browser only, and reports are always written in Arabic.',
+            settingsSave: 'Save defaults', settingsReset: 'Clear defaults', settingsSaved: 'Defaults saved and applied to Discover Opportunities.', settingsCleared: 'Defaults cleared.'
+        });
         let currentLang = 'ar';
 
         function setLanguage(language) {
@@ -242,6 +339,12 @@
             document.querySelectorAll('select option[data-ar][data-en]').forEach((option) => {
                 option.textContent = option.dataset[language];
             });
+            document.querySelectorAll('[data-i18n]').forEach((element) => {
+                const value = t[element.dataset.i18n];
+                if (typeof value === 'string') element.textContent = value;
+            });
+            renderOverview();
+            renderWatchlist();
         }
 
         document.getElementById('langToggle').addEventListener('click', () => {
@@ -376,6 +479,7 @@
                 section.append(heading, list);
                 card.appendChild(section);
             }
+            card.appendChild(watchlistActions(opportunity, t));
             return card;
         }
 
@@ -415,6 +519,186 @@
             appendUsage(output, data.usage, data.estimatedCosts, t);
         }
 
+        // Browser storage holds only per-visitor conveniences (watchlist, defaults,
+        // counters). It can be unavailable, so every access is guarded.
+        function readStore(key, fallback) {
+            try {
+                const value = JSON.parse(localStorage.getItem(key));
+                return value ?? fallback;
+            } catch (error) {
+                return fallback;
+            }
+        }
+
+        function writeStore(key, value) {
+            try {
+                if (value === null) localStorage.removeItem(key);
+                else localStorage.setItem(key, JSON.stringify(value));
+            } catch (error) {
+                // Storage blocked: the page keeps working without persistence.
+            }
+        }
+
+        const STORE = { watchlist: 'qlook.watchlist', defaults: 'qlook.defaults', stats: 'qlook.stats' };
+
+        function showView(name) {
+            document.querySelectorAll('.view').forEach((view) => view.classList.toggle('hidden', view.id !== `view-${name}`));
+            document.querySelectorAll('#appNav button').forEach((button) => {
+                if (button.dataset.view === name) button.setAttribute('aria-current', 'page');
+                else button.removeAttribute('aria-current');
+            });
+            if (name === 'overview') renderOverview();
+            if (name === 'watchlist') renderWatchlist();
+        }
+
+        document.querySelectorAll('#appNav button, [data-go]').forEach((button) => {
+            button.addEventListener('click', () => showView(button.dataset.view || button.dataset.go));
+        });
+
+        function renderOverview() {
+            const stats = readStore(STORE.stats, {});
+            document.getElementById('statReports').textContent = String(Number(stats.reports) || 0);
+            document.getElementById('statWatchlist').textContent = String(readStore(STORE.watchlist, []).length);
+            document.getElementById('statLastRun').textContent = stats.lastRun
+                ? new Date(stats.lastRun).toLocaleDateString(currentLang === 'ar' ? 'ar' : 'en')
+                : '—';
+        }
+
+        function watchlistKey(opportunity) {
+            return opportunity.directUrl || opportunity.productName;
+        }
+
+        function isWatched(opportunity) {
+            return readStore(STORE.watchlist, []).some((entry) => watchlistKey(entry.opportunity) === watchlistKey(opportunity));
+        }
+
+        function watchlistActions(opportunity, t) {
+            const actions = document.createElement('div');
+            actions.className = 'card-actions';
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'btn-secondary';
+            const watched = isWatched(opportunity);
+            button.textContent = watched ? t.watchSaved : t.watchAdd;
+            button.disabled = watched;
+            button.addEventListener('click', () => {
+                const list = readStore(STORE.watchlist, []);
+                if (!list.some((entry) => watchlistKey(entry.opportunity) === watchlistKey(opportunity))) {
+                    list.unshift({ opportunity, savedAt: new Date().toISOString() });
+                    writeStore(STORE.watchlist, list.slice(0, 100));
+                }
+                button.textContent = translations[currentLang].watchSaved;
+                button.disabled = true;
+            });
+            actions.appendChild(button);
+            return actions;
+        }
+
+        function renderWatchlist() {
+            const t = translations[currentLang];
+            const container = document.getElementById('watchlistItems');
+            const list = readStore(STORE.watchlist, []);
+            container.replaceChildren();
+            if (!list.length) {
+                const empty = document.createElement('p');
+                empty.className = 'view-text';
+                empty.textContent = t.watchlistEmpty;
+                container.appendChild(empty);
+                return;
+            }
+            list.forEach((entry) => {
+                const card = renderOpportunity(entry.opportunity, t);
+                card.querySelector('.card-actions').remove();
+                const actions = document.createElement('div');
+                actions.className = 'card-actions';
+                const saved = document.createElement('span');
+                saved.className = 'hint';
+                saved.textContent = `${t.savedOn}: ${new Date(entry.savedAt).toLocaleDateString(currentLang === 'ar' ? 'ar' : 'en')} `;
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'btn-secondary';
+                remove.textContent = t.watchRemove;
+                remove.addEventListener('click', () => {
+                    writeStore(STORE.watchlist, readStore(STORE.watchlist, [])
+                        .filter((item) => watchlistKey(item.opportunity) !== watchlistKey(entry.opportunity)));
+                    renderWatchlist();
+                });
+                actions.append(saved, remove);
+                card.appendChild(actions);
+                container.appendChild(card);
+            });
+        }
+
+        // Research Settings reuses the Discover fields so both stay identical.
+        const SETTINGS_FIELDS = [
+            ['country', 'country'], ['budget', 'budget'], ['industry', 'industry'], ['goal', 'goal'], ['opportunityCount', 'opportunityCount']
+        ];
+
+        function buildSettingsForm() {
+            const container = document.getElementById('settingsFields');
+            SETTINGS_FIELDS.forEach(([id, labelKey]) => {
+                const group = document.createElement('div');
+                group.className = 'form-group';
+                const label = document.createElement('label');
+                label.htmlFor = `default-${id}`;
+                label.dataset.i18n = labelKey;
+                label.textContent = translations[currentLang][labelKey];
+                const select = document.createElement('select');
+                select.id = `default-${id}`;
+                Array.from(document.getElementById(id).options).forEach((option) => {
+                    const copy = option.cloneNode(true);
+                    copy.disabled = false;
+                    copy.selected = false;
+                    select.appendChild(copy);
+                });
+                group.append(label, select);
+                container.appendChild(group);
+            });
+            const filters = document.querySelector('.feature-filters').cloneNode(true);
+            filters.querySelectorAll('[id]').forEach((element) => {
+                element.dataset.i18n = element.id;
+                element.removeAttribute('id');
+            });
+            filters.querySelectorAll('input').forEach((input) => {
+                input.name = 'defaultFilter';
+                input.checked = false;
+            });
+            container.appendChild(filters);
+        }
+
+        function applyDefaults(defaults) {
+            if (!defaults) return;
+            SETTINGS_FIELDS.forEach(([id]) => {
+                const value = defaults[id];
+                [document.getElementById(id), document.getElementById(`default-${id}`)].forEach((select) => {
+                    if (value && Array.from(select.options).some((option) => option.value === value)) select.value = value;
+                });
+            });
+            const filters = Array.isArray(defaults.filters) ? defaults.filters : [];
+            document.querySelectorAll('input[name="featureFilter"], input[name="defaultFilter"]').forEach((input) => {
+                input.checked = filters.includes(input.value);
+            });
+        }
+
+        document.getElementById('settingsForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            const defaults = Object.fromEntries(SETTINGS_FIELDS.map(([id]) => [id, document.getElementById(`default-${id}`).value]));
+            defaults.filters = Array.from(document.querySelectorAll('input[name="defaultFilter"]:checked'), (input) => input.value);
+            writeStore(STORE.defaults, defaults);
+            applyDefaults(defaults);
+            document.getElementById('settingsMsg').textContent = translations[currentLang].settingsSaved;
+        });
+
+        document.getElementById('settingsReset').addEventListener('click', () => {
+            writeStore(STORE.defaults, null);
+            document.getElementById('settingsForm').reset();
+            document.getElementById('settingsMsg').textContent = translations[currentLang].settingsCleared;
+        });
+
+        buildSettingsForm();
+        applyDefaults(readStore(STORE.defaults, null));
+        renderOverview();
+
         document.getElementById('configForm').addEventListener('submit', async (event) => {
             event.preventDefault();
             const button = document.getElementById('startBtn');
@@ -425,7 +709,8 @@
             const website = document.getElementById('website').value;
             const selectedFilters = Array.from(document.querySelectorAll('input[name="featureFilter"]:checked'), (input) => input.value);
             const selectedFilterLabels = selectedFilters.map((filter) => t.filterOptions[filter]);
-            const settings = `Country: ${selectedLabel('country')}; Budget: ${selectedLabel('budget')}; Industry: ${selectedLabel('industry')}; Goal: ${selectedLabel('goal')}; Requested SaaS opportunities: ${opportunityCount}; Required SaaS capabilities: ${selectedFilterLabels.join(', ') || t.noFilters}; Additional instructions: ${document.getElementById('promptOverride').value.trim() || 'None'}. Write the report in ${currentLang === 'ar' ? 'Arabic' : 'English'}.`;
+            // Reports are always Arabic; the server enforces this as well.
+            const settings = `Country: ${selectedLabel('country')}; Budget: ${selectedLabel('budget')}; Industry: ${selectedLabel('industry')}; Goal: ${selectedLabel('goal')}; Requested SaaS opportunities: ${opportunityCount}; Required SaaS capabilities: ${selectedFilterLabels.join(', ') || t.noFilters}; Additional instructions: ${document.getElementById('promptOverride').value.trim() || 'None'}. Write the report in Arabic.`;
 
             button.disabled = true;
             loading.style.display = 'block';
@@ -436,13 +721,17 @@
                 const response = await fetch('/api/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ settings, language: currentLang, opportunityCount, filters: selectedFilters, website })
+                    body: JSON.stringify({ settings, language: 'ar', opportunityCount, filters: selectedFilters, website })
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || t.error);
                 if (!Array.isArray(data.opportunities) || !Number.isInteger(data.verifiedCount)) throw new Error(t.invalid);
                 renderReport(output, data, t);
                 output.style.display = 'block';
+                document.getElementById('resultsEmpty').classList.add('hidden');
+                const stats = readStore(STORE.stats, {});
+                writeStore(STORE.stats, { reports: (Number(stats.reports) || 0) + 1, lastRun: new Date().toISOString() });
+                showView('results');
             } catch (error) {
                 alert(error.message || t.error);
             } finally {

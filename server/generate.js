@@ -1,9 +1,9 @@
 "use strict";
 
-const { getConfig, estimateCosts } = require("../lib/config");
-const { checkRateLimit } = require("../lib/rate-limit");
-const { createUsageEvent, storeUsage } = require("../lib/usage-store");
-const { buildResearchPrompt, validateRequest, validateResearchResult } = require("../lib/research");
+const { getConfig, estimateCosts } = require("./config");
+const { checkRateLimit } = require("./rate-limit");
+const { createUsageEvent, storeUsage } = require("./usage-store");
+const { buildResearchPrompt, validateRequest, validateResearchResult } = require("./research");
 
 function jsonResponse(statusCode, payload, extraHeaders = {}) {
     return {
@@ -80,7 +80,8 @@ exports.handler = async function (event) {
         return jsonResponse(limit.statusCode, { errorCode: limit.errorCode, error: limit.error }, headers);
     }
 
-    const request = validation.value;
+    // Reports are always written in Arabic, whatever language the interface uses.
+    const request = { ...validation.value, language: "ar" };
     const prompt = buildResearchPrompt(request);
     let providerResponse;
     let providerData;
