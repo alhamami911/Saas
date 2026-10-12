@@ -102,7 +102,7 @@
             </dl>
             <form id="claudeForm">
                 <label for="claudeKey">Paste a new key</label>
-                <input id="claudeKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…" required>
+                <input id="claudeKey" name="claude-api-key" type="password" autocomplete="new-password" data-lpignore="true" data-1p-ignore spellcheck="false" placeholder="sk-ant-…" required>
                 <div class="hint">Get one from platform.claude.com → API keys. Saving checks the key with Anthropic first (free). “Test current key” also runs one small web search (about $0.01).</div>
                 <div class="row">
                     <button class="primary" type="submit">Save key</button>
@@ -125,7 +125,7 @@
             </dl>
             <form id="keyForm">
                 <label for="geminiKey">Paste a new key</label>
-                <input id="geminiKey" type="password" autocomplete="off" spellcheck="false" placeholder="AIza…" required>
+                <input id="geminiKey" name="gemini-api-key" type="password" autocomplete="new-password" data-lpignore="true" data-1p-ignore spellcheck="false" placeholder="AIza…" required>
                 <div class="hint">Get one from Google AI Studio → API keys. Saving checks the key with Google first.</div>
                 <div class="row">
                     <button class="primary" type="submit">Save key</button>
@@ -168,6 +168,14 @@
             el.className = `msg ${ok ? 'ok' : 'bad'}`;
         }
 
+        // Browsers like to autofill the saved admin password into key fields.
+        function looksLike(key, pattern, msgId, prefix) {
+            if (pattern.test(key)) return true;
+            showMsg(msgId, `This is not an API key: it should start with "${prefix}" (you entered ${key.length} characters). `
+                + 'Your browser may have filled in a saved password - clear the field and paste the key.', false);
+            return false;
+        }
+
         async function busy(button, run) {
             button.disabled = true;
             try { await run(); } finally { button.disabled = false; }
@@ -206,6 +214,8 @@
             if (!ok) return showMsg('loginMsg', data.error || 'Could not load settings', false);
             $('loginView').hidden = true;
             $('adminView').hidden = false;
+            $('claudeKey').value = '';
+            $('geminiKey').value = '';
             $('version').textContent = (data.version || 'dev').slice(0, 7);
             renderKey(data.gemini);
             if (data.claude) {
@@ -232,6 +242,7 @@
             event.preventDefault();
             busy(event.submitter, async () => {
                 const key = $('claudeKey').value.trim();
+                if (!looksLike(key, /^sk-ant-[A-Za-z0-9_-]{20,}$/, 'claudeMsg', 'sk-ant-')) return;
                 let result = await api('/claude-key', { method: 'PUT', body: JSON.stringify({ key }) });
                 if (result.status === 422 && confirm(`${result.data.error}\n\nSave it anyway?`)) {
                     result = await api('/claude-key', { method: 'PUT', body: JSON.stringify({ key, skipCheck: true }) });
@@ -283,6 +294,7 @@
             event.preventDefault();
             busy(event.submitter, async () => {
                 const key = $('geminiKey').value.trim();
+                if (!looksLike(key, /^AIza[A-Za-z0-9_-]{20,}$/, 'keyMsg', 'AIza')) return;
                 let result = await api('/gemini-key', { method: 'PUT', body: JSON.stringify({ key }) });
                 if (result.status === 422 && confirm(`${result.data.error}\n\nSave it anyway?`)) {
                     result = await api('/gemini-key', { method: 'PUT', body: JSON.stringify({ key, skipCheck: true }) });
