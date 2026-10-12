@@ -181,6 +181,41 @@
         }
         .source-field .form-group label { margin-bottom: 3px; }
         .source-field select { max-width: 240px; justify-self: end; }
+        .feature-filters {
+            grid-column: span 2;
+            padding: 17px 18px;
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            border-radius: 14px;
+            background: linear-gradient(100deg, rgba(59, 130, 246, 0.09), rgba(139, 92, 246, 0.06));
+        }
+        .feature-filters legend {
+            padding: 0 6px;
+            color: #dbeafe;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+        .feature-filter-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .feature-filter {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 12px;
+            color: var(--text-main);
+            background: rgba(8, 15, 30, 0.55);
+            border: 1px solid rgba(100, 116, 139, 0.42);
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .feature-filter input { accent-color: var(--accent); }
+        .feature-filter:focus-within {
+            outline: 2px solid #93c5fd;
+            outline-offset: 2px;
+        }
 
         .action-btn {
             padding: 16px 32px;
@@ -308,196 +343,10 @@
             body { padding: 18px 12px 36px; }
             .dashboard-container, .report-container { padding: 25px 18px; border-radius: 16px; }
             .grid-layout { grid-template-columns: 1fr; gap: 18px; }
-            .form-group.full-width, .advanced-options, .source-field { grid-column: auto; }
+            .form-group.full-width, .advanced-options, .source-field, .feature-filters { grid-column: auto; }
             .source-field { grid-template-columns: 1fr; gap: 12px; padding: 15px; }
             .source-field select { max-width: none; justify-self: stretch; }
             .header h2 { font-size: 1.7rem; }
-        }
-    </style>
-    <style>
-        :root {
-            --bg-dark: #f9fafb;
-            --surface-dark: #ffffff;
-            --surface-raised: #ffffff;
-            --text-main: #111827;
-            --text-muted: #4b5563;
-            --accent: #2563eb;
-            --accent-glow: rgba(37, 99, 235, 0.2);
-            --neon-purple: #4f46e5;
-            --mint: #059669;
-            --border-dark: #e5e7eb;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-dark: #111827;
-                --surface-dark: #1f2937;
-                --surface-raised: #1f2937;
-                --text-main: #f9fafb;
-                --text-muted: #d1d5db;
-                --accent: #3b82f6;
-                --accent-glow: rgba(59, 130, 246, 0.25);
-                --neon-purple: #6366f1;
-                --mint: #34d399;
-                --border-dark: #374151;
-            }
-        }
-
-        body {
-            padding: 20px;
-            background-image: none;
-        }
-        .top-bar { max-width: 800px; }
-        .lang-btn {
-            background: var(--surface-dark);
-            color: var(--text-main);
-            border-color: var(--border-dark);
-        }
-        .dashboard-container, .report-container {
-            max-width: 800px;
-            padding: 30px;
-            background: var(--surface-dark);
-            backdrop-filter: none;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-        .dashboard-container::before { display: none; }
-        .header {
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border-dark);
-            text-align: start;
-        }
-        .eyebrow {
-            margin-bottom: 8px;
-            padding: 4px 8px;
-            color: var(--mint);
-            background: rgba(16, 185, 129, 0.1);
-            border-color: rgba(16, 185, 129, 0.2);
-            border-radius: 4px;
-            font-size: 0.8rem;
-        }
-        .eyebrow-dot { background: var(--mint); }
-        .header h2 {
-            font-size: 1.5rem;
-            background: none;
-            -webkit-text-fill-color: currentColor;
-            color: var(--text-main);
-        }
-        .header p { color: var(--text-muted); font-size: 0.9rem; }
-        .trust-row {
-            justify-content: flex-start;
-            gap: 15px;
-            font-size: 0.85rem;
-        }
-        .trust-chip {
-            padding: 0;
-            color: var(--accent);
-            border: 0;
-            border-radius: 0;
-            background: transparent;
-        }
-        .grid-layout {
-            grid-template-columns: 1fr;
-            gap: 16px;
-            margin-top: 20px;
-        }
-        .form-group label {
-            color: var(--text-main);
-            font-size: 0.875rem;
-            margin-bottom: 6px;
-        }
-        .form-group label::before { display: none; }
-        select, textarea {
-            padding: 10px;
-            color: var(--text-main);
-            background-color: var(--surface-dark);
-            border-color: var(--border-dark);
-            border-radius: 8px;
-            font-size: 0.95rem;
-        }
-        select { color-scheme: light dark; }
-        select:focus, textarea:focus {
-            background-color: var(--surface-dark);
-            box-shadow: 0 0 0 2px var(--accent-glow);
-        }
-        .field-hint { color: var(--text-muted); }
-        .source-field {
-            grid-column: 1 / -1;
-            grid-template-columns: minmax(0, 1fr) minmax(180px, 0.62fr);
-            gap: 20px;
-            padding: 15px;
-            background: var(--surface-raised);
-            border-color: var(--border-dark);
-            border-radius: 8px;
-        }
-        .source-field .form-group { margin: 0; }
-        .source-field .form-group label { margin-bottom: 4px; }
-        .source-field select { max-width: 240px; justify-self: end; }
-        .action-btn {
-            margin-top: 30px;
-            background: var(--accent);
-            border-radius: 8px;
-            box-shadow: none;
-        }
-        .action-btn:hover { background: var(--neon-purple); box-shadow: none; }
-        .action-btn:disabled { background: #9ca3af; color: white; }
-        .advanced-options {
-            border-color: var(--border-dark);
-            border-radius: 8px;
-        }
-        .accordion-header {
-            padding: 14px;
-            background: var(--surface-raised);
-            color: var(--text-main);
-        }
-        .accordion-header:hover {
-            background: var(--bg-dark);
-            color: var(--text-main);
-        }
-        .accordion-content.open { max-height: 340px; }
-        #loading { color: var(--mint); }
-        .report-container { line-height: 1.6; font-size: 1rem; }
-        .report-container h1, .report-container h2, .report-container h3 {
-            color: var(--accent);
-            margin-top: 24px;
-        }
-        .report-container table {
-            background: var(--surface-dark);
-            border-radius: 0;
-        }
-        .report-container th, .report-container td {
-            border-color: var(--border-dark);
-            padding: 10px;
-        }
-        .report-container th {
-            background: var(--bg-dark);
-            color: var(--accent);
-        }
-        .report-container strong { color: var(--accent); }
-        .sources-panel {
-            border-color: var(--border-dark);
-        }
-        .sources-panel h2 { color: var(--accent); }
-        .source-link {
-            color: var(--accent);
-            background: var(--bg-dark);
-            border-color: var(--border-dark);
-        }
-        .source-link:hover { background: var(--surface-raised); }
-        @media (min-width: 640px) {
-            .grid-layout { grid-template-columns: 1fr 1fr; }
-        }
-        @media (max-width: 640px) {
-            body { padding: 20px 12px 36px; }
-            .dashboard-container, .report-container { padding: 25px 18px; }
-            .source-field {
-                grid-template-columns: 1fr;
-                gap: 12px;
-            }
-            .source-field select { max-width: none; justify-self: stretch; }
-            .header h2 { font-size: 1.5rem; }
-            .trust-row { gap: 8px 15px; }
         }
     </style>
 </head>
@@ -517,36 +366,61 @@
                 <span class="trust-chip" id="chipReport">✦ تقرير استثماري مخصص</span>
             </div>
         </div>
+        <form id="configForm">
         <div class="grid-layout">
             <div class="form-group">
-                <label id="lblCountry" for="country">نطاق البحث الجغرافي</label>
-                <select id="country">
-                    <option value="عالمي" data-ar="عالمي" data-en="Global" selected>عالمي</option>
-                    <option value="السعودية" data-ar="السعودية" data-en="Saudi Arabia">السعودية</option>
-                    <option value="الشرق الأوسط" data-ar="الشرق الأوسط" data-en="Middle East">الشرق الأوسط</option>
+                <label id="lblCountry" for="country">الدولة المستهدفة</label>
+                <select id="country" required>
+                    <option value="" data-ar="اختر الدولة" data-en="Select a country" selected disabled>اختر الدولة</option>
                 </select>
             </div>
             <div class="form-group">
                 <label id="lblBudget" for="budget">سقف الميزانية الاستثمارية</label>
-                <select id="budget">
+                <select id="budget" required>
+                    <option value="" data-ar="اختر الميزانية" data-en="Select a budget" selected disabled>اختر الميزانية</option>
                     <option value="حتى 100 دولار" data-ar="حتى 100 دولار" data-en="Up to $100">حتى 100 دولار</option>
-                    <option value="حتى 500 دولار" data-ar="حتى 500 دولار (Micro-SaaS)" data-en="Up to $500 (Micro-SaaS)" selected>حتى 500 دولار (Micro-SaaS)</option>
+                    <option value="حتى 500 دولار" data-ar="حتى 500 دولار (Micro-SaaS)" data-en="Up to $500 (Micro-SaaS)">حتى 500 دولار (Micro-SaaS)</option>
                     <option value="حتى 5000 دولار" data-ar="حتى 5,000 دولار" data-en="Up to $5,000">حتى 5,000 دولار</option>
                     <option value="مفتوح" data-ar="مفتوح (بدون حد)" data-en="Open (no limit)">مفتوح (بدون حد)</option>
                 </select>
             </div>
             <div class="form-group">
                 <label id="lblIndustry" for="industry">القطاع المستهدف</label>
-                <select id="industry">
-                    <option value="جميع المجالات" data-ar="بحث مفتوح في جميع المجالات" data-en="Open search across all industries">بحث مفتوح في جميع المجالات</option>
+                <select id="industry" required>
+                    <option value="" data-ar="اختر القطاع" data-en="Select an industry" selected disabled>اختر القطاع</option>
+                    <option value="جميع المجالات" data-ar="جميع المجالات" data-en="All industries">جميع المجالات</option>
                     <option value="أدوات الذكاء الاصطناعي للشركات" data-ar="أدوات الذكاء الاصطناعي للشركات" data-en="Business AI tools">أدوات الذكاء الاصطناعي للشركات</option>
                     <option value="أنظمة إدارة الموارد البشرية HR" data-ar="أنظمة إدارة الموارد البشرية HR" data-en="HR management systems">أنظمة إدارة الموارد البشرية HR</option>
+                    <option value="التجارة الإلكترونية والمدفوعات" data-ar="التجارة الإلكترونية والمدفوعات" data-en="E-commerce and payments">التجارة الإلكترونية والمدفوعات</option>
+                    <option value="التسويق والمبيعات" data-ar="التسويق والمبيعات" data-en="Marketing and sales">التسويق والمبيعات</option>
+                    <option value="الصحة والرعاية الصحية" data-ar="الصحة والرعاية الصحية" data-en="Healthcare">الصحة والرعاية الصحية</option>
+                    <option value="التعليم والتدريب" data-ar="التعليم والتدريب" data-en="Education and training">التعليم والتدريب</option>
+                    <option value="المالية والمحاسبة" data-ar="المالية والمحاسبة" data-en="Finance and accounting">المالية والمحاسبة</option>
+                    <option value="العقارات وإدارة الممتلكات" data-ar="العقارات وإدارة الممتلكات" data-en="Real estate and property management">العقارات وإدارة الممتلكات</option>
+                    <option value="الأمن السيبراني والخصوصية" data-ar="الأمن السيبراني والخصوصية" data-en="Cybersecurity and privacy">الأمن السيبراني والخصوصية</option>
+                    <option value="الإنتاجية وإدارة المشاريع" data-ar="الإنتاجية وإدارة المشاريع" data-en="Productivity and project management">الإنتاجية وإدارة المشاريع</option>
+                    <option value="الخدمات القانونية" data-ar="الخدمات القانونية" data-en="Legal services">الخدمات القانونية</option>
+                    <option value="سلاسل الإمداد والخدمات اللوجستية" data-ar="سلاسل الإمداد والخدمات اللوجستية" data-en="Supply chain and logistics">سلاسل الإمداد والخدمات اللوجستية</option>
                 </select>
             </div>
+            <fieldset class="feature-filters">
+                <legend id="filtersLegend">خصائص SaaS المطلوبة (اختياري)</legend>
+                <span class="field-hint" id="filtersHint">اختر خاصية واحدة أو أكثر لتصفية الفرص.</span>
+                <div class="feature-filter-options">
+                    <label class="feature-filter"><input type="checkbox" name="featureFilter" value="rtl_support"><span id="filterRtl">دعم RTL واللغات من اليمين لليسار</span></label>
+                    <label class="feature-filter"><input type="checkbox" name="featureFilter" value="multi_tenant"><span id="filterMultiTenant">بنية متعددة المستأجرين (Multi-tenant)</span></label>
+                    <label class="feature-filter"><input type="checkbox" name="featureFilter" value="arabic_localization"><span id="filterArabic">تعريب وواجهة باللغة العربية</span></label>
+                    <label class="feature-filter"><input type="checkbox" name="featureFilter" value="api_integrations"><span id="filterApi">تكاملات API</span></label>
+                    <label class="feature-filter"><input type="checkbox" name="featureFilter" value="ai_features"><span id="filterAi">ميزات الذكاء الاصطناعي</span></label>
+                    <label class="feature-filter"><input type="checkbox" name="featureFilter" value="white_label"><span id="filterWhiteLabel">إمكانية العلامة البيضاء</span></label>
+                    <label class="feature-filter"><input type="checkbox" name="featureFilter" value="security_compliance"><span id="filterSecurity">أمن وامتثال</span></label>
+                </div>
+            </fieldset>
             <div class="form-group">
                 <label id="lblGoal" for="goal">استراتيجية الاستثمار</label>
-                <select id="goal">
-                    <option value="إطلاق SaaS جديد" data-ar="إطلاق SaaS جديد" data-en="Launch a new SaaS" selected>إطلاق SaaS جديد</option>
+                <select id="goal" required>
+                    <option value="" data-ar="اختر الاستراتيجية" data-en="Select a strategy" selected disabled>اختر الاستراتيجية</option>
+                    <option value="إطلاق SaaS جديد" data-ar="إطلاق SaaS جديد" data-en="Launch a new SaaS">إطلاق SaaS جديد</option>
                     <option value="شراء وتطوير مشروع قائم" data-ar="شراء وتطوير مشروع قائم (Acquisition)" data-en="Acquire and grow an existing business">شراء وتطوير مشروع قائم (Acquisition)</option>
                     <option value="استنساخ فكرة ناجحة وإطلاقها محلياً" data-ar="استنساخ فكرة ناجحة وإطلاقها محلياً" data-en="Localize and launch a proven idea">استنساخ فكرة ناجحة وإطلاقها محلياً</option>
                 </select>
@@ -556,9 +430,10 @@
                     <label id="lblSources" for="sourceCount">عدد المصادر المطلوب البحث فيها</label>
                     <span class="field-hint" id="sourceHint">سيستخدم البحث المباشر ويعرض روابط المصادر التي استند إليها التقرير. العدد هدف إرشادي وقد يختلف حسب النتائج.</span>
                 </div>
-                <select id="sourceCount">
+                <select id="sourceCount" required>
+                    <option value="" data-ar="اختر العدد" data-en="Select a count" selected disabled>اختر العدد</option>
                     <option value="3" data-ar="3 مصادر" data-en="3 sources">3 مصادر</option>
-                    <option value="5" data-ar="5 مصادر" data-en="5 sources" selected>5 مصادر</option>
+                    <option value="5" data-ar="5 مصادر" data-en="5 sources">5 مصادر</option>
                     <option value="8" data-ar="8 مصادر" data-en="8 sources">8 مصادر</option>
                     <option value="10" data-ar="10 مصادر" data-en="10 sources">10 مصادر</option>
                 </select>
@@ -575,8 +450,9 @@
                 </div>
             </div>
         </div>
-        <button id="startBtn" class="action-btn" type="button">ابدأ البحث والتحليل <span aria-hidden="true">✦</span></button>
+        <button id="startBtn" class="action-btn" type="submit">ابدأ البحث والتحليل <span aria-hidden="true">✦</span></button>
         <div id="loading" role="status" aria-live="polite"><span id="loadingText">يتم البحث في الويب وتحليل الفرص</span> <span class="loading-dot"></span><span class="loading-dot"></span><span class="loading-dot"></span></div>
+        </form>
     </main>
 
     <section class="report-container" id="reportOutput" aria-live="polite"></section>
@@ -596,6 +472,32 @@
 
         const langToggle = document.getElementById('langToggle');
         let currentLang = 'ar';
+        const countrySelect = document.getElementById('country');
+        const arabicCountryNames = new Intl.DisplayNames(['ar'], { type: 'region' });
+        const englishCountryNames = new Intl.DisplayNames(['en'], { type: 'region' });
+        const countryOptions = [];
+
+        for (let first = 65; first <= 90; first += 1) {
+            for (let second = 65; second <= 90; second += 1) {
+                const code = String.fromCharCode(first, second);
+                const arabicName = arabicCountryNames.of(code);
+                const englishName = englishCountryNames.of(code);
+                if (arabicName && englishName && arabicName !== code && englishName !== code) {
+                    countryOptions.push({ code, arabicName, englishName });
+                }
+            }
+        }
+
+        countryOptions.sort((first, second) => first.arabicName.localeCompare(second.arabicName, 'ar'));
+        countryOptions.forEach(({ code, arabicName, englishName }) => {
+            const option = document.createElement('option');
+            option.value = code;
+            option.dataset.ar = arabicName;
+            option.dataset.en = englishName;
+            option.textContent = arabicName;
+            countrySelect.appendChild(option);
+        });
+
         const translations = {
             ar: {
                 langBtn: 'English',
@@ -605,9 +507,18 @@
                 chipSearch: '⌕ بحث Google مباشر',
                 chipCitations: '↗ مصادر وروابط موثقة',
                 chipReport: '✦ تقرير استثماري مخصص',
-                lblCountry: 'نطاق البحث الجغرافي',
+                lblCountry: 'الدولة المستهدفة',
                 lblBudget: 'سقف الميزانية الاستثمارية',
                 lblIndustry: 'القطاع المستهدف',
+                filtersLegend: 'خصائص SaaS المطلوبة (اختياري)',
+                filtersHint: 'اختر خاصية واحدة أو أكثر لتصفية الفرص.',
+                filterRtl: 'دعم RTL واللغات من اليمين لليسار',
+                filterMultiTenant: 'بنية متعددة المستأجرين (Multi-tenant)',
+                filterArabic: 'تعريب وواجهة باللغة العربية',
+                filterApi: 'تكاملات API',
+                filterAi: 'ميزات الذكاء الاصطناعي',
+                filterWhiteLabel: 'إمكانية العلامة البيضاء',
+                filterSecurity: 'أمن وامتثال',
                 lblGoal: 'استراتيجية الاستثمار',
                 lblSources: 'عدد المصادر المطلوب البحث فيها',
                 sourceHint: 'سيستخدم البحث المباشر ويعرض روابط المصادر التي استند إليها التقرير. العدد هدف إرشادي وقد يختلف حسب النتائج.',
@@ -618,8 +529,18 @@
                 sourcesTitle: 'المصادر المستخدمة في التقرير',
                 errorAlert: 'تم رصد خطأ في الاتصال بالخادم السحابي.',
                 invalidResponse: 'لم يُرجع الخادم تقريراً صالحاً.',
-                settingLabels: ['النطاق', 'الميزانية', 'القطاع', 'الاستراتيجية', 'عدد المصادر المستهدف'],
+                settingLabels: ['الدولة', 'الميزانية', 'القطاع', 'الاستراتيجية', 'عدد المصادر المستهدف', 'خصائص SaaS المطلوبة'],
                 noExtra: 'لا يوجد',
+                noFilters: 'لا توجد خصائص محددة',
+                filterOptions: {
+                    rtl_support: 'دعم RTL',
+                    multi_tenant: 'بنية متعددة المستأجرين',
+                    arabic_localization: 'تعريب وواجهة عربية',
+                    api_integrations: 'تكاملات API',
+                    ai_features: 'ميزات الذكاء الاصطناعي',
+                    white_label: 'علامة بيضاء',
+                    security_compliance: 'أمن وامتثال'
+                },
                 reportLanguage: 'العربية'
             },
             en: {
@@ -630,9 +551,18 @@
                 chipSearch: '⌕ Live Google Search',
                 chipCitations: '↗ Cited sources & links',
                 chipReport: '✦ Tailored investor brief',
-                lblCountry: 'Geographical Scope',
+                lblCountry: 'Target Country',
                 lblBudget: 'Investment Budget Limit',
                 lblIndustry: 'Target Industry',
+                filtersLegend: 'Required SaaS capabilities (optional)',
+                filtersHint: 'Choose one or more capabilities to filter opportunities.',
+                filterRtl: 'RTL and right-to-left language support',
+                filterMultiTenant: 'Multi-tenant architecture',
+                filterArabic: 'Arabic localization and interface',
+                filterApi: 'API integrations',
+                filterAi: 'AI features',
+                filterWhiteLabel: 'White-label capability',
+                filterSecurity: 'Security and compliance',
                 lblGoal: 'Investment Strategy',
                 lblSources: 'Target number of sources',
                 sourceHint: 'Live search is enabled and source links used by the report will be shown. This is a target; actual results may vary.',
@@ -643,8 +573,18 @@
                 sourcesTitle: 'Sources used in this report',
                 errorAlert: 'Error connecting to the cloud server.',
                 invalidResponse: 'The server did not return a valid report.',
-                settingLabels: ['Geographic scope', 'Budget', 'Industry', 'Strategy', 'Target source count'],
+                settingLabels: ['Country', 'Budget', 'Industry', 'Strategy', 'Target source count', 'Required SaaS capabilities'],
                 noExtra: 'None',
+                noFilters: 'No specific capabilities',
+                filterOptions: {
+                    rtl_support: 'RTL support',
+                    multi_tenant: 'Multi-tenant architecture',
+                    arabic_localization: 'Arabic localization',
+                    api_integrations: 'API integrations',
+                    ai_features: 'AI features',
+                    white_label: 'White-label',
+                    security_compliance: 'Security and compliance'
+                },
                 reportLanguage: 'English'
             }
         };
@@ -665,6 +605,15 @@
             document.getElementById('lblCountry').textContent = t.lblCountry;
             document.getElementById('lblBudget').textContent = t.lblBudget;
             document.getElementById('lblIndustry').textContent = t.lblIndustry;
+            document.getElementById('filtersLegend').textContent = t.filtersLegend;
+            document.getElementById('filtersHint').textContent = t.filtersHint;
+            document.getElementById('filterRtl').textContent = t.filterRtl;
+            document.getElementById('filterMultiTenant').textContent = t.filterMultiTenant;
+            document.getElementById('filterArabic').textContent = t.filterArabic;
+            document.getElementById('filterApi').textContent = t.filterApi;
+            document.getElementById('filterAi').textContent = t.filterAi;
+            document.getElementById('filterWhiteLabel').textContent = t.filterWhiteLabel;
+            document.getElementById('filterSecurity').textContent = t.filterSecurity;
             document.getElementById('lblGoal').textContent = t.lblGoal;
             document.getElementById('lblSources').textContent = t.lblSources;
             document.getElementById('sourceHint').textContent = t.sourceHint;
@@ -687,7 +636,8 @@
             return currentLang === 'ar' ? option.dataset.ar || option.value : option.dataset.en;
         }
 
-        document.getElementById('startBtn').addEventListener('click', async () => {
+        document.getElementById('configForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
             const btn = document.getElementById('startBtn');
             const loading = document.getElementById('loading');
             const output = document.getElementById('reportOutput');
@@ -695,7 +645,9 @@
 
             const advancedText = document.getElementById('advanced').value.trim();
             const sourceCount = Number(document.getElementById('sourceCount').value);
-            const settings = `${t.settingLabels[0]}: ${getSelectedLabel('country')}, ${t.settingLabels[1]}: ${getSelectedLabel('budget')}, ${t.settingLabels[2]}: ${getSelectedLabel('industry')}, ${t.settingLabels[3]}: ${getSelectedLabel('goal')}, ${t.settingLabels[4]}: ${sourceCount}. ${currentLang === 'ar' ? 'محددات إضافية من المستخدم' : 'Additional user requirements'}: ${advancedText || t.noExtra}. ${currentLang === 'ar' ? 'يرجى إعداد التقرير باللغة' : 'Please write the report in'} ${t.reportLanguage}.`;
+            const selectedFilters = Array.from(document.querySelectorAll('input[name="featureFilter"]:checked'), (input) => input.value);
+            const selectedFilterLabels = selectedFilters.map((filter) => t.filterOptions[filter]);
+            const settings = `${t.settingLabels[0]}: ${getSelectedLabel('country')}, ${t.settingLabels[1]}: ${getSelectedLabel('budget')}, ${t.settingLabels[2]}: ${getSelectedLabel('industry')}, ${t.settingLabels[3]}: ${getSelectedLabel('goal')}, ${t.settingLabels[4]}: ${sourceCount}, ${t.settingLabels[5]}: ${selectedFilterLabels.join(', ') || t.noFilters}. ${currentLang === 'ar' ? 'محددات إضافية من المستخدم' : 'Additional user requirements'}: ${advancedText || t.noExtra}. ${currentLang === 'ar' ? 'يرجى إعداد التقرير باللغة' : 'Please write the report in'} ${t.reportLanguage}.`;
 
             btn.disabled = true;
             loading.style.display = 'block';
@@ -705,7 +657,7 @@
                 const response = await fetch('/.netlify/functions/generate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ settings, sourceCount, language: currentLang })
+                    body: JSON.stringify({ settings, sourceCount, language: currentLang, filters: selectedFilters })
                 });
                 const data = await response.json();
 
