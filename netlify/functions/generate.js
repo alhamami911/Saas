@@ -45,6 +45,27 @@ exports.handler = async function (event) {
         };
     }
 
+    const filterDescriptions = {
+        rtl_support: "RTL and right-to-left language support",
+        multi_tenant: "multi-tenant architecture with organization/workspace support",
+        arabic_localization: "Arabic localization and Arabic-language interface",
+        api_integrations: "API integrations",
+        ai_features: "AI features",
+        white_label: "white-label capability",
+        security_compliance: "security and regulatory compliance"
+    };
+    const filters = data.filters === undefined ? [] : data.filters;
+    if (!Array.isArray(filters)
+        || filters.some((filter) => typeof filter !== "string"
+            || !Object.prototype.hasOwnProperty.call(filterDescriptions, filter))
+        || new Set(filters).size !== filters.length) {
+        return {
+            statusCode: 400,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ error: "Choose valid, unique SaaS capability filters" })
+        };
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
         console.error("GEMINI_API_KEY is not configured");
@@ -56,7 +77,10 @@ exports.handler = async function (event) {
     }
 
     const reportLanguage = language === "ar" ? "العربية" : "الإنجليزية";
-    const masterPrompt = `أنت محلل استثمارات SaaS خبير. ابحث على الويب عن فرص ومشاريع SaaS حقيقية وحديثة، ثم أعد تقريراً مفصلاً باللغة ${reportLanguage} بناءً على إعدادات المستخدم. استهدف الاستناد إلى نحو ${sourceCount} مصادر مستقلة وموثوقة. أدرج جدول مقارنة، تحليلاً مالياً، توصية نهائية وخطة عمل واضحة. لا تختلق مصادر أو أرقاماً أو بيانات مالية؛ ميّز التقديرات عن الحقائق، واذكر بوضوح عندما لا تتوفر بيانات. استخدم الاستشهادات التي توفرها أداة البحث فقط.
+    const selectedFilters = filters.length
+        ? filters.map((filter) => filterDescriptions[filter]).join(", ")
+        : "No mandatory product capability filters";
+    const masterPrompt = `أنت محلل استثمارات SaaS خبير. ابحث على الويب عن فرص ومشاريع SaaS حقيقية وحديثة، ثم أعد تقريراً مفصلاً باللغة ${reportLanguage} بناءً على إعدادات المستخدم. طبّق خصائص SaaS المطلوبة التالية كمرشحات إلزامية، ولا تعرض فرصة على أنها مطابقة ما لم يدعمها مصدر موثوق: ${selectedFilters}. إذا تعذر العثور على فرص تطابق المرشحات، صرّح بذلك بدلاً من تخفيفها. استهدف الاستناد إلى نحو ${sourceCount} مصادر مستقلة وموثوقة. أدرج جدول مقارنة، تحليلاً مالياً، توصية نهائية وخطة عمل واضحة. لا تختلق مصادر أو أرقاماً أو بيانات مالية؛ ميّز التقديرات عن الحقائق، واذكر بوضوح عندما لا تتوفر بيانات. استخدم الاستشهادات التي توفرها أداة البحث فقط.
         إعدادات البحث المطلوبة: ${data.settings}`;
 
     try {
