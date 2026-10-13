@@ -48,7 +48,8 @@ function fakeClient(responses, calls) {
     });
 }
 
-async function withClaude(responses, run) {
+async function withClaude(responses, run, { seen = [] } = {}) {
+    const remembered = [];
     const names = ["qlook_key", "qlook_claude_key", "QL_PROVIDER", "QL_CLAUDE_MODEL", "QL_CATALOG", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"];
     const old = Object.fromEntries(names.map((name) => [name, process.env[name]]));
     for (const name of names) delete process.env[name];
@@ -63,6 +64,8 @@ async function withClaude(responses, run) {
     const originalFetch = global.fetch;
     global.fetch = async (url, options) => {
         const command = JSON.parse(options.body);
+        if (command[0] === "SMEMBERS") return { ok: true, status: 200, json: async () => ({ result: seen }) };
+        if (String(command[1]).includes("SADD")) remembered.push(...command.slice(5));
         const result = command[1].includes("local results") ? [1, 1, 1] : Number(command[6]) ? 1 : 0;
         return { ok: true, status: 200, json: async () => ({ result }) };
     };
@@ -73,7 +76,7 @@ async function withClaude(responses, run) {
             headers: { "content-type": "application/json", "x-qlook-client-ip": "203.0.113.9" },
             body: JSON.stringify({ settings: "UAT", opportunityCount: 5, language: "en", ...body })
         });
-        await run({ call, calls });
+        await run({ call, calls, remembered });
     } finally {
         global.fetch = originalFetch;
         setClientFactory(previous);
@@ -136,6 +139,27 @@ test("Claude research resumes paused turns and verifies real search URLs", async
         assert.equal(calls[1].params.messages[1].role, "assistant");
         assert.equal(calls[1].params.messages[1].content[1].type, "web_search_tool_result");
     });
+});
+
+test("the same visitor never gets an opportunity they were already shown", async () => {
+    const searchResults = {
+        type: "web_search_tool_result",
+        content: [{ type: "web_search_result", url: PRODUCT, title: "SaaS Starter" }, { type: "web_search_result", url: ORIGIN, title: "PHP Scripts" }]
+    };
+    // First search: the product is shown and remembered for this visitor.
+    await withClaude([message("end_turn", [searchResults, { type: "text", text: report() }])], async ({ call, remembered }) => {
+        const data = JSON.parse((await call()).body);
+        assert.equal(data.verifiedCount, 1);
+        assert.deepEqual(remembered, [PRODUCT]);
+    });
+    // A later, separate search from the same visitor: the product is filtered out.
+    await withClaude([message("end_turn", [searchResults, { type: "text", text: report() }])], async ({ call, calls, remembered }) => {
+        const data = JSON.parse((await call()).body);
+        assert.equal(data.verifiedCount, 0);
+        assert.equal(data.excludedCount, 1);
+        assert.match(calls[0].params.messages[0].content, /already seen these products/);
+        assert.deepEqual(remembered, []);
+    }, { seen: [PRODUCT] });
 });
 
 test("find-more requests skip products the visitor has already seen", async () => {

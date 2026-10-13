@@ -1,7 +1,8 @@
 "use strict";
 
 const { getConfig, estimateCosts, searchAllowance } = require("./config");
-const { checkRateLimit } = require("./rate-limit");
+const { checkRateLimit, clientHash } = require("./rate-limit");
+const { seenLinks, rememberLinks } = require("./seen-store");
 const { createUsageEvent, storeUsage, dailySpendUsd, addDailySpend } = require("./usage-store");
 const { buildResearchPrompt, validateRequest, validateResearchResult, applyCatalogue, catalogueChunks, normalizePublicUrl, RESEARCH_SCHEMA } = require("./research");
 const { collectCandidates } = require("./sources/catalog");
@@ -116,7 +117,11 @@ exports.handler = async function (event) {
 
     // The report is written in the language the dashboard was using.
     const request = validation.value;
-    const shown = new Set(request.exclude);
+    // Never show a visitor the same product twice: links from "find more" plus
+    // everything this IP was shown in the last 14 days.
+    const visitor = clientHash(event, config);
+    const previouslySeen = (await seenLinks(config, visitor)).map(normalizePublicUrl).filter(Boolean);
+    const shown = new Set([...request.exclude, ...previouslySeen]);
     const catalogue = config.catalogEnabled
         ? await collectCandidates(request, { envatoToken: config.envatoToken, githubToken: config.githubToken })
         : { candidates: [], coverage: [] };
@@ -125,7 +130,7 @@ exports.handler = async function (event) {
     const webDomains = config.provider === "claude"
         ? [...WEB_SEARCH_DOMAINS, ...(config.envatoToken ? [] : ["codecanyon.net"])]
         : [];
-    const prompt = buildResearchPrompt({ ...request, candidates: catalogue.candidates, webDomains });
+    const prompt = buildResearchPrompt({ ...request, exclude: [...shown].slice(0, 60), candidates: catalogue.candidates, webDomains });
     const startedAt = Date.now();
     const result = config.provider === "claude"
         ? await runClaudeResearch(config, prompt, { maxSearches: searchAllowance(config, request.opportunityCount), allowedDomains: webDomains, schema: RESEARCH_SCHEMA })
@@ -179,6 +184,8 @@ exports.handler = async function (event) {
         const opportunities = research.value.opportunities.filter((opportunity) => !shown.has(opportunity.directUrl));
         research.value = { ...research.value, opportunities, verifiedCount: opportunities.length, excludedCount: research.value.excludedCount + repeated };
     }
+
+    await rememberLinks(config, visitor, research.value.opportunities.map((opportunity) => opportunity.directUrl));
 
     let accounting;
     try {

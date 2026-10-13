@@ -17,14 +17,17 @@ function getClientIp(event) {
     return headers["x-qlook-client-ip"] || "unknown";
 }
 
+// Visitors are identified only by a keyed hash of their IP address.
+function clientHash(event, config) {
+    return createHmac("sha256", config.rateLimitSalt).update(getClientIp(event)).digest("hex");
+}
+
 async function checkRateLimit(event, config, now = Date.now()) {
     if (!config.redisUrl || !config.redisToken || !config.rateLimitSalt) {
         return { allowed: false, statusCode: 503, errorCode: "RATE_LIMIT_UNAVAILABLE", error: "Request protection is not configured" };
     }
 
-    const ipHash = createHmac("sha256", config.rateLimitSalt)
-        .update(getClientIp(event))
-        .digest("hex");
+    const ipHash = clientHash(event, config);
     const minuteBucket = Math.floor(now / 60000);
     const day = new Date(now).toISOString().slice(0, 10);
     const secondsToNextDay = Math.ceil((Date.parse(`${day}T00:00:00.000Z`) + 86400000 - now) / 1000) + 60;
@@ -80,4 +83,4 @@ async function checkRateLimit(event, config, now = Date.now()) {
     }
 }
 
-module.exports = { checkRateLimit };
+module.exports = { checkRateLimit, clientHash };
