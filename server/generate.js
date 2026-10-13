@@ -163,6 +163,14 @@ async function runClaudeSearch(config, request, shown, visitor, event) {
         return jsonResponse(502, { errorCode: "AI_REQUEST_FAILED", reason: result.kind, error: "The analysis could not be completed. Try again." });
     }
 
+    // Out of AI credit: every marketplace search failed for that reason. Say so
+    // plainly instead of returning a report built from the APIs alone.
+    const siteSearches = result.log.filter((entry) => entry.method === "site_search");
+    if (siteSearches.length && siteSearches.every((entry) => entry.error === "quota")) {
+        await refundRateLimit(event, config).catch(() => {});
+        await persistFailure(config, { ...baseFields, outcome: "provider_quota_exceeded", coverage: summarizeLog(result.log) }, result.usage, true);
+        return jsonResponse(429, { errorCode: "AI_QUOTA_EXCEEDED", error: "Claude usage quota or credit is exhausted." });
+    }
     let research = { opportunities: result.opportunities, verifiedCount: result.opportunities.length, excludedCount: 0 };
     research = await dropClosedListings(research);
     research.opportunities = research.opportunities.filter((opportunity) => !shown.has(opportunity.directUrl));

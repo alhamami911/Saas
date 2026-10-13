@@ -335,3 +335,22 @@ test("search tool version follows the model and the key test runs a real search"
         setClientFactory(previous);
     }
 });
+
+test("when the AI credit is used up the search says so instead of returning a thin report", async () => {
+    await withEnv({ failOnce: [] }, async () => {
+        const claude = require("../server/providers/claude");
+        const previous = claude.setClientFactory(() => ({
+            messages: {
+                create: async () => { throw Object.assign(new Error("Your credit balance is too low to access the Anthropic API."), { status: 400 }); },
+                stream: () => ({ finalMessage: async () => { throw Object.assign(new Error("Your credit balance is too low"), { status: 400 }); } })
+            }
+        }));
+        try {
+            const response = await search();
+            assert.equal(response.statusCode, 429);
+            assert.equal(JSON.parse(response.body).errorCode, "AI_QUOTA_EXCEEDED");
+        } finally {
+            claude.setClientFactory(previous);
+        }
+    });
+});

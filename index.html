@@ -612,6 +612,7 @@
             reason_capability_unverified: 'خاصية مطلوبة غير متحققة من المصدر', reason_budget_unverified: 'لم يُتحقق من الميزانية (السعر غير متحقق)', reason_license_not_perpetual: 'اشتراك وليس ترخيصاً دائماً',
             priceFree: 'تكلفة الترخيص مجانية', priceFreeNote: 'الاستضافة والتطوير تكلفة منفصلة', priceUnverified: 'لم يُتحقق', priceUnverifiedLong: 'لم يُتحقق من الميزانية',
             logQuery: 'عبارة البحث', logTime: 'المدة', logResults: 'نتائج', logProducts: 'صفحات منتجات', logRetry: 'جولة استكمال بعد تعذّر المحاولة الأولى', logError: 'السبب',
+            logErrors: { quota: 'نفد رصيد خدمة الذكاء الاصطناعي', timeout: 'انتهت مهلة الطلب', time_limit: 'لم يتبقَّ وقت ضمن حد البحث', search_not_run: 'لم يُنفّذ البحث', network: 'تعذّر الاتصال', provider_error: 'رفض مزود الخدمة الطلب', disabled: 'المصدر معطّل في الإعدادات', request_failed: 'فشل الطلب', too_many_requests: 'تجاوز حد الطلبات لدى الموقع', unavailable: 'الخدمة غير متاحة' },
             evidenceQuote: 'الدليل من الصفحة', pagesRead: (n, total) => `قُرئت صفحات ${n} من ${total} منتجاً مرشحاً`,
             coverageTitle: 'سجل تغطية المصادر', cov_found: 'فُحص وله نتائج', cov_no_results: 'فُحص دون نتائج', cov_error: 'تعذّر فحصه', cov_not_checked: 'لم يُفحص في هذا البحث',
             coverageIncomplete: 'لم تُفحص كل المصادر المعتمدة في هذا البحث، لذلك لا يُعد البحث شاملاً.',
@@ -640,6 +641,7 @@
             reason_capability_unverified: 'Required capability not verified from a source', reason_budget_unverified: 'Budget not verified (price unknown)', reason_license_not_perpetual: 'A subscription, not a perpetual licence',
             priceFree: 'Licence cost: free', priceFreeNote: 'hosting and development cost extra', priceUnverified: 'Not verified', priceUnverifiedLong: 'Budget not verified',
             logQuery: 'Query', logTime: 'Time', logResults: 'results', logProducts: 'product pages', logRetry: 'completion round after the first attempt failed', logError: 'Reason',
+            logErrors: { quota: 'AI service credit exhausted', timeout: 'request timed out', time_limit: 'no time left within the search limit', search_not_run: 'search was not run', network: 'connection failed', provider_error: 'provider rejected the request', disabled: 'source disabled in settings', request_failed: 'request failed', too_many_requests: 'site rate limit reached', unavailable: 'service unavailable' },
             evidenceQuote: 'Evidence from the page', pagesRead: (n, total) => `Pages of ${n} of ${total} candidate products were read`,
             coverageTitle: 'Source coverage log', cov_found: 'Checked, results found', cov_no_results: 'Checked, no results', cov_error: 'Could not be checked', cov_not_checked: 'Not checked in this search',
             coverageIncomplete: 'Not every approved source was checked in this search, so it is not a complete search.',
@@ -998,7 +1000,7 @@
                 if (Number.isFinite(entry.ms)) facts.push(`${t.logTime}: ${(entry.ms / 1000).toFixed(1)}s`);
                 if (Number.isFinite(entry.results)) facts.push(`${entry.results} ${t.logResults}`);
                 if (Number.isFinite(entry.products ?? entry.count)) facts.push(`${entry.products ?? entry.count} ${t.logProducts}`);
-                if (entry.error) facts.push(`${t.logError}: ${entry.error}`);
+                if (entry.error) facts.push(`${t.logError}: ${t.logErrors?.[entry.error] || entry.error}`);
                 if (entry.firstAttempt) facts.push(t.logRetry);
                 const meta = document.createElement('div');
                 meta.className = 'cov-meta';
