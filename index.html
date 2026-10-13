@@ -179,9 +179,6 @@
         .sources-list { background: var(--secondary-color); padding: 15px; border-radius: var(--radius); margin-top: 20px; }
         .sources-list h3 { margin-top: 0; }
         .sources-list a { color: var(--primary-color); font-weight: 600; overflow-wrap: anywhere; }
-        .usage-stats { margin-top: 18px; padding: 10px 14px; border-radius: var(--radius); background: var(--secondary-color); font-size: 0.8rem; color: var(--text-secondary); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
-        .usage-stats div { display: flex; align-items: center; gap: 5px; }
-        .usage-stats strong { color: var(--text-primary); }
         .report-summary { padding-bottom: 14px; border-bottom: 1px solid var(--border-color); }
         .opportunity-list { display: grid; gap: 14px; margin-top: 18px; }
         .opportunity { padding: 18px; border: 1px solid var(--border-color); border-radius: 16px; background: var(--surface-color); }
@@ -476,7 +473,7 @@
                     examples: ['نظام محاسبة وفوترة إلكترونية متوافق مع هيئة الزكاة (ZATCA)', 'منصة حجوزات للعيادات تدعم العربية', 'متجر إلكتروني متعدد البائعين بعلامة بيضاء', 'مشروع SaaS قائم للبيع بأقل من 5,000 دولار']
                 },
                 moreBtn: 'ابحث عن 5 فرص إضافية', moreLoading: 'جاري البحث عن فرص إضافية...', moreNone: 'لم نجد فرصاً مؤهلة جديدة لهذا البحث. راجع قائمة «للمراجعة» أو جرّب وصفاً مختلفاً.', moreAdded: 'أُضيفت فرص مؤهلة جديدة إلى الجدول:', moreShort: (n) => `وُجدت ${n} فرص مؤهلة جديدة فقط من 5 مطلوبة؛ لم يجتز الباقي شروط الأهلية.`,
-                sourceTitle: 'المصادر والروابط الموثقة', tokenIn: 'توكن الإدخال', tokenOut: 'توكن الإخراج', total: 'إجمالي التوكنز', cost: 'التكلفة التقديرية',
+                sourceTitle: 'المصادر والروابط الموثقة',
                 error: 'حدث خطأ في الاتصال بالخادم.', invalid: 'لم يُرجع الخادم تقريراً صالحاً.',
                 found: 'فرص موثّقة', requested: 'المطلوب', excluded: 'نتائج استُبعدت لنقص الأدلة',
                 origin: 'المصدر الأصلي', sourcesForOpportunity: 'مصادر هذه الفرصة', license: 'الترخيص', price: 'السعر',
@@ -506,8 +503,6 @@
                     NETWORK: 'انقطع الاتصال بالخادم. تحقق من الإنترنت ثم أعد المحاولة.'
                 },
                 commercialUse: 'الاستخدام التجاري كـ SaaS', commercial_allowed: 'مسموح', commercial_restricted: 'مقيَّد', commercial_unclear: 'غير واضح — راجع الترخيص قبل الشراء',
-                modelCost: 'تكلفة النموذج المقدرة', searchCost: 'رسوم البحث المقدرة', totalCost: 'الإجمالي المقدر',
-                actualBilling: 'الفوترة الفعلية: راجع لوحة الفوترة لدى مزود الذكاء الاصطناعي', billingNote: 'هذه تقديرات وليست سجلاً للفوترة الفعلية.'
             },
             en: {
                 toggle: 'العربية', title: 'Hello, what opportunity are you looking for?', newChat: 'New chat', sideNote: 'Results from trusted software marketplaces, with sources.',
@@ -542,7 +537,7 @@
                     examples: ['Accounting and ZATCA e-invoicing system', 'Clinic booking platform with Arabic support', 'White-label multi-vendor marketplace', 'Existing SaaS business for sale under $5,000']
                 },
                 moreBtn: 'Find 5 more opportunities', moreLoading: 'Searching for more opportunities...', moreNone: 'No new eligible opportunities for this search. See the review list or try a different description.', moreAdded: 'New eligible opportunities added to the table:', moreShort: (n) => `Only ${n} new eligible opportunities of the 5 requested; the rest failed the eligibility rules.`,
-                sourceTitle: 'Verified sources & links', tokenIn: 'Prompt tokens', tokenOut: 'Completion tokens', total: 'Total tokens', cost: 'Estimated cost',
+                sourceTitle: 'Verified sources & links',
                 error: 'An error occurred while contacting the server.', invalid: 'The server did not return a valid report.',
                 found: 'Verified opportunities', requested: 'Requested', excluded: 'Excluded for insufficient verification',
                 origin: 'Original marketplace or repository', sourcesForOpportunity: 'Sources for this opportunity', license: 'License', price: 'Price',
@@ -572,8 +567,6 @@
                     NETWORK: 'The connection to the server was lost. Check your internet and try again.'
                 },
                 commercialUse: 'Commercial SaaS use', commercial_allowed: 'Allowed', commercial_restricted: 'Restricted', commercial_unclear: 'Unclear — check the license before buying',
-                modelCost: 'Estimated model cost', searchCost: 'Estimated search fee', totalCost: 'Estimated total',
-                actualBilling: "Actual billing: check your AI provider's billing console", billingNote: 'These are estimates, not actual billing records.'
             }
         };
         Object.assign(translations.ar, {
@@ -623,7 +616,6 @@
             coverageTitle: 'سجل تغطية المصادر', cov_found: 'فُحص وله نتائج', cov_no_results: 'فُحص دون نتائج', cov_error: 'تعذّر فحصه', cov_not_checked: 'لم يُفحص في هذا البحث',
             coverageIncomplete: 'لم تُفحص كل المصادر المعتمدة في هذا البحث، لذلك لا يُعد البحث شاملاً.',
             viaOfficial: 'بيانات رسمية', viaSearch2: 'بحث داخل الموقع',
-            tokenThinking: 'توكنز الاستدلال', tokenNote: 'الإجمالي = الإدخال + الإخراج + الاستدلال.',
             searchDone: 'اكتمل البحث.', restoredNote: 'آخر تقرير محفوظ على هذا الجهاز من',
             defaultMark: 'افتراضي',
             discussBtn: 'ناقش هذه الفرصة مع QLook', discussBack: 'رجوع إلى قائمة المتابعة',
@@ -652,7 +644,6 @@
             coverageTitle: 'Source coverage log', cov_found: 'Checked, results found', cov_no_results: 'Checked, no results', cov_error: 'Could not be checked', cov_not_checked: 'Not checked in this search',
             coverageIncomplete: 'Not every approved source was checked in this search, so it is not a complete search.',
             viaOfficial: 'official data', viaSearch2: 'site search',
-            tokenThinking: 'Reasoning tokens', tokenNote: 'Total = input + output + reasoning.',
             searchDone: 'Search complete.', restoredNote: 'Last report saved on this device from',
             defaultMark: 'default',
             discussBtn: 'Discuss this opportunity with QLook', discussBack: 'Back to the watchlist',
