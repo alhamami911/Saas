@@ -105,6 +105,7 @@
         .report-container table.results-table { display: table; width: 100%; margin: 6px 0 0; font-size: 0.88rem; }
         .results-table th { padding: 0; white-space: nowrap; }
         .results-table td { vertical-align: top; }
+        .results-table td:not(:nth-child(2)) { white-space: nowrap; }
         .sort-btn { width: 100%; padding: 10px; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; text-align: inherit; cursor: pointer; }
         .result-row { cursor: pointer; }
         .result-row:hover, .result-row:focus-visible { background: var(--secondary-color); outline: none; }
@@ -332,7 +333,7 @@
                 },
                 commercialUse: 'الاستخدام التجاري كـ SaaS', commercial_allowed: 'مسموح', commercial_restricted: 'مقيَّد', commercial_unclear: 'غير واضح — راجع الترخيص قبل الشراء',
                 modelCost: 'تكلفة النموذج المقدرة', searchCost: 'رسوم البحث المقدرة', totalCost: 'الإجمالي المقدر',
-                actualBilling: 'الفوترة الفعلية: راجع Google AI Studio أو Cloud Billing', billingNote: 'هذه تقديرات وليست سجلاً للفوترة الفعلية.'
+                actualBilling: 'الفوترة الفعلية: راجع لوحة الفوترة لدى مزود الذكاء الاصطناعي', billingNote: 'هذه تقديرات وليست سجلاً للفوترة الفعلية.'
             },
             en: {
                 toggle: 'العربية', badge: 'LIVE WEB RESEARCH • AI-POWERED', title: 'Discover SaaS opportunities with AI',
@@ -374,7 +375,7 @@
                 },
                 commercialUse: 'Commercial SaaS use', commercial_allowed: 'Allowed', commercial_restricted: 'Restricted', commercial_unclear: 'Unclear — check the license before buying',
                 modelCost: 'Estimated model cost', searchCost: 'Estimated search fee', totalCost: 'Estimated total',
-                actualBilling: 'Actual billing: check Google AI Studio or Cloud Billing', billingNote: 'These are estimates, not actual billing records.'
+                actualBilling: "Actual billing: check your AI provider's billing console", billingNote: 'These are estimates, not actual billing records.'
             }
         };
         Object.assign(translations.ar, {
