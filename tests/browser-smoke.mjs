@@ -1,10 +1,20 @@
-// Browser smoke test for the public dashboard and the Qanas conversation.
+// Browser smoke test for the public chat app and its conversation.
 // The search API is mocked; nothing here calls a paid provider.
 export default async function run(page) {
     const failures = [];
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await page.setViewportSize({ width: 390, height: 844 });
+
+    // The sidebar is a drawer on phones; open it before using its buttons.
+    const sidebar = async (selector) => {
+        if (await page.locator("#menuBtn").isVisible()) {
+            await page.locator("#menuBtn").click();
+            await page.waitForTimeout(300);
+        }
+        await page.locator(selector).click();
+    };
+    const nav = (view) => sidebar(`#appNav button[data-view="${view}"]`);
 
     const initial = await page.evaluate(() => ({
         title: document.title,
@@ -27,7 +37,7 @@ export default async function run(page) {
         views: Array.from(document.querySelectorAll("#appNav button"), (button) => button.dataset.view),
         adminLinks: document.querySelectorAll('a[href*="admin"], form[action*="admin"]').length
     }));
-    if (navigation.views.join(",") !== "overview,discover,results,watchlist,settings") failures.push("dashboard sections");
+    if (navigation.views.join(",") !== "discover,results,watchlist,settings,overview") failures.push("dashboard sections");
     if (navigation.adminLinks !== 0) failures.push("admin controls exposed on public page");
 
     const opportunity = (name, url) => ({
@@ -50,13 +60,13 @@ export default async function run(page) {
     });
 
     // The conversation: greeting, description, market, industry, budget, goal, capabilities.
-    await page.locator('#appNav button[data-view="discover"]').click();
+    await nav("discover");
     const clickChip = async (text) => {
         await page.waitForFunction((label) => Array.from(document.querySelectorAll(".chip:not(:disabled)")).some((chip) => chip.textContent === label), text);
         await page.locator(".chip:not(:disabled)", { hasText: text }).last().click();
     };
-    await page.waitForFunction(() => document.querySelectorAll("#chatLog .chip-soft").length >= 4);
-    const examples = await page.locator("#chatLog .chip-soft").count();
+    await page.waitForFunction(() => document.querySelectorAll("#suggestions .suggestion").length >= 4);
+    const examples = await page.locator("#suggestions .suggestion").count();
     if (examples < 4) failures.push("conversation examples");
     await page.locator("#promptOverride").fill("نظام حجوزات للعيادات يدعم ZATCA");
     await page.locator("#promptOverride").press("Enter");
@@ -69,7 +79,7 @@ export default async function run(page) {
     await clickChip("متابعة");
     await page.waitForSelector(".summary-list");
     await clickChip("ابدأ البحث");
-    await page.waitForSelector(".flight-falcon");
+    await page.waitForSelector(".progress .progress-steps li.active");
     await page.locator(".bubble .results-table .result-row").first().waitFor({ state: "visible" });
 
     const table = await page.evaluate(() => ({
@@ -77,9 +87,10 @@ export default async function run(page) {
         rows: document.querySelectorAll(".bubble .results-table .result-row").length,
         cardsBeforeClick: document.querySelectorAll(".opportunity").length,
         moreButton: Boolean(document.getElementById("moreBtn")),
-        flightLanded: document.querySelector(".flight")?.classList.contains("landed")
+        progressDone: document.querySelector(".progress")?.classList.contains("done"),
+        welcomeHidden: document.getElementById("welcome").classList.contains("hidden")
     }));
-    if (table.headers !== 8 || table.rows !== 1 || table.cardsBeforeClick !== 0 || !table.moreButton || !table.flightLanded) failures.push("results table in conversation");
+    if (table.headers !== 8 || table.rows !== 1 || table.cardsBeforeClick !== 0 || !table.moreButton || !table.progressDone || !table.welcomeHidden) failures.push("results table in conversation");
     await page.locator(".results-table .result-row").first().click();
     await page.locator(".opportunity").waitFor({ state: "visible" });
 
@@ -113,35 +124,41 @@ export default async function run(page) {
     if (more.exclude?.join() !== "https://product.example/" || more.names[1] !== "Second product") failures.push("find more opportunities");
 
     // The Results tab shows the same report, and it returns to the conversation.
-    await page.locator('#appNav button[data-view="results"]').click();
+    await nav("results");
     const resultsTabRows = await page.locator("#view-results .result-row").count();
-    await page.locator('#appNav button[data-view="discover"]').click();
+    await nav("discover");
     const backInChat = await page.locator("#chatLog .result-row").count();
     if (resultsTabRows !== 2 || backInChat !== 2) failures.push("results tab shares the report");
 
-    await page.locator('#appNav button[data-view="watchlist"]').click();
+    await nav("watchlist");
     const watchlistCards = await page.locator("#watchlistItems .opportunity").count();
     if (watchlistCards !== 1) failures.push("watchlist save");
 
-    await page.locator('#appNav button[data-view="settings"]').click();
+    await nav("settings");
     await page.locator("#default-budget").selectOption("حتى 100 دولار");
     await page.locator("#settingsForm button[type=submit]").click();
     if ((await page.locator("#budget").inputValue()) !== "حتى 100 دولار") failures.push("research settings defaults");
 
-    await page.locator('#appNav button[data-view="overview"]').click();
+    await nav("overview");
     const overviewStats = await page.evaluate(() => ({
         reports: document.getElementById("statReports").textContent,
         watchlist: document.getElementById("statWatchlist").textContent
     }));
     if (overviewStats.reports !== "2" || overviewStats.watchlist !== "1") failures.push("overview stats");
 
-    // English: the conversation restarts in English when nothing was answered yet.
-    await page.locator('#appNav button[data-view="discover"]').click();
-    await page.locator("#chatRestart").click();
-    await page.locator("#langToggle").click();
-    await page.waitForFunction(() => /Qanas/.test(document.querySelector("#chatLog .msg-bot .bubble")?.textContent || ""));
-    const english = await page.evaluate(() => ({ dir: document.documentElement.dir, title: document.getElementById("titleText").textContent }));
-    if (english.dir !== "ltr" || !english.title.includes("Qanas")) failures.push("English conversation");
+    // A new chat shows the welcome screen; switching language redraws it in English.
+    await sidebar("#chatRestart");
+    await sidebar("#langToggle");
+    await page.keyboard.press("Escape");
+    const english = await page.evaluate(() => ({
+        dir: document.documentElement.dir, title: document.getElementById("titleText").textContent,
+        welcomeVisible: !document.getElementById("welcome").classList.contains("hidden"),
+        messages: document.querySelectorAll("#chatLog .msg").length,
+        suggestion: document.querySelector("#suggestions .suggestion")?.textContent || "",
+        brandFree: !/Qanas|قنّاص|falcon/i.test(document.body.innerText)
+    }));
+    if (english.dir !== "ltr" || !english.title.startsWith("Hello") || !english.welcomeVisible || english.messages !== 0
+        || !english.suggestion.includes("ZATCA") || !english.brandFree) failures.push("English welcome screen");
 
     await page.setViewportSize({ width: 1440, height: 900 });
     const desktop = await page.evaluate(() => ({ pageWidth: document.documentElement.scrollWidth, viewportWidth: window.innerWidth }));

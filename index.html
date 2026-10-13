@@ -3,30 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SaaS Opportunity Hunter - محرك البحث المباشر</title>
+    <title>QLook — مساعد فرص SaaS</title>
     <style>
         :root {
-            --bg-color: #fbf8f4; --surface-color: #ffffff; --text-primary: #111827; --text-secondary: #4b5563;
-            --border-color: #e5e7eb; --primary-color: #b4501f; --primary-hover: #923f17;
-            --secondary-color: #f3f4f6; --secondary-hover: #e5e7eb; --radius: 8px;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --bg-color: #ffffff; --surface-color: #ffffff; --sidebar-color: #f0f4f9; --text-primary: #1f1f1f; --text-secondary: #5f6368;
+            --border-color: #e3e3e3; --primary-color: #0b57d0; --primary-hover: #0842a0; --primary-soft: #d3e3fd;
+            --secondary-color: #f0f4f9; --secondary-hover: #e1e8f1; --user-bubble: #e9eef6; --radius: 12px;
+            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            --brand-gradient: linear-gradient(74deg, #4285f4 0%, #9b72cb 45%, #d96570 85%);
         }
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg-color: #111827; --surface-color: #1f2937; --text-primary: #f9fafb; --text-secondary: #d1d5db;
-                --border-color: #374151; --primary-color: #f2a65a; --primary-hover: #e08a3a;
-                --secondary-color: #374151; --secondary-hover: #4b5563;
+                --bg-color: #131314; --surface-color: #1e1f20; --sidebar-color: #1e1f20; --text-primary: #e3e3e3; --text-secondary: #a8abb0;
+                --border-color: #3c4043; --primary-color: #a8c7fa; --primary-hover: #c2d7fb; --primary-soft: #28324a;
+                --secondary-color: #282a2c; --secondary-hover: #333537; --user-bubble: #282a2c;
             }
         }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-primary); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .top-bar { width: 100%; max-width: 1040px; display: flex; justify-content: flex-end; margin-bottom: 10px; }
-        .lang-btn { background: var(--surface-color); border: 1px solid var(--border-color); color: var(--text-primary); padding: 6px 12px; border-radius: 20px; cursor: pointer; transition: 0.3s; font-size: 0.9rem; }
-        .dashboard-container, .report-container { background-color: var(--surface-color); border-radius: var(--radius); box-shadow: var(--shadow); width: 100%; max-width: 800px; padding: 30px; border: 1px solid var(--border-color); margin-bottom: 20px; box-sizing: border-box; }
-        .header { margin-bottom: 24px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; }
-        .badge { display: inline-block; background-color: #ecfdf5; color: #059669; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; margin-bottom: 8px; }
-        .header h2 { margin: 0 0 8px; font-size: 1.5rem; }
-        .header p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
-        .features { display: flex; flex-wrap: wrap; gap: 15px; margin-top: 15px; font-size: 0.85rem; color: var(--primary-color); font-weight: 600; }
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-color); color: var(--text-primary); margin: 0; overflow: hidden; }
+        .hidden { display: none !important; }
+
+        /* ---- App shell: sidebar + full-height main area -------------------- */
+        .app { display: flex; height: 100vh; height: 100dvh; }
+        .sidebar { width: 272px; flex: none; display: flex; flex-direction: column; gap: 6px; padding: 14px 12px; background: var(--sidebar-color); overflow-y: auto; }
+        .side-brand { display: flex; align-items: center; gap: 10px; padding: 6px 10px 14px; font-size: 1.15rem; }
+        .brand-mark { width: 28px; height: 28px; display: grid; place-items: center; }
+        .brand-mark svg, .msg-avatar svg { width: 100%; height: 100%; }
+        .brand-mark path, .msg-avatar path { fill: url(#sparkGrad); }
+        .new-chat { display: inline-flex; align-items: center; gap: 10px; align-self: flex-start; padding: 11px 18px; margin-bottom: 14px; border: 0; border-radius: 999px; background: var(--surface-color); color: var(--text-primary); font: inherit; font-size: 0.9rem; cursor: pointer; box-shadow: var(--shadow); }
+        .new-chat:hover { background: var(--secondary-hover); }
+        .new-chat svg { width: 18px; height: 18px; }
+        .side-nav { display: flex; flex-direction: column; gap: 2px; }
+        .side-nav button { padding: 10px 14px; border: 0; border-radius: 999px; background: transparent; color: var(--text-primary); font: inherit; font-size: 0.9rem; text-align: start; cursor: pointer; }
+        .side-nav button:hover { background: var(--secondary-hover); }
+        .side-nav button[aria-current="page"] { background: var(--primary-soft); color: var(--primary-color); font-weight: 600; }
+        .side-foot { margin-top: auto; padding: 12px 6px 4px; display: grid; gap: 10px; }
+        .lang-btn { justify-self: start; background: transparent; border: 1px solid var(--border-color); color: var(--text-primary); padding: 7px 14px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 0.85rem; }
+        .lang-btn:hover { background: var(--secondary-hover); }
+        .side-note { margin: 0; font-size: 0.75rem; color: var(--text-secondary); line-height: 1.5; }
+        .main { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100%; }
+        .mobile-bar { display: none; align-items: center; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid var(--border-color); }
+        .icon-btn { width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--text-primary); cursor: pointer; }
+        .icon-btn:hover { background: var(--secondary-color); }
+        .icon-btn svg { width: 22px; height: 22px; }
+        .scrim { position: fixed; inset: 0; z-index: 30; background: rgba(0, 0, 0, 0.35); }
+        @media (max-width: 860px) {
+            .mobile-bar { display: flex; }
+            .sidebar { position: fixed; top: 0; bottom: 0; inset-inline-start: 0; z-index: 40; width: min(84vw, 300px); transform: translateX(-105%); transition: transform 0.25s ease; box-shadow: 0 0 40px rgba(0, 0, 0, 0.2); }
+            html[dir="rtl"] .sidebar { transform: translateX(105%); }
+            .app.nav-open .sidebar { transform: none; }
+        }
+
+        /* ---- Chat page --------------------------------------------------- */
+        .chat-page { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+        .chat-scroll { flex: 1; min-height: 0; overflow-y: auto; scroll-behavior: smooth; }
+        .welcome, .chat, .composer-wrap { width: 100%; max-width: 860px; margin: 0 auto; padding-inline: 24px; }
+        .welcome { padding-top: 12vh; padding-bottom: 24px; }
+        .welcome-title { margin: 0 0 10px; font-size: clamp(1.9rem, 4.2vw, 2.8rem); font-weight: 600; line-height: 1.3; }
+        .grad-text { background: var(--brand-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .welcome-sub { margin: 0 0 28px; font-size: 1.05rem; color: var(--text-secondary); line-height: 1.7; max-width: 640px; }
+        .suggestions { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+        .suggestion { display: flex; flex-direction: column; justify-content: space-between; gap: 18px; min-height: 120px; padding: 16px; border: 0; border-radius: 16px; background: var(--secondary-color); color: var(--text-primary); font: inherit; font-size: 0.92rem; line-height: 1.55; text-align: start; cursor: pointer; transition: background 0.15s; }
+        .suggestion:hover { background: var(--secondary-hover); }
+        .suggestion-icon { align-self: flex-end; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: var(--surface-color); font-size: 1rem; }
+        .chat { display: flex; flex-direction: column; gap: 26px; padding-top: 28px; padding-bottom: 28px; }
+        .chat:empty { display: none; }
+        .msg { display: flex; gap: 16px; align-items: flex-start; max-width: 100%; animation: rise 0.3s ease both; }
+        .msg-user { justify-content: flex-end; }
+        @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .msg-avatar { width: 30px; height: 30px; flex: none; margin-top: 2px; }
+        .msg-avatar.thinking svg { animation: spin 1.6s linear infinite; }
+        .bubble { flex: 1; min-width: 0; line-height: 1.8; font-size: 0.98rem; overflow-wrap: anywhere; }
+        .msg-user .bubble { flex: none; max-width: min(75%, 600px); padding: 10px 18px; border-radius: 22px; background: var(--user-bubble); }
+        html[dir="rtl"] .msg-user .bubble { border-start-end-radius: 6px; }
+        html[dir="ltr"] .msg-user .bubble { border-start-end-radius: 6px; }
+        .bubble .report-container { display: block; box-shadow: none; border: 0; padding: 0; margin: 12px 0 0; max-width: none; background: transparent; }
+        .typing { display: inline-flex; gap: 5px; padding: 8px 2px; }
+        .typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--text-secondary); opacity: 0.35; animation: blink 1.2s infinite; }
+        .typing i:nth-child(2) { animation-delay: 0.2s; } .typing i:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes blink { 50% { opacity: 1; transform: translateY(-2px); } }
+        .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+        .chips-actions { margin-top: 14px; }
+        .chip { padding: 8px 16px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--surface-color); color: var(--text-primary); font: inherit; font-size: 0.88rem; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+        .chip:hover:not(:disabled) { background: var(--secondary-color); }
+        .chip:disabled { cursor: default; opacity: 0.5; }
+        .chip.picked { opacity: 1; background: var(--primary-soft); border-color: var(--primary-color); color: var(--primary-color); }
+        .chip-soft { background: var(--secondary-color); border-color: transparent; }
+        .chip-primary { background: var(--primary-color); border-color: transparent; color: var(--bg-color); font-weight: 600; }
+        .chip-primary:hover:not(:disabled) { background: var(--primary-hover); }
+        .chip-toggle[aria-pressed="true"] { background: var(--primary-soft); border-color: var(--primary-color); color: var(--primary-color); font-weight: 600; }
+        .summary-list { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 12px 0 0; padding: 16px; border-radius: 14px; border: 1px solid var(--border-color); font-size: 0.92rem; }
+        .summary-list dt { font-weight: 600; color: var(--text-secondary); }
+        .summary-list dd { margin: 0; }
+        .composer-wrap { flex: none; padding-top: 8px; padding-bottom: 12px; }
+        .composer { display: flex; gap: 8px; align-items: flex-end; padding: 10px 10px 10px 20px; border-radius: 28px; background: var(--secondary-color); border: 1px solid transparent; transition: border-color 0.15s, background 0.15s; }
+        html[dir="rtl"] .composer { padding: 10px 20px 10px 10px; }
+        .composer:focus-within { background: var(--surface-color); border-color: var(--border-color); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08); }
+        .composer textarea { flex: 1; min-width: 0; min-height: 40px; max-height: 180px; resize: none; padding: 9px 0; border: 0; background: transparent; font-size: 1rem; outline: none; box-shadow: none; }
+        .composer textarea:focus { border: 0; box-shadow: none; }
+        .send-btn { width: 40px; height: 40px; flex: none; border: 0; border-radius: 50%; cursor: pointer; color: var(--bg-color); background: var(--text-primary); display: grid; place-items: center; }
+        .send-btn svg { width: 20px; height: 20px; }
+        .send-btn:disabled { opacity: 0.35; cursor: wait; }
+        .composer-hint { margin: 8px 0 0; text-align: center; font-size: 0.75rem; color: var(--text-secondary); }
+
+        /* Searching: a shimmering status line with step-by-step progress. */
+        .progress { display: grid; gap: 12px; padding-top: 3px; }
+        .progress-status { margin: 0; font-weight: 600; background: linear-gradient(90deg, var(--text-secondary) 0%, var(--text-secondary) 35%, var(--primary-color) 50%, var(--text-secondary) 65%, var(--text-secondary) 100%); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shimmer 2.2s linear infinite; }
+        html[dir="rtl"] .progress-status { animation-direction: reverse; }
+        @keyframes shimmer { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+        .progress.done .progress-status { animation: none; background: none; color: var(--text-secondary); }
+        .progress-steps { margin: 0; padding: 12px 16px; list-style: none; display: grid; gap: 8px; font-size: 0.88rem; color: var(--text-secondary); border-inline-start: 2px solid var(--border-color); }
+        .progress-steps li { display: flex; align-items: center; gap: 10px; }
+        .progress-steps li::before { content: ''; width: 14px; height: 14px; flex: none; border-radius: 50%; border: 2px solid var(--border-color); }
+        .progress-steps li.active { color: var(--text-primary); }
+        .progress-steps li.active::before { border-color: var(--primary-color); border-top-color: transparent; animation: spin 0.9s linear infinite; }
+        .progress-steps li.done::before { content: '✓'; display: grid; place-items: center; font-size: 10px; color: #fff; background: #1e8e3e; border-color: #1e8e3e; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { .msg, .typing i, .progress-status, .msg-avatar svg { animation: none !important; } }
+        @media (max-width: 560px) {
+            .welcome, .chat, .composer-wrap { padding-inline: 14px; }
+            .welcome { padding-top: 6vh; }
+            .suggestions { grid-template-columns: 1fr 1fr; }
+            .suggestion { min-height: 96px; font-size: 0.85rem; }
+            .msg { gap: 10px; }
+            .msg-avatar { width: 24px; height: 24px; }
+            .msg-user .bubble { max-width: 85%; }
+        }
+
+        /* ---- Other pages -------------------------------------------------- */
+        .page { flex: 1; min-height: 0; overflow-y: auto; }
+        .page-inner { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+        @media (max-width: 560px) { .page-inner { padding: 24px 14px; } }
+        .view-title { margin: 0 0 8px; font-size: 1.6rem; font-weight: 600; }
+        .view-text { margin: 0 0 18px; color: var(--text-secondary); line-height: 1.7; }
+        .overview-steps { margin: 0 0 22px; padding-inline-start: 22px; line-height: 1.9; }
+        .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 22px; }
+        .stat { padding: 16px; border-radius: 16px; background: var(--secondary-color); }
+        .stat strong { display: block; font-size: 1.5rem; color: var(--primary-color); }
+        .stat span { font-size: 0.85rem; color: var(--text-secondary); }
+
+        /* ---- Forms (settings) ---------------------------------------------- */
         .grid-layout { display: grid; grid-template-columns: 1fr; gap: 16px; margin-top: 20px; }
         @media (min-width: 640px) { .grid-layout { grid-template-columns: 1fr 1fr; } }
         .full-width { grid-column: 1 / -1; }
@@ -38,33 +155,36 @@
         .form-group { display: flex; flex-direction: column; margin-bottom: 16px; min-width: 0; }
         .form-group label { font-size: 0.875rem; font-weight: 600; margin-bottom: 6px; color: var(--text-primary); }
         .hint { font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; }
-        select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius); background-color: var(--surface-color); color: var(--text-primary); font-size: 0.95rem; outline: none; box-sizing: border-box; font-family: inherit; }
+        select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--radius); background-color: var(--surface-color); color: var(--text-primary); font-size: 0.95rem; outline: none; font-family: inherit; }
         select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: left 10px center; background-size: 16px; }
         html[dir="ltr"] select { background-position: right 10px center; }
-        select:focus, textarea:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
-        textarea { min-height: 80px; resize: vertical; }
-        .section-title { font-size: 1.1rem; font-weight: 600; margin: 20px 0 16px; color: var(--primary-color); display: flex; align-items: center; cursor: pointer; }
-        .section-title svg { width: 20px; height: 20px; margin-inline-start: 8px; transition: transform 0.3s; }
-        .collapsed svg { transform: rotate(-90deg); }
-        .hidden { display: none !important; }
-        button.btn-primary { padding: 12px 20px; border: none; border-radius: var(--radius); font-size: 1rem; font-weight: 600; cursor: pointer; background-color: var(--primary-color); color: white; width: 100%; margin-top: 20px; transition: 0.3s; }
+        select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px var(--primary-soft); }
+        button.btn-primary { padding: 11px 22px; border: none; border-radius: 999px; font: inherit; font-size: 0.95rem; font-weight: 600; cursor: pointer; background-color: var(--primary-color); color: var(--bg-color); transition: 0.2s; }
         button.btn-primary:hover { background-color: var(--primary-hover); }
-        button.btn-primary:disabled { background-color: #9ca3af; cursor: not-allowed; }
-        #loading { display: none; text-align: center; color: #059669; font-weight: bold; margin-top: 15px; }
-        .report-container { display: none; line-height: 1.6; overflow-wrap: anywhere; }
+        button.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-secondary { padding: 8px 16px; border: 1px solid var(--border-color); border-radius: 999px; background: var(--surface-color); color: var(--text-primary); font: inherit; font-size: 0.86rem; cursor: pointer; }
+        .btn-secondary:hover { background: var(--secondary-color); }
+        .btn-secondary:disabled { opacity: 0.6; cursor: default; }
+        .button-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+        .status-msg { min-height: 1.2em; margin-top: 10px; font-size: 0.85rem; color: #1e8e3e; }
+        #loading { display: none; }
+        .bot-trap { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+        /* ---- Report: summary, table and analysis cards ---------------------- */
+        .report-container { display: none; line-height: 1.7; overflow-wrap: anywhere; }
         .report-container table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 20px 0; }
-        .report-container th, .report-container td { border: 1px solid var(--border-color); padding: 10px; text-align: right; }
+        .report-container th, .report-container td { border-bottom: 1px solid var(--border-color); padding: 10px; text-align: right; }
         html[dir="ltr"] .report-container th, html[dir="ltr"] .report-container td { text-align: left; }
-        .report-container th { background-color: var(--secondary-color); color: var(--primary-color); }
+        .report-container th { background-color: var(--secondary-color); color: var(--text-secondary); font-size: 0.82rem; }
         .sources-list { background: var(--secondary-color); padding: 15px; border-radius: var(--radius); margin-top: 20px; }
-        .sources-list h3 { margin-top: 0; color: var(--primary-color); }
+        .sources-list h3 { margin-top: 0; }
         .sources-list a { color: var(--primary-color); font-weight: 600; overflow-wrap: anywhere; }
-        .usage-stats { margin-top: 20px; padding: 12px 15px; background-color: rgba(16, 185, 129, 0.1); border: 1px solid #10b981; border-radius: var(--radius); font-size: 0.85rem; color: var(--text-primary); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .usage-stats { margin-top: 18px; padding: 10px 14px; border-radius: var(--radius); background: var(--secondary-color); font-size: 0.8rem; color: var(--text-secondary); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
         .usage-stats div { display: flex; align-items: center; gap: 5px; }
-        .usage-stats strong { color: #059669; }
+        .usage-stats strong { color: var(--text-primary); }
         .report-summary { padding-bottom: 14px; border-bottom: 1px solid var(--border-color); }
         .opportunity-list { display: grid; gap: 14px; margin-top: 18px; }
-        .opportunity { padding: 16px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--surface-color); }
+        .opportunity { padding: 18px; border: 1px solid var(--border-color); border-radius: 16px; background: var(--surface-color); }
         .opportunity h3 { margin: 0 0 8px; font-size: 1.1rem; }
         .opportunity h3 a, .opportunity a { color: var(--primary-color); overflow-wrap: anywhere; }
         .opportunity-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; color: var(--text-secondary); font-size: 0.85rem; }
@@ -72,126 +192,15 @@
         .opportunity-section h4 { margin: 0 0 5px; font-size: 0.9rem; }
         .opportunity-section ul { margin: 5px 0 0; padding-inline-start: 22px; }
         .opportunity-section li { margin: 4px 0; }
-        .status-label { display: inline-block; padding: 3px 8px; border-radius: 999px; background: var(--secondary-color); font-size: 0.8rem; }
-        .bot-trap { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-        .view-wide { width: 100%; max-width: 800px; }
-        .app-nav { width: 100%; max-width: 1040px; display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
-        .app-nav button { flex: 1 1 auto; padding: 9px 12px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--surface-color); color: var(--text-primary); font: inherit; font-size: 0.9rem; cursor: pointer; }
-        .app-nav button[aria-current="page"] { background: var(--primary-color); border-color: var(--primary-color); color: white; font-weight: 600; }
-        .view-title { margin: 0 0 8px; font-size: 1.4rem; }
-        .view-text { margin: 0 0 16px; color: var(--text-secondary); }
-        .overview-steps { margin: 0 0 18px; padding-inline-start: 22px; line-height: 1.8; }
-        .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
-        .stat { padding: 14px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--secondary-color); }
-        .stat strong { display: block; font-size: 1.4rem; color: var(--primary-color); }
-        .stat span { font-size: 0.85rem; color: var(--text-secondary); }
+        .status-label { display: inline-block; padding: 3px 9px; border-radius: 999px; background: var(--secondary-color); font-size: 0.8rem; }
         .card-actions { margin-top: 12px; }
-        /* ---- Qanas assistant ---------------------------------------------- */
-        :root { --copper: #c2562a; --copper-light: #f2a65a; --navy: #1e2a44; --cream: #f5e6d3; --bot-bubble: #ffffff; --user-bubble: #1e2a44; }
-        @media (prefers-color-scheme: dark) { :root { --bot-bubble: #1f2937; --user-bubble: #c2562a; } }
-        body { background: radial-gradient(1200px 600px at 85% -10%, rgba(194, 86, 42, 0.12), transparent 60%), radial-gradient(900px 500px at 0% 0%, rgba(30, 42, 68, 0.10), transparent 60%), var(--bg-color); min-height: 100vh; }
-        .assistant { width: 100%; max-width: 1040px; display: flex; flex-direction: column; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 20px; box-shadow: 0 24px 60px -30px rgba(30, 42, 68, 0.45); overflow: hidden; margin-bottom: 20px; }
-        .assistant.hidden { display: none !important; }
-        .assistant-head { display: flex; align-items: center; gap: 14px; padding: 16px 20px; color: #fff; background: linear-gradient(120deg, var(--navy) 0%, #2b3b5f 55%, var(--copper) 130%); }
-        .assistant-avatar { width: 48px; height: 48px; flex: none; border-radius: 16px; display: grid; place-items: center; background: linear-gradient(140deg, var(--copper-light), var(--copper)); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.18); font-weight: 800; font-size: 1.4rem; }
-        .assistant-intro { flex: 1; min-width: 0; }
-        .assistant-title { margin: 0; font-size: 1.15rem; }
-        .assistant-sub { margin: 2px 0 0; font-size: 0.85rem; opacity: 0.85; }
-        .assistant-status { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; padding: 4px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.14); white-space: nowrap; }
-        .pulse { width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); animation: pulse 2s infinite; }
-        .assistant-status.busy .pulse { background: var(--copper-light); }
-        @keyframes pulse { 70% { box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); } 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); } }
-        .btn-ghost { padding: 7px 12px; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 10px; background: transparent; color: #fff; font: inherit; font-size: 0.82rem; cursor: pointer; }
-        .btn-ghost:hover { background: rgba(255, 255, 255, 0.12); }
-        .chat { height: min(62vh, 640px); overflow-y: auto; padding: 22px 18px; display: flex; flex-direction: column; gap: 14px; scroll-behavior: smooth; background: linear-gradient(180deg, rgba(245, 230, 211, 0.25), transparent 140px); }
-        .msg { display: flex; gap: 10px; align-items: flex-end; max-width: 100%; animation: rise 0.35s ease both; }
-        .msg-user { justify-content: flex-end; }
-        @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-        .msg-avatar { width: 34px; height: 34px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--cream); }
-        .avatar-falcon { width: 30px; height: 20px; }
-        .head-falcon { width: 42px; height: 26px; }
-        html[dir="rtl"] .avatar-falcon, html[dir="rtl"] .head-falcon, html[dir="rtl"] .flight-falcon { transform: scaleX(-1); }
-        .bubble { max-width: min(78%, 620px); padding: 12px 14px; border-radius: 16px; line-height: 1.7; font-size: 0.95rem; background: var(--bot-bubble); border: 1px solid var(--border-color); box-shadow: 0 6px 18px -14px rgba(30, 42, 68, 0.6); overflow-wrap: anywhere; }
-        .msg-bot .bubble { border-end-start-radius: 4px; }
-        .msg-user .bubble { background: var(--user-bubble); color: #fff; border-color: transparent; border-end-end-radius: 4px; }
-        .bubble.bubble-wide { max-width: 100%; flex: 1; min-width: 0; }
-        .bubble .report-container { display: block; box-shadow: none; border: 0; padding: 4px 0 0; margin: 10px 0 0; max-width: none; }
-        .typing { display: inline-flex; gap: 4px; padding: 4px 2px; }
-        .typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--copper); opacity: 0.4; animation: blink 1.2s infinite; }
-        .typing i:nth-child(2) { animation-delay: 0.2s; } .typing i:nth-child(3) { animation-delay: 0.4s; }
-        @keyframes blink { 50% { opacity: 1; transform: translateY(-2px); } }
-        .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-        .chips-actions { margin-top: 12px; }
-        .chip { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border-color); background: var(--surface-color); color: var(--text-primary); font: inherit; font-size: 0.86rem; cursor: pointer; transition: transform 0.15s, border-color 0.15s, background 0.15s; }
-        .chip:hover:not(:disabled) { border-color: var(--copper); color: var(--copper); transform: translateY(-1px); }
-        .chip:disabled { cursor: default; opacity: 0.55; }
-        .chip.picked { opacity: 1; background: var(--copper); border-color: var(--copper); color: #fff; }
-        .chip-soft { background: var(--secondary-color); }
-        .chip-primary { background: linear-gradient(120deg, var(--copper), var(--copper-light)); border-color: transparent; color: #fff; font-weight: 600; }
-        .chip-primary:hover:not(:disabled) { color: #fff; }
-        .chip-toggle[aria-pressed="true"] { background: rgba(194, 86, 42, 0.12); border-color: var(--copper); color: var(--copper); font-weight: 600; }
-        .summary-list { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 10px 0 0; padding: 12px; border-radius: 12px; background: var(--secondary-color); font-size: 0.9rem; }
-        .summary-list dt { font-weight: 700; color: var(--copper); }
-        .summary-list dd { margin: 0; }
-        .composer { display: flex; gap: 10px; align-items: flex-end; padding: 12px 14px; border-top: 1px solid var(--border-color); background: var(--surface-color); }
-        .composer textarea { flex: 1; min-width: 0; min-height: 46px; max-height: 140px; resize: none; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--border-color); background: var(--bg-color); font-size: 0.95rem; }
-        .composer textarea:focus { border-color: var(--copper); box-shadow: 0 0 0 3px rgba(194, 86, 42, 0.15); }
-        .send-btn { width: 46px; height: 46px; flex: none; border: 0; border-radius: 14px; cursor: pointer; color: #fff; background: linear-gradient(140deg, var(--copper-light), var(--copper)); display: grid; place-items: center; }
-        .send-btn svg { width: 20px; height: 20px; }
-        .send-btn:disabled { opacity: 0.5; cursor: wait; }
-        .composer-hint { margin: 0; padding: 0 16px 12px; font-size: 0.75rem; color: var(--text-secondary); background: var(--surface-color); }
-        /* Searching: an abstract falcon flies through a soft aurora in the brand colours. */
-        .flight { display: grid; gap: 10px; }
-        .flight-sky { position: relative; height: 170px; border-radius: 16px; overflow: hidden; background: linear-gradient(160deg, #1e2a44 0%, #24345a 55%, #3a2a3c 100%); isolation: isolate; }
-        .aurora { position: absolute; width: 60%; height: 140%; border-radius: 50%; filter: blur(34px); opacity: 0.55; mix-blend-mode: screen; animation: drift 9s ease-in-out infinite alternate; }
-        .aurora-a { background: radial-gradient(circle, #c2562a, transparent 65%); top: -30%; left: -10%; }
-        .aurora-b { background: radial-gradient(circle, #f2a65a, transparent 65%); top: -10%; right: -15%; animation-duration: 11s; }
-        .aurora-c { background: radial-gradient(circle, #f5e6d3, transparent 60%); bottom: -70%; left: 30%; opacity: 0.25; animation-duration: 13s; }
-        @keyframes drift { to { transform: translate(12%, 8%) scale(1.15) rotate(8deg); } }
-        .spark { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #fff; opacity: 0; animation: twinkle 3.2s ease-in-out infinite; }
-        .spark-1 { top: 18%; left: 12%; } .spark-2 { top: 64%; left: 28%; animation-delay: 0.6s; } .spark-3 { top: 30%; left: 52%; animation-delay: 1.2s; }
-        .spark-4 { top: 76%; left: 70%; animation-delay: 1.8s; } .spark-5 { top: 22%; left: 84%; animation-delay: 2.4s; } .spark-6 { top: 50%; left: 92%; animation-delay: 0.3s; }
-        @keyframes twinkle { 50% { opacity: 0.9; transform: scale(1.6); } }
-        .flight-path { position: absolute; inset: 0; animation: glide 7s ease-in-out infinite; }
-        html[dir="rtl"] .flight-path { animation-name: glide-rtl; }
-        .flight-falcon { position: absolute; top: 18%; left: 0; width: 220px; height: 132px; overflow: visible; filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.45)); animation: bob 1.4s ease-in-out infinite; }
-        @keyframes glide { 0% { transform: translateX(-30%); } 50% { transform: translateX(55%) translateY(-6%); } 100% { transform: translateX(110%); } }
-        @keyframes glide-rtl { 0% { transform: translateX(110%); } 50% { transform: translateX(25%) translateY(-6%); } 100% { transform: translateX(-30%); } }
-        @keyframes bob { 50% { margin-top: -10px; } }
-        .flight-falcon .wing { transform-box: fill-box; animation: flap 0.7s ease-in-out infinite; }
-        .flight-falcon .wing-front { transform-origin: 90% 95%; }
-        .flight-falcon .wing-back { transform-origin: 85% 95%; animation-delay: 0.08s; }
-        @keyframes flap { 50% { transform: scaleY(-0.55); } }
-        .flight.landed .flight-path, .flight.landed .wing, .flight.landed .flight-falcon, .flight.landed .aurora { animation-play-state: paused; }
-        .flight-status { margin: 0; font-weight: 600; color: var(--copper); }
-        .flight-steps { margin: 0; padding-inline-start: 0; list-style: none; display: grid; gap: 6px; font-size: 0.86rem; color: var(--text-secondary); }
-        .flight-steps li { display: flex; align-items: center; gap: 8px; }
-        .flight-steps li::before { content: ''; width: 14px; height: 14px; flex: none; border-radius: 50%; border: 2px solid var(--border-color); }
-        .flight-steps li.active { color: var(--text-primary); font-weight: 600; }
-        .flight-steps li.active::before { border-color: var(--copper); border-top-color: transparent; animation: spin 0.9s linear infinite; }
-        .flight-steps li.done::before { content: '✓'; display: grid; place-items: center; font-size: 10px; color: #fff; background: #059669; border-color: #059669; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        @media (prefers-reduced-motion: reduce) { .flight-path, .flight-falcon, .wing, .aurora, .spark, .msg, .pulse { animation: none !important; } .flight-falcon { left: 35%; } }
-        @media (max-width: 560px) { .assistant { border-radius: 14px; } .assistant-sub, .assistant-status { display: none; } .bubble { max-width: 88%; } .chat { height: 64vh; padding: 16px 10px; } .flight-falcon { width: 160px; height: 96px; } }
-        .ai-search { margin-top: 4px; }
-        .ai-label { display: block; font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; color: var(--primary-color); }
-        .ai-search-box { display: flex; gap: 8px; align-items: stretch; padding: 8px; border: 2px solid var(--primary-color); border-radius: 14px; background: var(--surface-color); box-shadow: 0 6px 18px -8px rgba(37, 99, 235, 0.45); }
-        .ai-search-box textarea { flex: 1; min-width: 0; border: 0; box-shadow: none; resize: none; min-height: 52px; padding: 8px; font-size: 1rem; background: transparent; }
-        .ai-search-box textarea:focus { border: 0; box-shadow: none; }
-        .ai-search-box .ai-submit { width: auto; margin: 0; padding: 0 18px; border-radius: 10px; white-space: nowrap; }
-        .ai-examples { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 6px; }
-        .example-chip { padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 999px; background: var(--secondary-color); color: var(--text-primary); font: inherit; font-size: 0.82rem; cursor: pointer; }
-        .example-chip:hover { border-color: var(--primary-color); color: var(--primary-color); }
-        .refine { margin-top: 16px; border: 1px solid var(--border-color); border-radius: var(--radius); padding: 10px 14px; }
-        .refine summary { cursor: pointer; font-weight: 600; color: var(--primary-color); }
-        .refine .grid-layout { margin-top: 12px; }
-        .more-row { margin-top: 14px; text-align: center; }
-        .more-btn { padding: 10px 18px; font-size: 0.95rem; }
-        @media (max-width: 480px) { .ai-search-box { flex-direction: column; } .ai-search-box .ai-submit { padding: 12px; } }
-        .table-wrap { margin-top: 16px; max-width: 100%; overflow-x: auto; }
-        .report-container table.results-table { display: table; width: 100%; margin: 6px 0 0; font-size: 0.88rem; }
+        .more-row { margin-top: 16px; text-align: center; }
+        .more-btn { padding: 10px 20px; font-size: 0.92rem; }
+        .table-wrap { margin-top: 16px; max-width: 100%; overflow-x: auto; border: 1px solid var(--border-color); border-radius: 14px; }
+        .report-container table.results-table { display: table; width: 100%; margin: 0; font-size: 0.88rem; }
         .results-table th { padding: 0; white-space: nowrap; }
         .results-table td { vertical-align: top; }
+        .results-table tr:last-child td { border-bottom: 0; }
         .results-table td:not(:nth-child(2)) { white-space: nowrap; }
         .sort-btn { width: 100%; padding: 10px; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; text-align: inherit; cursor: pointer; }
         .result-row { cursor: pointer; }
@@ -200,72 +209,76 @@
         .result-row td:nth-child(2) { font-weight: 600; color: var(--primary-color); min-width: 160px; max-width: 280px; white-space: normal; }
         .results-table .detail-row td { padding: 12px; background: var(--bg-color); }
         /* The analysis card stays inside the visible part of a scrolling table. */
-        .results-table .detail-row .opportunity { position: sticky; inset-inline-start: 0; box-sizing: border-box; }
-        .commercial-cell.commercial-allowed { color: #059669; }
-        .commercial-cell.commercial-restricted { color: #dc2626; }
-        .commercial-cell.commercial-unclear { color: #d97706; }
-        .via-official_api { background: #ecfdf5; color: #047857; }
-        .via-web_search { background: #eff6ff; color: #1d4ed8; }
+        .results-table .detail-row .opportunity { position: sticky; inset-inline-start: 0; }
+        .commercial-cell.commercial-allowed { color: #1e8e3e; }
+        .commercial-cell.commercial-restricted { color: #d93025; }
+        .commercial-cell.commercial-unclear { color: #e37400; }
+        .via-official_api { background: #e6f4ea; color: #137333; }
+        .via-web_search { background: #e8f0fe; color: #1a56c4; }
         .fit-note { margin: 8px 0 0; font-size: 0.88rem; }
-        .commercial-use { margin: 10px 0 0; padding: 8px 10px; border-radius: 6px; font-size: 0.85rem; background: var(--secondary-color); }
-        .commercial-allowed { border-inline-start: 3px solid #10b981; }
-        .commercial-restricted { border-inline-start: 3px solid #dc2626; }
-        .commercial-unclear { border-inline-start: 3px solid #d97706; }
-        .btn-secondary { padding: 7px 12px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--secondary-color); color: var(--text-primary); font: inherit; font-size: 0.85rem; cursor: pointer; }
-        .btn-secondary:hover { background: var(--secondary-hover); }
-        .btn-secondary:disabled { opacity: 0.6; cursor: default; }
-        .button-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
-        .button-row .btn-primary { width: auto; margin-top: 0; }
-        .status-msg { min-height: 1.2em; margin-top: 10px; font-size: 0.85rem; color: #059669; }
-        @media (max-width: 480px) { body { padding: 12px; } .dashboard-container, .report-container { padding: 20px 16px; } }
+        .commercial-use { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; font-size: 0.85rem; background: var(--secondary-color); }
+        .commercial-allowed { border-inline-start: 3px solid #1e8e3e; }
+        .commercial-restricted { border-inline-start: 3px solid #d93025; }
+        .commercial-unclear { border-inline-start: 3px solid #e37400; }
     </style>
 </head>
 <body>
-    <div class="top-bar"><button class="lang-btn" id="langToggle" type="button">English</button></div>
-    <nav class="app-nav" id="appNav" aria-label="QLook">
-        <button type="button" data-view="overview" data-i18n="navOverview" aria-current="page">نظرة عامة</button>
-        <button type="button" data-view="discover" data-i18n="navDiscover">اكتشاف الفرص</button>
-        <button type="button" data-view="results" data-i18n="navResults">نتائج الفرص</button>
-        <button type="button" data-view="watchlist" data-i18n="navWatchlist">قائمة المتابعة</button>
-        <button type="button" data-view="settings" data-i18n="navSettings">إعدادات البحث</button>
-    </nav>
-
-    <section class="dashboard-container view" id="view-overview">
-        <h1 class="view-title" data-i18n="overviewTitle">QLook — باحث فرص SaaS</h1>
-        <p class="view-text" data-i18n="overviewText">أداة تجريبية تبحث في الويب مباشرة عن فرص برمجيات قابلة للتشغيل كخدمة SaaS، وتعرض لكل فرصة مصادرها وترخيصها وسعرها عند توفرها.</p>
-        <ol class="overview-steps">
-            <li data-i18n="overviewStep1">حدّد الدولة والميزانية والقطاع والاستراتيجية في «اكتشاف الفرص».</li>
-            <li data-i18n="overviewStep2">ابدأ البحث المباشر؛ يُكتب التقرير بلغة الواجهة (العربية أو الإنجليزية).</li>
-            <li data-i18n="overviewStep3">احفظ الفرص المهمة في «قائمة المتابعة» لمراجعتها لاحقاً.</li>
-        </ol>
-        <div class="stat-row">
-            <div class="stat"><strong id="statReports">0</strong><span data-i18n="statReports">تقارير أُنشئت على هذا الجهاز</span></div>
-            <div class="stat"><strong id="statWatchlist">0</strong><span data-i18n="statWatchlist">فرص في قائمة المتابعة</span></div>
-            <div class="stat"><strong id="statLastRun">—</strong><span data-i18n="statLastRun">آخر بحث</span></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="sparkGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4285f4"/><stop offset="0.5" stop-color="#9b72cb"/><stop offset="1" stop-color="#d96570"/></linearGradient></defs></svg>
+<div class="app" id="app">
+    <aside class="sidebar" id="sidebar">
+        <div class="side-brand">
+            <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2c.6 4.9 2.6 7.9 7.6 9.4.4.1.4.7 0 .8-5 1.5-7 4.5-7.6 9.4-.1.5-.8.5-.9 0-.6-4.9-2.6-7.9-7.6-9.4-.4-.1-.4-.7 0-.8 5-1.5 7-4.5 7.6-9.4.1-.5.8-.5.9 0Z"/></svg></span>
+            <strong>QLook</strong>
         </div>
-        <button type="button" class="btn-primary" data-go="discover" data-i18n="overviewStart">ابدأ اكتشاف الفرص</button>
-    </section>
+        <button type="button" class="new-chat" id="chatRestart">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <span data-i18n="newChat">محادثة جديدة</span>
+        </button>
+        <nav class="side-nav" id="appNav" aria-label="QLook">
+            <button type="button" data-view="discover" data-i18n="navDiscover" aria-current="page">اكتشاف الفرص</button>
+            <button type="button" data-view="results" data-i18n="navResults">نتائج الفرص</button>
+            <button type="button" data-view="watchlist" data-i18n="navWatchlist">قائمة المتابعة</button>
+            <button type="button" data-view="settings" data-i18n="navSettings">إعدادات البحث</button>
+            <button type="button" data-view="overview" data-i18n="navOverview">حول QLook</button>
+        </nav>
+        <div class="side-foot">
+            <button class="lang-btn" id="langToggle" type="button">English</button>
+            <p class="side-note" data-i18n="sideNote">نتائج من أسواق برمجيات موثوقة، مع مصادرها.</p>
+        </div>
+    </aside>
+    <div class="scrim" id="scrim" hidden></div>
 
-    <main class="assistant view hidden" id="view-discover">
-        <header class="assistant-head">
-            <div class="assistant-avatar" aria-hidden="true"><span>Q</span></div>
-            <div class="assistant-intro">
-                <h1 class="assistant-title" id="titleText">قنّاص — مساعد QLook</h1>
-                <p class="assistant-sub" id="subText">مستشارك الذكي لاكتشاف فرص SaaS حقيقية وتحليلها</p>
-            </div>
-            <span class="assistant-status"><span class="pulse" aria-hidden="true"></span><span id="badgeText">جاهز</span></span>
-            <button type="button" class="btn-ghost" id="chatRestart">بحث جديد</button>
-        </header>
-        <div class="chat" id="chatLog" aria-live="polite"></div>
-        <div class="composer">
-            <textarea id="promptOverride" rows="1" maxlength="600" placeholder="اكتب رسالتك..."></textarea>
-            <button type="button" class="send-btn" id="startBtn" aria-label="إرسال">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div class="main">
+        <header class="mobile-bar">
+            <button type="button" class="icon-btn" id="menuBtn" aria-label="Menu">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
             </button>
-        </div>
-        <p class="composer-hint" id="lblHint">يجيب المساعد بالاعتماد على أسواق موثوقة ومصادر حقيقية، ويعرض 5 فرص في كل مرة.</p>
-        <!-- The conversation stores its answers in these fields; the search request and saved defaults read them. -->
-        <form id="configForm" hidden>
+            <strong>QLook</strong>
+            <button type="button" class="icon-btn" id="mobileNewChat" aria-label="New chat">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </header>
+
+        <main class="chat-page view" id="view-discover">
+            <div class="chat-scroll" id="chatScroll">
+                <div class="welcome" id="welcome">
+                    <h1 class="welcome-title"><span class="grad-text" id="titleText">مرحباً، ما الفرصة التي تبحث عنها؟</span></h1>
+                    <p class="welcome-sub" id="subText">صف فكرة منتج SaaS تريد إطلاقه أو شراءه، وسأبحث لك في أسواق البرمجيات الموثوقة وأحلل أفضل الفرص.</p>
+                    <div class="suggestions" id="suggestions"></div>
+                </div>
+                <div class="chat" id="chatLog" aria-live="polite"></div>
+            </div>
+            <div class="composer-wrap">
+                <div class="composer">
+                    <textarea id="promptOverride" rows="1" maxlength="600" placeholder="صف الفرصة التي تبحث عنها..."></textarea>
+                    <button type="button" class="send-btn" id="startBtn" aria-label="إرسال">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                </div>
+                <p class="composer-hint" id="lblHint">يعتمد QLook على أسواق موثوقة ومصادر حقيقية، ويعرض 5 فرص في كل مرة. تحقّق من الترخيص قبل الشراء.</p>
+            </div>
+            <!-- The conversation stores its answers in these fields; the search request and saved defaults read them. -->
+            <form id="configForm" hidden>
             <div class="grid-layout">
     <div class="form-group"><label id="lblCountry" for="country">الدولة المستهدفة</label><select id="country"></select></div>
     <div class="form-group"><label id="lblBudget" for="budget">سقف الميزانية الاستثمارية</label><select id="budget"><option value="حتى 100 دولار" data-ar="حتى 100 دولار" data-en="Up to $100">حتى 100 دولار</option><option value="حتى 500 دولار" data-ar="حتى 500 دولار (مشروع ناشئ صغير)" data-en="Up to $500 (Micro-SaaS)">حتى 500 دولار (مشروع ناشئ صغير)</option><option value="حتى 5000 دولار" data-ar="حتى 5,000 دولار" data-en="Up to $5,000">حتى 5,000 دولار</option><option value="مفتوح" selected data-ar="ميزانية مفتوحة" data-en="Open (no limit)">ميزانية مفتوحة</option></select></div>
@@ -288,36 +301,62 @@
             <input type="hidden" id="opportunityCount" value="5">
             <div class="bot-trap" aria-hidden="true"><label for="website">Leave this field empty</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div>
             <div id="loading" role="status" aria-live="polite">يتم البحث في الويب وتحليل الفرص... يرجى الانتظار</div>
-        </form>
-    </main>
+            </form>
+        </main>
 
-    <section class="view view-wide hidden" id="view-results">
-        <div class="dashboard-container" id="resultsEmpty">
-            <h2 class="view-title" data-i18n="navResults">نتائج الفرص</h2>
-            <p class="view-text" data-i18n="resultsEmpty">لا توجد نتائج بعد. ابدأ بحثاً من «اكتشاف الفرص».</p>
-            <button type="button" class="btn-secondary" data-go="discover" data-i18n="overviewStart">ابدأ اكتشاف الفرص</button>
-        </div>
-        <section class="report-container" id="reportOutput" aria-live="polite"></section>
-    </section>
-
-    <section class="dashboard-container view hidden" id="view-watchlist">
-        <h2 class="view-title" data-i18n="navWatchlist">قائمة المتابعة</h2>
-        <p class="view-text" data-i18n="watchlistText">الفرص المحفوظة تبقى في هذا المتصفح فقط.</p>
-        <div class="opportunity-list" id="watchlistItems"></div>
-    </section>
-
-    <section class="dashboard-container view hidden" id="view-settings">
-        <h2 class="view-title" data-i18n="navSettings">إعدادات البحث</h2>
-        <p class="view-text" data-i18n="settingsText">قيم افتراضية تُملأ تلقائياً في «اكتشاف الفرص». تُحفظ في هذا المتصفح فقط، ويُكتب التقرير بلغة الواجهة.</p>
-        <form id="settingsForm">
-            <div class="grid-layout" id="settingsFields"></div>
-            <div class="button-row">
-                <button type="submit" class="btn-primary" data-i18n="settingsSave">حفظ الإعدادات الافتراضية</button>
-                <button type="button" class="btn-secondary" id="settingsReset" data-i18n="settingsReset">مسح الإعدادات</button>
+        <section class="page view hidden" id="view-results">
+            <div class="page-inner">
+                <div id="resultsEmpty">
+                    <h2 class="view-title" data-i18n="navResults">نتائج الفرص</h2>
+                    <p class="view-text" data-i18n="resultsEmpty">لا توجد نتائج بعد. ابدأ بحثاً من «اكتشاف الفرص».</p>
+                    <button type="button" class="btn-secondary" data-go="discover" data-i18n="overviewStart">ابدأ اكتشاف الفرص</button>
+                </div>
+                <section class="report-container" id="reportOutput" aria-live="polite"></section>
             </div>
-            <div class="status-msg" id="settingsMsg" role="status"></div>
-        </form>
-    </section>
+        </section>
+
+        <section class="page view hidden" id="view-watchlist">
+            <div class="page-inner">
+                <h2 class="view-title" data-i18n="navWatchlist">قائمة المتابعة</h2>
+                <p class="view-text" data-i18n="watchlistText">الفرص المحفوظة تبقى في هذا المتصفح فقط.</p>
+                <div class="opportunity-list" id="watchlistItems"></div>
+            </div>
+        </section>
+
+        <section class="page view hidden" id="view-settings">
+            <div class="page-inner">
+                <h2 class="view-title" data-i18n="navSettings">إعدادات البحث</h2>
+                <p class="view-text" data-i18n="settingsText">قيم افتراضية تُملأ تلقائياً في «اكتشاف الفرص». تُحفظ في هذا المتصفح فقط، ويُكتب التقرير بلغة الواجهة.</p>
+                <form id="settingsForm">
+                    <div class="grid-layout" id="settingsFields"></div>
+                    <div class="button-row">
+                        <button type="submit" class="btn-primary" data-i18n="settingsSave">حفظ الإعدادات الافتراضية</button>
+                        <button type="button" class="btn-secondary" id="settingsReset" data-i18n="settingsReset">مسح الإعدادات</button>
+                    </div>
+                    <div class="status-msg" id="settingsMsg" role="status"></div>
+                </form>
+            </div>
+        </section>
+
+        <section class="page view hidden" id="view-overview">
+            <div class="page-inner">
+                <h1 class="view-title" data-i18n="overviewTitle">QLook — باحث فرص SaaS</h1>
+                <p class="view-text" data-i18n="overviewText">أداة تجريبية تبحث في الويب مباشرة عن فرص برمجيات قابلة للتشغيل كخدمة SaaS، وتعرض لكل فرصة مصادرها وترخيصها وسعرها عند توفرها.</p>
+                <ol class="overview-steps">
+                    <li data-i18n="overviewStep1">حدّد الدولة والميزانية والقطاع والاستراتيجية في «اكتشاف الفرص».</li>
+                    <li data-i18n="overviewStep2">ابدأ البحث المباشر؛ يُكتب التقرير بلغة الواجهة (العربية أو الإنجليزية).</li>
+                    <li data-i18n="overviewStep3">احفظ الفرص المهمة في «قائمة المتابعة» لمراجعتها لاحقاً.</li>
+                </ol>
+                <div class="stat-row">
+                    <div class="stat"><strong id="statReports">0</strong><span data-i18n="statReports">تقارير أُنشئت على هذا الجهاز</span></div>
+                    <div class="stat"><strong id="statWatchlist">0</strong><span data-i18n="statWatchlist">فرص في قائمة المتابعة</span></div>
+                    <div class="stat"><strong id="statLastRun">—</strong><span data-i18n="statLastRun">آخر بحث</span></div>
+                </div>
+                <button type="button" class="btn-primary" data-go="discover" data-i18n="overviewStart">ابدأ اكتشاف الفرص</button>
+            </div>
+        </section>
+    </div>
+</div>
 
     <script>
         const OPPORTUNITIES_PER_SEARCH = 5;
@@ -354,8 +393,8 @@
 
         const translations = {
             ar: {
-                toggle: 'English', badge: 'جاهز', title: 'قنّاص — مساعد QLook',
-                subtitle: 'مستشارك الذكي لاكتشاف فرص SaaS حقيقية وتحليلها', search: '⌕ بحث في الأسواق الموثوقة',
+                toggle: 'English', title: 'مرحباً، ما الفرصة التي تبحث عنها؟', newChat: 'محادثة جديدة', sideNote: 'نتائج من أسواق برمجيات موثوقة، مع مصادرها.',
+                subtitle: 'صف فكرة منتج SaaS تريد إطلاقه أو شراءه، وسأبحث لك في أسواق البرمجيات الموثوقة وأحلل أفضل الفرص.', search: '⌕ بحث في الأسواق الموثوقة',
                 sources: '↗ مصادر وروابط موثقة', usage: '✦ تتبع التكلفة والاستهلاك', country: 'الدولة المستهدفة',
                 budget: 'الميزانية المتاحة', industry: 'القطاع المستهدف', goal: 'الهدف التجاري', opportunityCount: 'عدد الفرص المطلوب الحصول عليها',
                 filtersLegend: 'خصائص SaaS المطلوبة (اختياري)', filtersHint: 'اختر خاصية واحدة أو أكثر لتصفية الفرص.',
@@ -363,13 +402,12 @@
                 filterArabic: 'واجهة معرّبة بالكامل', filterApi: 'الربط مع الأنظمة الأخرى عبر API', filterAi: 'مزايا ذكاء اصطناعي مدمجة',
                 filterWhiteLabel: 'علامة بيضاء: إعادة بيعه باسمك وشعارك', filterSecurity: 'الأمان والامتثال للأنظمة', noFilters: 'لا توجد خصائص محددة',
                 filterOptions: { rtl_support: 'دعم الكتابة من اليمين لليسار', multi_tenant: 'تعدد المستأجرين (نسخ مستقلة لعدة عملاء)', arabic_localization: 'واجهة عربية', api_integrations: 'تكامل API', ai_features: 'مزايا ذكاء اصطناعي', white_label: 'علامة بيضاء', security_compliance: 'أمان وامتثال' },
-                hint: 'نعرض أفضل 5 فرص من الأسواق الموثوقة، ويمكنك طلب المزيد بعد ظهور النتائج.', prompt: '✦ صف الفرصة التي تبحث عنها', refine: 'تخصيص البحث (اختياري)',
-                placeholder: 'اكتب رسالتك لقنّاص...', send: 'إرسال', start: 'ابحث بالذكاء الاصطناعي', loading: 'يبحث QLook في الأسواق ويحلل الفرص... قد يستغرق ذلك نحو نصف دقيقة',
+                hint: 'يعتمد QLook على أسواق موثوقة ومصادر حقيقية، ويعرض 5 فرص في كل مرة. تحقّق من الترخيص قبل الشراء.', prompt: '✦ صف الفرصة التي تبحث عنها', refine: 'تخصيص البحث (اختياري)',
+                placeholder: 'صف الفرصة التي تبحث عنها...', send: 'إرسال', start: 'ابحث بالذكاء الاصطناعي', loading: 'يبحث QLook في الأسواق ويحلل الفرص... قد يستغرق ذلك نحو نصف دقيقة',
                 examples: ['نظام محاسبة وفوترة إلكترونية متوافق مع ZATCA', 'منصة حجوزات للعيادات تدعم العربية', 'متجر إلكتروني متعدد البائعين White Label', 'مشروع SaaS قائم للبيع بأقل من 5,000 دولار'],
                 chat: {
-                    hello: 'أهلاً بك، أنا قنّاص 🦅 مساعد QLook. سأطرح عليك بضعة أسئلة قصيرة لأفهم ما تبحث عنه، ثم أبحث لك في أسواق البرمجيات الموثوقة وأحلل أفضل الفرص.',
                     askDescription: 'لنبدأ: ما نوع المنتج أو الفكرة التي تبحث عنها؟ اكتبها بأسلوبك، أو اختر أحد الأمثلة.',
-                    askCountry: 'ممتاز. في أي سوق تنوي إطلاق المشروع؟',
+                    askCountry: 'فكرة جيدة. سأطرح عليك بضعة أسئلة قصيرة لأضبط البحث. أولاً: في أي سوق تنوي إطلاق المشروع؟',
                     otherCountries: 'دولة أخرى…',
                     askIndustry: 'وما القطاع الأقرب لفكرتك؟',
                     askBudget: 'كم تبلغ ميزانيتك التقريبية لشراء الكود أو المشروع؟',
@@ -378,7 +416,7 @@
                     continue: 'متابعة', noPreference: 'لا يهم',
                     summary: 'هذا ملخص طلبك:', labels: { description: 'الفكرة', country: 'السوق', industry: 'القطاع', budget: 'الميزانية', goal: 'الهدف', filters: 'الخصائص' },
                     none: 'بلا شروط إضافية', go: 'ابدأ البحث', edit: 'تعديل الإجابات',
-                    searching: 'يحلّق قنّاص الآن فوق الأسواق بحثاً عن أفضل الفرص…',
+                    searching: 'أبحث في الأسواق وأحلل الفرص…',
                     steps: ['أفحص قواعد بيانات GitHub وGitLab وقائمة Awesome Selfhosted', 'أبحث داخل CodeCanyon وCodester والأسواق الأخرى', 'أتحقق من التراخيص والأسعار وتوفر كل منتج', 'أكتب لك التحليل وأرتب الفرص'],
                     found: (n) => n ? `وجدت لك ${n} فرص موثّقة. رتّبتها من الأنسب إلى الأقل ملاءمة؛ اضغط على أي فرصة لقراءة تحليلها الكامل.` : 'لم أجد هذه المرة فرصاً تستوفي شروط التحقق. جرّب وصفاً مختلفاً أو خففّ بعض الشروط.',
                     followUp: 'هل تريد المزيد؟ اطلب 5 فرص إضافية من أسفل الجدول، أو اكتب لي وصفاً جديداً لأبحث به مباشرة.',
@@ -416,8 +454,8 @@
                 actualBilling: 'الفوترة الفعلية: راجع لوحة الفوترة لدى مزود الذكاء الاصطناعي', billingNote: 'هذه تقديرات وليست سجلاً للفوترة الفعلية.'
             },
             en: {
-                toggle: 'العربية', badge: 'Ready', title: 'Qanas — the QLook assistant',
-                subtitle: 'Your AI advisor for finding and analysing real SaaS opportunities', search: '⌕ Trusted marketplace search',
+                toggle: 'العربية', title: 'Hello, what opportunity are you looking for?', newChat: 'New chat', sideNote: 'Results from trusted software marketplaces, with sources.',
+                subtitle: 'Describe a SaaS product you want to launch or buy, and I will search trusted software marketplaces and analyse the best opportunities.', search: '⌕ Trusted marketplace search',
                 sources: '↗ Verified sources & links', usage: '✦ Usage and cost tracking', country: 'Target country',
                 budget: 'Available budget', industry: 'Target industry', goal: 'Business goal', opportunityCount: 'Number of opportunities requested',
                 filtersLegend: 'Required SaaS capabilities (optional)', filtersHint: 'Choose one or more capabilities to filter opportunities.',
@@ -425,13 +463,12 @@
                 filterArabic: 'Arabic localization and interface', filterApi: 'API integrations', filterAi: 'AI features',
                 filterWhiteLabel: 'White-label: resell it under your own brand', filterSecurity: 'Security and compliance', noFilters: 'No specific capabilities',
                 filterOptions: { rtl_support: 'RTL support', multi_tenant: 'Multi-tenant architecture', arabic_localization: 'Arabic localization', api_integrations: 'API integrations', ai_features: 'AI features', white_label: 'White-label', security_compliance: 'Security and compliance' },
-                hint: 'We show the best 5 opportunities from trusted marketplaces; you can ask for more once results appear.', prompt: '✦ Describe the opportunity you are looking for', refine: 'Refine search (optional)',
-                placeholder: 'Message Qanas...', send: 'Send', start: 'Search with AI', loading: 'QLook is searching marketplaces and analysing opportunities... this takes about half a minute',
+                hint: 'QLook relies on trusted marketplaces and real sources, and shows 5 opportunities at a time. Check the license before buying.', prompt: '✦ Describe the opportunity you are looking for', refine: 'Refine search (optional)',
+                placeholder: 'Describe the opportunity you are looking for...', send: 'Send', start: 'Search with AI', loading: 'QLook is searching marketplaces and analysing opportunities... this takes about half a minute',
                 examples: ['Accounting and ZATCA e-invoicing system', 'Clinic booking platform with Arabic support', 'White-label multi-vendor marketplace', 'Existing SaaS business for sale under $5,000'],
                 chat: {
-                    hello: "Hello, I'm Qanas 🦅 the QLook assistant. I'll ask a few short questions to understand what you need, then search trusted software marketplaces and analyse the best opportunities.",
                     askDescription: 'First: what kind of product or idea are you looking for? Describe it in your own words or pick an example.',
-                    askCountry: 'Great. Which market do you plan to launch in?',
+                    askCountry: 'Good idea. A few short questions will sharpen the search. First: which market do you plan to launch in?',
                     otherCountries: 'Another country…',
                     askIndustry: 'Which industry is closest to your idea?',
                     askBudget: 'Roughly how much can you spend on the code or the business?',
@@ -440,7 +477,7 @@
                     continue: 'Continue', noPreference: "Doesn't matter",
                     summary: 'Here is your request:', labels: { description: 'Idea', country: 'Market', industry: 'Industry', budget: 'Budget', goal: 'Goal', filters: 'Capabilities' },
                     none: 'No extra requirements', go: 'Start the search', edit: 'Change answers',
-                    searching: 'Qanas is flying over the marketplaces to find the best opportunities…',
+                    searching: 'Searching marketplaces and analysing opportunities…',
                     steps: ['Checking GitHub, GitLab and Awesome Selfhosted', 'Searching CodeCanyon, Codester and other marketplaces', 'Verifying licenses, prices and availability', 'Writing your analysis and ranking the opportunities'],
                     found: (n) => n ? `I found ${n} verified opportunities, ranked from best fit down. Click any row to read its full analysis.` : 'This time nothing passed verification. Try a different description or fewer requirements.',
                     followUp: 'Want more? Ask for 5 more below the table, or type a new description and I will search with it right away.',
@@ -479,7 +516,7 @@
             }
         };
         Object.assign(translations.ar, {
-            navOverview: 'نظرة عامة', navDiscover: 'اكتشاف الفرص', navResults: 'نتائج الفرص', navWatchlist: 'قائمة المتابعة', navSettings: 'إعدادات البحث',
+            navOverview: 'حول QLook', navDiscover: 'اكتشاف الفرص', navResults: 'نتائج الفرص', navWatchlist: 'قائمة المتابعة', navSettings: 'إعدادات البحث',
             overviewTitle: 'QLook — باحث فرص SaaS',
             overviewText: 'أداة تجريبية تبحث في الويب مباشرة عن فرص برمجيات قابلة للتشغيل كخدمة SaaS، وتعرض لكل فرصة مصادرها وترخيصها وسعرها عند توفرها.',
             overviewStep1: 'حدّد الدولة والميزانية والقطاع والاستراتيجية في «اكتشاف الفرص».',
@@ -493,7 +530,7 @@
             settingsSave: 'حفظ الإعدادات الافتراضية', settingsReset: 'مسح الإعدادات', settingsSaved: 'تم حفظ الإعدادات وتطبيقها على «اكتشاف الفرص».', settingsCleared: 'تم مسح الإعدادات الافتراضية.'
         });
         Object.assign(translations.en, {
-            navOverview: 'Overview', navDiscover: 'Discover Opportunities', navResults: 'Opportunity Results', navWatchlist: 'Watchlist', navSettings: 'Research Settings',
+            navOverview: 'About QLook', navDiscover: 'Discover Opportunities', navResults: 'Opportunity Results', navWatchlist: 'Watchlist', navSettings: 'Research Settings',
             overviewTitle: 'QLook — SaaS Opportunity Hunter',
             overviewText: 'An experimental tool that searches the live web for software you can run as a SaaS, with sources, license and price for each opportunity when available.',
             overviewStep1: 'Choose country, budget, industry and strategy in Discover Opportunities.',
@@ -514,7 +551,6 @@
             document.documentElement.lang = language;
             document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
             document.getElementById('langToggle').textContent = t.toggle;
-            document.getElementById('badgeText').textContent = t.badge;
             document.getElementById('titleText').textContent = t.title;
             document.getElementById('subText').textContent = t.subtitle;
             document.getElementById('lblCountry').textContent = t.country;
@@ -533,7 +569,8 @@
             document.getElementById('lblHint').textContent = t.hint;
             document.getElementById('promptOverride').placeholder = t.placeholder;
             document.getElementById('startBtn').setAttribute('aria-label', t.send);
-            document.getElementById('chatRestart').textContent = t.chat.restart;
+            document.getElementById('menuBtn').setAttribute('aria-label', language === 'ar' ? 'القائمة' : 'Menu');
+            document.getElementById('mobileNewChat').setAttribute('aria-label', t.newChat);
             if (typeof onChatLanguageChange === 'function') onChatLanguageChange();
             document.getElementById('loading').textContent = t.loading;
             document.querySelectorAll('select option[data-ar][data-en]').forEach((option) => {
@@ -1194,15 +1231,18 @@
             }
         }
 
-        // ---- Qanas: the conversational assistant -------------------------------
-        // The assistant asks the dashboard's questions one at a time, writes each
-        // answer into the hidden form fields, then runs the same search request.
+        // ---- The conversational assistant ------------------------------------
+        // The welcome screen takes the first description; the assistant then asks
+        // the dashboard's questions one at a time, writes each answer into the
+        // hidden form fields, and runs the same search request.
         const chatState = { step: 'idle', description: '', busy: false, reportSlot: null };
         const MAIN_MARKETS = ['SA', 'GCC', 'MENA'];
         const FILTER_LABEL_KEYS = {
             rtl_support: 'filterRtl', multi_tenant: 'filterMultiTenant', arabic_localization: 'filterArabic',
             api_integrations: 'filterApi', ai_features: 'filterAi', white_label: 'filterWhiteLabel', security_compliance: 'filterSecurity'
         };
+        const SUGGESTION_ICONS = ['🧾', '🩺', '🛍️', '💼'];
+        const SPARK_PATH = 'M12 2c.6 4.9 2.6 7.9 7.6 9.4.4.1.4.7 0 .8-5 1.5-7 4.5-7.6 9.4-.1.5-.8.5-.9 0-.6-4.9-2.6-7.9-7.6-9.4-.4-.1-.4-.7 0-.8 5-1.5 7-4.5 7.6-9.4.1-.5.8-.5.9 0Z';
 
         const el = (tag, className, text) => {
             const node = document.createElement(tag);
@@ -1211,41 +1251,28 @@
             return node;
         };
 
-        // Abstract falcon in the mascot's copper and navy, built from simple planes.
-        function falconSvg(className) {
+        function sparkAvatar() {
+            const avatar = el('div', 'msg-avatar');
             const ns = 'http://www.w3.org/2000/svg';
             const svg = document.createElementNS(ns, 'svg');
-            svg.setAttribute("viewBox", "0 -8 200 128");
-            svg.setAttribute('class', className);
+            svg.setAttribute('viewBox', '0 0 24 24');
             svg.setAttribute('aria-hidden', 'true');
-            svg.innerHTML = '<defs>'
-                + '<linearGradient id="qWing" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f2a65a"/><stop offset="1" stop-color="#c2562a"/></linearGradient>'
-                + '<linearGradient id="qBody" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1e2a44"/><stop offset="0.55" stop-color="#c2562a"/><stop offset="1" stop-color="#f5e6d3"/></linearGradient>'
-                + '</defs>'
-                + '<g class="wing wing-back"><path d="M100 58 C92 34 74 16 44 8 C60 24 66 34 70 44 C60 42 52 44 48 48 C64 52 82 58 96 62 Z" fill="url(#qWing)" opacity="0.5"/></g>'
-                + '<path d="M64 63 L22 52 L34 64 L20 76 L66 70 Z" fill="#1e2a44"/>'
-                + '<path d="M56 64 C82 50 128 48 156 54 C168 56 176 57 182 61 C172 65 162 67 150 68 C120 75 84 75 56 64 Z" fill="url(#qBody)"/>'
-                + '<circle cx="166" cy="58" r="10" fill="#f5e6d3"/>'
-                + '<path d="M174 54 C182 54 190 58 192 63 L180 63 Z" fill="#f2b84b"/>'
-                + '<path d="M160 52 C164 49 170 49 174 52" stroke="#1e2a44" stroke-width="2" fill="none" stroke-linecap="round"/>'
-                + '<circle cx="169" cy="57" r="2.6" fill="#1e2a44"/><circle cx="170" cy="56" r="0.9" fill="#fff"/>'
-                + '<g class="wing wing-front"><path d="M104 60 C98 30 82 8 50 -2 C68 18 76 32 80 44 C70 42 60 44 54 48 C72 54 90 60 100 66 Z" fill="url(#qWing)"/>'
-                + '<path d="M96 52 C88 38 78 26 64 16 M90 56 C80 46 70 40 60 34" stroke="rgba(255,255,255,0.45)" stroke-width="1.6" fill="none" stroke-linecap="round"/></g>';
-            return svg;
+            const path = document.createElementNS(ns, 'path');
+            path.setAttribute('d', SPARK_PATH);
+            svg.appendChild(path);
+            avatar.appendChild(svg);
+            return avatar;
         }
 
         function scrollChat() {
-            const log = document.getElementById('chatLog');
-            log.scrollTop = log.scrollHeight;
+            const scroller = document.getElementById('chatScroll');
+            scroller.scrollTop = scroller.scrollHeight;
         }
 
         function addMessage(role, content) {
+            document.getElementById('welcome').classList.add('hidden');
             const row = el('div', `msg msg-${role}`);
-            if (role === 'bot') {
-                const avatar = el('div', 'msg-avatar');
-                avatar.appendChild(falconSvg('avatar-falcon'));
-                row.appendChild(avatar);
-            }
+            if (role === 'bot') row.appendChild(sparkAvatar());
             const bubble = el('div', 'bubble');
             if (typeof content === 'string') bubble.textContent = content;
             else if (content) bubble.append(content);
@@ -1294,12 +1321,16 @@
             addMessage('user', label);
         }
 
-        async function askDescription() {
-            const c = translations[currentLang].chat;
-            chatState.step = 'description';
-            const examples = chipRow(c.examples.map((example) => ({ label: example, value: example, className: 'chip-soft' })), (value) => submitText(value));
-            await botSay(c.askDescription, examples);
-            document.getElementById('promptOverride').focus();
+        function renderSuggestions() {
+            const box = document.getElementById('suggestions');
+            box.replaceChildren();
+            translations[currentLang].chat.examples.forEach((example, index) => {
+                const card = el('button', 'suggestion');
+                card.type = 'button';
+                card.append(el('span', '', example), el('span', 'suggestion-icon', SUGGESTION_ICONS[index % SUGGESTION_ICONS.length]));
+                card.addEventListener('click', () => submitText(example));
+                box.appendChild(card);
+            });
         }
 
         async function askCountry() {
@@ -1414,20 +1445,14 @@
             chatState.description = chatState.description ? `${chatState.description}. ${value}` : value;
         }
 
-        function searchingCard() {
+        // Progress while searching: a shimmering status line and the steps the
+        // search goes through, advanced on a timer that matches a 25-40 s run.
+        function progressCard() {
             const c = translations[currentLang].chat;
-            const card = el('div', 'flight');
-            const sky = el('div', 'flight-sky');
-            sky.append(el('span', 'aurora aurora-a'), el('span', 'aurora aurora-b'), el('span', 'aurora aurora-c'));
-            for (let i = 1; i <= 6; i += 1) sky.appendChild(el('span', `spark spark-${i}`));
-            const path = el('div', 'flight-path');
-            path.appendChild(falconSvg('flight-falcon'));
-            sky.appendChild(path);
-            const status = el('p', 'flight-status', c.searching);
-            const steps = el('ol', 'flight-steps');
+            const card = el('div', 'progress');
+            const steps = el('ol', 'progress-steps');
             c.steps.forEach((step, index) => steps.appendChild(el('li', index === 0 ? 'active' : '', step)));
-            card.append(sky, status, steps);
-            // Steps advance on a timer that roughly matches a 25-40 s search.
+            card.append(el('p', 'progress-status', c.searching), steps);
             let current = 0;
             const timer = setInterval(() => {
                 const items = steps.querySelectorAll('li');
@@ -1439,17 +1464,14 @@
             card.stop = () => {
                 clearInterval(timer);
                 steps.querySelectorAll('li').forEach((item) => { item.className = 'done'; });
-                card.classList.add('landed');
+                card.classList.add('done');
+                card.closest('.msg')?.querySelector('.msg-avatar')?.classList.remove('thinking');
             };
             return card;
         }
 
         function setBusy(busy) {
             document.getElementById('startBtn').disabled = busy;
-            document.querySelector('.assistant-status').classList.toggle('busy', busy);
-            document.getElementById('badgeText').textContent = busy
-                ? translations[currentLang].chat.searching.split('…')[0]
-                : translations[currentLang].badge;
         }
 
         async function runSearch() {
@@ -1459,8 +1481,8 @@
             chatState.busy = true;
             chatState.step = 'searching';
             setBusy(true);
-            const card = searchingCard();
-            addMessage('bot', card).classList.add('bubble-wide');
+            const card = progressCard();
+            addMessage('bot', card).previousElementSibling.classList.add('thinking');
             const body = buildSearchRequest(t);
             try {
                 const data = await postSearch(body, t);
@@ -1475,7 +1497,6 @@
                 output.style.display = 'block';
                 document.getElementById('resultsEmpty').classList.add('hidden');
                 const reportBubble = await botSay(c.found(data.verifiedCount));
-                reportBubble.classList.add('bubble-wide');
                 reportBubble.appendChild(output);
                 chatState.reportSlot = reportBubble;
                 chatState.step = 'results';
@@ -1491,27 +1512,28 @@
             }
         }
 
-        async function startChat() {
+        // A new chat shows the welcome screen; its first message is the description.
+        function startChat() {
             if (chatState.busy) return;
-            document.getElementById('view-results').appendChild(document.getElementById('reportOutput'));
+            document.getElementById('view-results').querySelector('.page-inner').appendChild(document.getElementById('reportOutput'));
             chatState.reportSlot = null;
             chatState.description = '';
-            chatState.step = 'idle';
+            chatState.step = 'description';
             document.getElementById('chatLog').replaceChildren();
+            document.getElementById('welcome').classList.remove('hidden');
+            renderSuggestions();
             applyDefaults(readStore(STORE.defaults, null));
-            await botSay(translations[currentLang].chat.hello);
-            await askDescription();
         }
 
-        // Before any answer, a language switch restarts the conversation in the new
-        // language; later on, the next questions simply use it.
+        // Before any answer, a language switch redraws the welcome screen in the
+        // new language; later on, the next questions simply use it.
         function onChatLanguageChange() {
-            if (!chatState.busy && ['idle', 'description'].includes(chatState.step)) startChat();
+            if (!chatState.busy && ['idle', 'description'].includes(chatState.step) && !document.querySelector('#chatLog .msg')) startChat();
         }
 
         function autoGrow(input) {
             input.style.height = 'auto';
-            input.style.height = `${Math.min(input.scrollHeight, 140)}px`;
+            input.style.height = `${Math.min(input.scrollHeight, 180)}px`;
         }
 
         const composer = document.getElementById('promptOverride');
@@ -1523,19 +1545,33 @@
             }
         });
         document.getElementById('startBtn').addEventListener('click', () => submitText(composer.value));
-        document.getElementById('chatRestart').addEventListener('click', () => startChat());
         document.getElementById('configForm').addEventListener('submit', (event) => event.preventDefault());
+
+        // Sidebar: a drawer on narrow screens.
+        const app = document.getElementById('app');
+        const scrim = document.getElementById('scrim');
+        function setDrawer(open) {
+            app.classList.toggle('nav-open', open);
+            scrim.hidden = !open;
+        }
+        document.getElementById('menuBtn').addEventListener('click', () => setDrawer(true));
+        scrim.addEventListener('click', () => setDrawer(false));
+        document.addEventListener('keydown', (event) => { if (event.key === 'Escape') setDrawer(false); });
+        const newChat = () => { showView('discover'); startChat(); setDrawer(false); composer.focus(); };
+        document.getElementById('chatRestart').addEventListener('click', newChat);
+        document.getElementById('mobileNewChat').addEventListener('click', newChat);
 
         // The latest report lives in the conversation; the Results tab borrows it.
         const baseShowView = showView;
         showView = function (name) {
             const output = document.getElementById('reportOutput');
-            if (name === 'results') document.getElementById('view-results').appendChild(output);
+            if (name === 'results') document.getElementById('view-results').querySelector('.page-inner').appendChild(output);
             else if (chatState.reportSlot) chatState.reportSlot.appendChild(output);
             baseShowView(name);
+            setDrawer(false);
         };
-        document.querySelector('.assistant-avatar').replaceChildren(falconSvg('head-falcon'));
         startChat();
+        composer.focus();
     </script>
 </body>
 </html>
