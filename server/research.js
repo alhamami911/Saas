@@ -202,6 +202,10 @@ function budgetFitFor(opportunity, budget) {
     if (limit === null) return "open";
     const price = opportunity.price;
     if (/regular license/i.test(opportunity.license?.name || "")) return "unknown";
+    // An open-source repository with a verified licence costs nothing to license.
+    if (opportunity.originType === "repository" && opportunity.license?.status === "verified"
+        && ["allowed", "conditional"].includes(opportunity.commercialUse?.status)
+        && !/regular|extended/i.test(opportunity.license.name || "")) return "free";
     if (price?.status !== "verified" || !/^(USD|\$|US\$)$/i.test(String(price.currency || "").trim())) return "unknown";
     const amount = Number.parseFloat(String(price.amount).replace(/[^0-9.]/g, ""));
     if (!Number.isFinite(amount)) return "unknown";

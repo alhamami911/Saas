@@ -445,4 +445,5 @@ test("eligibility gate keeps only licensed, capable, in-budget products and list
     assert.equal(result.opportunities[1].budgetFit, "unknown", "a Regular License price is not the price of the licence needed");
     assert.equal(budgetFitFor(item("x", { price: { status: "verified", amount: "$120", currency: "USD" } }), "حتى 500 دولار"), "within");
     assert.equal(budgetFitFor(item("x"), "مفتوح"), "open");
+    assert.equal(budgetFitFor(item("repo", { originType: "repository" }), "حتى 100 دولار"), "free");
 });
