@@ -1932,7 +1932,7 @@
                 const data = await response.json().catch(() => ({}));
                 if (data.quota) discussState.quota = data.quota;
                 if (!response.ok || !data.reply) throw new Error(t.errorCodes[data.errorCode] || t.error);
-                pending.textContent = data.reply;
+                pending.textContent = data.reply.replace(/\*\*|__|^#+\s*/gm, '');
                 // Only answered messages are kept, so a retry never duplicates a turn.
                 writeStore(key, [...history, { role: 'user', content: message }, { role: 'assistant', content: data.reply }].slice(-40));
             } catch (error) {

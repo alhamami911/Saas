@@ -134,6 +134,7 @@ test("product links must open the product, not a marketplace search or category 
         "https://www.codester.com/items/70764/inkora-self-hosted-client-portal-saas",
         "https://github.com/YunaiV/yudao-cloud",
         "https://flippa.com/12285909",
+        "https://www.microns.io/startup-listings/all-in-one-platform",
         "https://techwithemma.gumroad.com/l/huytmd",
         "https://www.espocrm.com/"
     ]) assert.equal(isProductPage(url), true, url);
@@ -142,7 +143,8 @@ test("product links must open the product, not a marketplace search or category 
         "https://codecanyon.net/category/php-scripts?term=saas+crm",
         "https://www.codester.com/items/comments/41712?p=4",
         "https://github.com/YunaiV/yudao-cloud/issues",
-        "https://flippa.com/search?query=saas"
+        "https://flippa.com/search?query=saas",
+        "https://www.microns.io/blog/best-micro-saas-ideas"
     ]) assert.equal(isProductPage(url), false, url);
 
     const page = "https://codecanyon.net/search/saas";

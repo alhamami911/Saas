@@ -107,7 +107,8 @@ const PRODUCT_PATHS = {
     "gumroad.com": /^\/l\/[^/]+|^\/[^/]+\/l\/[^/]+/,
     "appsumo.com": /^\/products\/[^/]+/,
     "flippa.com": /^\/\d+/,
-    "acquire.com": /^\/(startup|marketplace\/listing)\/[^/]+/
+    "acquire.com": /^\/(startup|marketplace\/listing)\/[^/]+/,
+    "microns.io": /^\/(startup-listings|listings?)\/[^/]+/
 };
 const INDEX_PAGE = /\/(search|category|categories|tags?|comments|collections?|browse)(\/|$)|[?&](q|term|query|search)=/i;
 
