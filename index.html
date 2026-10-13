@@ -86,6 +86,34 @@
         .stat strong { display: block; font-size: 1.4rem; color: var(--primary-color); }
         .stat span { font-size: 0.85rem; color: var(--text-secondary); }
         .card-actions { margin-top: 12px; }
+        .ai-search { margin-top: 4px; }
+        .ai-label { display: block; font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; color: var(--primary-color); }
+        .ai-search-box { display: flex; gap: 8px; align-items: stretch; padding: 8px; border: 2px solid var(--primary-color); border-radius: 14px; background: var(--surface-color); box-shadow: 0 6px 18px -8px rgba(37, 99, 235, 0.45); }
+        .ai-search-box textarea { flex: 1; min-width: 0; border: 0; box-shadow: none; resize: none; min-height: 52px; padding: 8px; font-size: 1rem; background: transparent; }
+        .ai-search-box textarea:focus { border: 0; box-shadow: none; }
+        .ai-search-box .ai-submit { width: auto; margin: 0; padding: 0 18px; border-radius: 10px; white-space: nowrap; }
+        .ai-examples { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 6px; }
+        .example-chip { padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 999px; background: var(--secondary-color); color: var(--text-primary); font: inherit; font-size: 0.82rem; cursor: pointer; }
+        .example-chip:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        .refine { margin-top: 16px; border: 1px solid var(--border-color); border-radius: var(--radius); padding: 10px 14px; }
+        .refine summary { cursor: pointer; font-weight: 600; color: var(--primary-color); }
+        .refine .grid-layout { margin-top: 12px; }
+        .more-row { margin-top: 14px; text-align: center; }
+        .more-btn { padding: 10px 18px; font-size: 0.95rem; }
+        @media (max-width: 480px) { .ai-search-box { flex-direction: column; } .ai-search-box .ai-submit { padding: 12px; } }
+        .table-wrap { margin-top: 16px; max-width: 100%; overflow-x: auto; }
+        .report-container table.results-table { display: table; width: 100%; margin: 6px 0 0; font-size: 0.88rem; }
+        .results-table th { padding: 0; white-space: nowrap; }
+        .results-table td { vertical-align: top; }
+        .sort-btn { width: 100%; padding: 10px; border: 0; background: none; color: inherit; font: inherit; font-weight: 600; text-align: inherit; cursor: pointer; }
+        .result-row { cursor: pointer; }
+        .result-row:hover, .result-row:focus-visible { background: var(--secondary-color); outline: none; }
+        .result-row[aria-expanded="true"] { background: var(--secondary-color); }
+        .result-row td:nth-child(2) { font-weight: 600; color: var(--primary-color); min-width: 160px; }
+        .results-table .detail-row td { padding: 12px; background: var(--bg-color); }
+        .commercial-cell.commercial-allowed { color: #059669; }
+        .commercial-cell.commercial-restricted { color: #dc2626; }
+        .commercial-cell.commercial-unclear { color: #d97706; }
         .via-official_api { background: #ecfdf5; color: #047857; }
         .via-web_search { background: #eff6ff; color: #1d4ed8; }
         .fit-note { margin: 8px 0 0; font-size: 0.88rem; }
@@ -117,7 +145,7 @@
         <p class="view-text" data-i18n="overviewText">أداة تجريبية تبحث في الويب مباشرة عن فرص برمجيات قابلة للتشغيل كخدمة SaaS، وتعرض لكل فرصة مصادرها وترخيصها وسعرها عند توفرها.</p>
         <ol class="overview-steps">
             <li data-i18n="overviewStep1">حدّد الدولة والميزانية والقطاع والاستراتيجية في «اكتشاف الفرص».</li>
-            <li data-i18n="overviewStep2">ابدأ البحث المباشر؛ تُكتب التقارير دائماً باللغة العربية.</li>
+            <li data-i18n="overviewStep2">ابدأ البحث المباشر؛ يُكتب التقرير بلغة الواجهة (العربية أو الإنجليزية).</li>
             <li data-i18n="overviewStep3">احفظ الفرص المهمة في «قائمة المتابعة» لمراجعتها لاحقاً.</li>
         </ol>
         <div class="stat-row">
@@ -131,20 +159,31 @@
     <main class="dashboard-container view hidden" id="view-discover">
         <div class="header">
             <span class="badge" id="badgeText">بحث ويب مباشر • مدعوم بالذكاء الاصطناعي</span>
-            <h2 id="titleText">إعدادات باحث فرص SaaS</h2>
+            <h2 id="titleText">اكتشف فرص SaaS بالذكاء الاصطناعي</h2>
             <p id="subText">محرك الذكاء الاصطناعي لاكتشاف وتحليل فرص الاستثمار البرمجية</p>
             <div class="features">
-                <span id="feat1">⌕ بحث Google مباشر</span>
+                <span id="feat1">⌕ بحث في الأسواق الموثوقة</span>
                 <span id="feat2">↗ مصادر وروابط موثقة</span>
                 <span id="feat3">✦ تتبع التكلفة والاستهلاك</span>
             </div>
         </div>
         <form id="configForm">
-            <div class="grid-layout">
-                <div class="form-group"><label id="lblCountry" for="country">الدولة المستهدفة</label><select id="country" required><option value="" data-ar="اختر الدولة" data-en="Select a country" selected disabled>اختر الدولة</option></select></div>
-                <div class="form-group"><label id="lblBudget" for="budget">سقف الميزانية الاستثمارية</label><select id="budget" required><option value="" data-ar="اختر الميزانية" data-en="Select a budget" selected disabled>اختر الميزانية</option><option value="حتى 100 دولار" data-ar="حتى 100 دولار" data-en="Up to $100">حتى 100 دولار</option><option value="حتى 500 دولار" data-ar="حتى 500 دولار (Micro-SaaS)" data-en="Up to $500 (Micro-SaaS)">حتى 500 دولار (Micro-SaaS)</option><option value="حتى 5000 دولار" data-ar="حتى 5,000 دولار" data-en="Up to $5,000">حتى 5,000 دولار</option><option value="مفتوح" data-ar="مفتوح (بدون حد)" data-en="Open (no limit)">مفتوح (بدون حد)</option></select></div>
-                <div class="form-group"><label id="lblIndustry" for="industry">القطاع المستهدف</label><select id="industry" required><option value="" data-ar="اختر القطاع" data-en="Select an industry" selected disabled>اختر القطاع</option><option value="جميع المجالات" data-ar="جميع المجالات" data-en="All industries">جميع المجالات</option><option value="أدوات الذكاء الاصطناعي للشركات" data-ar="أدوات الذكاء الاصطناعي للشركات" data-en="Business AI tools">أدوات الذكاء الاصطناعي للشركات</option><option value="أنظمة إدارة الموارد البشرية HR" data-ar="أنظمة إدارة الموارد البشرية HR" data-en="HR management systems">أنظمة إدارة الموارد البشرية HR</option><option value="التجارة الإلكترونية والمدفوعات" data-ar="التجارة الإلكترونية والمدفوعات" data-en="E-commerce and payments">التجارة الإلكترونية والمدفوعات</option><option value="التسويق والمبيعات" data-ar="التسويق والمبيعات" data-en="Marketing and sales">التسويق والمبيعات</option><option value="الصحة والرعاية الصحية" data-ar="الصحة والرعاية الصحية" data-en="Healthcare">الصحة والرعاية الصحية</option><option value="التعليم والتدريب" data-ar="التعليم والتدريب" data-en="Education and training">التعليم والتدريب</option><option value="المالية والمحاسبة" data-ar="المالية والمحاسبة" data-en="Finance and accounting">المالية والمحاسبة</option><option value="العقارات وإدارة الممتلكات" data-ar="العقارات وإدارة الممتلكات" data-en="Real estate and property management">العقارات وإدارة الممتلكات</option><option value="الأمن السيبراني والخصوصية" data-ar="الأمن السيبراني والخصوصية" data-en="Cybersecurity and privacy">الأمن السيبراني والخصوصية</option><option value="الإنتاجية وإدارة المشاريع" data-ar="الإنتاجية وإدارة المشاريع" data-en="Productivity and project management">الإنتاجية وإدارة المشاريع</option><option value="الخدمات القانونية" data-ar="الخدمات القانونية" data-en="Legal services">الخدمات القانونية</option><option value="سلاسل الإمداد والخدمات اللوجستية" data-ar="سلاسل الإمداد والخدمات اللوجستية" data-en="Supply chain and logistics">سلاسل الإمداد والخدمات اللوجستية</option></select></div>
-                <div class="form-group"><label id="lblGoal" for="goal">استراتيجية الاستثمار</label><select id="goal" required><option value="" data-ar="اختر الاستراتيجية" data-en="Select a strategy" selected disabled>اختر الاستراتيجية</option><option value="إطلاق SaaS جديد" data-ar="إطلاق SaaS جديد" data-en="Launch a new SaaS">إطلاق SaaS جديد</option><option value="شراء وتطوير مشروع قائم" data-ar="شراء وتطوير مشروع قائم (Acquisition)" data-en="Acquire and grow an existing business">شراء وتطوير مشروع قائم (Acquisition)</option><option value="استنساخ فكرة ناجحة وإطلاقها محلياً" data-ar="استنساخ فكرة ناجحة وإطلاقها محلياً" data-en="Localize and launch a proven idea">استنساخ فكرة ناجحة وإطلاقها محلياً</option></select></div>
+            <div class="ai-search">
+                <label id="lblPrompt" class="ai-label" for="promptOverride">✦ صف الفرصة التي تبحث عنها</label>
+                <div class="ai-search-box">
+                    <textarea id="promptOverride" rows="2" maxlength="600" placeholder="مثال: نظام محاسبة SaaS يدعم الفوترة الإلكترونية (ZATCA) للشركات الصغيرة في السعودية"></textarea>
+                    <button type="submit" class="btn-primary ai-submit" id="startBtn">ابحث بالذكاء الاصطناعي</button>
+                </div>
+                <div class="ai-examples" id="aiExamples" aria-label="أمثلة"></div>
+                <span class="hint" id="lblHint">نعرض أفضل 5 فرص من الأسواق الموثوقة، ويمكنك طلب المزيد بعد ظهور النتائج.</span>
+            </div>
+            <details class="refine" id="refine">
+                <summary id="refineTitle">تخصيص البحث (اختياري)</summary>
+                <div class="grid-layout">
+    <div class="form-group"><label id="lblCountry" for="country">الدولة المستهدفة</label><select id="country"></select></div>
+    <div class="form-group"><label id="lblBudget" for="budget">سقف الميزانية الاستثمارية</label><select id="budget"><option value="حتى 100 دولار" data-ar="حتى 100 دولار" data-en="Up to $100">حتى 100 دولار</option><option value="حتى 500 دولار" data-ar="حتى 500 دولار (Micro-SaaS)" data-en="Up to $500 (Micro-SaaS)">حتى 500 دولار (Micro-SaaS)</option><option value="حتى 5000 دولار" data-ar="حتى 5,000 دولار" data-en="Up to $5,000">حتى 5,000 دولار</option><option value="مفتوح" selected data-ar="مفتوح (بدون حد)" data-en="Open (no limit)">مفتوح (بدون حد)</option></select></div>
+    <div class="form-group"><label id="lblIndustry" for="industry">القطاع المستهدف</label><select id="industry"><option value="جميع المجالات" selected data-ar="جميع المجالات" data-en="All industries">جميع المجالات</option><option value="أدوات الذكاء الاصطناعي للشركات" data-ar="أدوات الذكاء الاصطناعي للشركات" data-en="Business AI tools">أدوات الذكاء الاصطناعي للشركات</option><option value="أنظمة إدارة الموارد البشرية HR" data-ar="أنظمة إدارة الموارد البشرية HR" data-en="HR management systems">أنظمة إدارة الموارد البشرية HR</option><option value="التجارة الإلكترونية والمدفوعات" data-ar="التجارة الإلكترونية والمدفوعات" data-en="E-commerce and payments">التجارة الإلكترونية والمدفوعات</option><option value="التسويق والمبيعات" data-ar="التسويق والمبيعات" data-en="Marketing and sales">التسويق والمبيعات</option><option value="الصحة والرعاية الصحية" data-ar="الصحة والرعاية الصحية" data-en="Healthcare">الصحة والرعاية الصحية</option><option value="التعليم والتدريب" data-ar="التعليم والتدريب" data-en="Education and training">التعليم والتدريب</option><option value="المالية والمحاسبة" data-ar="المالية والمحاسبة" data-en="Finance and accounting">المالية والمحاسبة</option><option value="العقارات وإدارة الممتلكات" data-ar="العقارات وإدارة الممتلكات" data-en="Real estate and property management">العقارات وإدارة الممتلكات</option><option value="الأمن السيبراني والخصوصية" data-ar="الأمن السيبراني والخصوصية" data-en="Cybersecurity and privacy">الأمن السيبراني والخصوصية</option><option value="الإنتاجية وإدارة المشاريع" data-ar="الإنتاجية وإدارة المشاريع" data-en="Productivity and project management">الإنتاجية وإدارة المشاريع</option><option value="الخدمات القانونية" data-ar="الخدمات القانونية" data-en="Legal services">الخدمات القانونية</option><option value="سلاسل الإمداد والخدمات اللوجستية" data-ar="سلاسل الإمداد والخدمات اللوجستية" data-en="Supply chain and logistics">سلاسل الإمداد والخدمات اللوجستية</option></select></div>
+    <div class="form-group"><label id="lblGoal" for="goal">استراتيجية الاستثمار</label><select id="goal"><option value="إطلاق SaaS جديد" selected data-ar="إطلاق SaaS جديد" data-en="Launch a new SaaS">إطلاق SaaS جديد</option><option value="شراء وتطوير مشروع قائم" data-ar="شراء وتطوير مشروع قائم (Acquisition)" data-en="Acquire and grow an existing business">شراء وتطوير مشروع قائم (Acquisition)</option><option value="استنساخ فكرة ناجحة وإطلاقها محلياً" data-ar="استنساخ فكرة ناجحة وإطلاقها محلياً" data-en="Localize and launch a proven idea">استنساخ فكرة ناجحة وإطلاقها محلياً</option></select></div>
                 <fieldset class="feature-filters">
                     <legend id="filtersLegend">خصائص SaaS المطلوبة (اختياري)</legend>
                     <span class="hint" id="filtersHint">اختر خاصية واحدة أو أكثر لتصفية الفرص.</span>
@@ -158,17 +197,10 @@
                         <label class="feature-filter"><input type="checkbox" name="featureFilter" value="security_compliance"><span id="filterSecurity">أمن وامتثال</span></label>
                     </div>
                 </fieldset>
-                <div class="form-group full-width"><label id="lblOpportunityCount" for="opportunityCount">عدد الفرص المطلوب الحصول عليها</label><select id="opportunityCount"><option value="5" data-ar="5 فرص" data-en="5 opportunities" selected>5 فرص</option><option value="10" data-ar="10 فرص" data-en="10 opportunities">10 فرص</option><option value="20" data-ar="20 فرصة" data-en="20 opportunities">20 فرصة</option></select><span class="hint" id="lblHint">سيتم البحث عن فرص SaaS حقيقية وإرفاق المصادر الموثوقة المتاحة.</span></div>
-            </div>
-            <button class="section-title collapsed" id="advancedToggle" type="button" aria-expanded="false" aria-controls="advancedSection">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                <span id="advTitle">الإعدادات المتقدمة</span>
-            </button>
-            <div id="advancedSection" class="hidden">
-                <div class="grid-layout"><div class="form-group full-width"><label id="lblPrompt" for="promptOverride">توجيهات إضافية (اختياري)</label><textarea id="promptOverride" placeholder="اكتب هنا أي توجيهات مخصصة للبحث المباشر..."></textarea></div></div>
-            </div>
+                </div>
+            </details>
+            <input type="hidden" id="opportunityCount" value="5">
             <div class="bot-trap" aria-hidden="true"><label for="website">Leave this field empty</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div>
-            <button type="submit" class="btn-primary" id="startBtn">بدء البحث المباشر في الويب</button>
             <div id="loading" role="status" aria-live="polite">يتم البحث في الويب وتحليل الفرص... يرجى الانتظار</div>
         </form>
     </main>
@@ -190,7 +222,7 @@
 
     <section class="dashboard-container view hidden" id="view-settings">
         <h2 class="view-title" data-i18n="navSettings">إعدادات البحث</h2>
-        <p class="view-text" data-i18n="settingsText">قيم افتراضية تُملأ تلقائياً في «اكتشاف الفرص». تُحفظ في هذا المتصفح فقط، والتقارير تُكتب دائماً بالعربية.</p>
+        <p class="view-text" data-i18n="settingsText">قيم افتراضية تُملأ تلقائياً في «اكتشاف الفرص». تُحفظ في هذا المتصفح فقط، ويُكتب التقرير بلغة الواجهة.</p>
         <form id="settingsForm">
             <div class="grid-layout" id="settingsFields"></div>
             <div class="button-row">
@@ -202,13 +234,32 @@
     </section>
 
     <script>
-        const advancedToggle = document.getElementById('advancedToggle');
-        const advancedSection = document.getElementById('advancedSection');
-        advancedToggle.addEventListener('click', () => {
-            const isOpen = advancedToggle.getAttribute('aria-expanded') === 'true';
-            advancedToggle.setAttribute('aria-expanded', String(!isOpen));
-            advancedSection.classList.toggle('hidden', isOpen);
-            advancedToggle.classList.toggle('collapsed', isOpen);
+        const OPPORTUNITIES_PER_SEARCH = 5;
+
+        // Example prompts the visitor can drop into the AI search box.
+        function renderExamples() {
+            const box = document.getElementById('aiExamples');
+            box.replaceChildren();
+            translations[currentLang].examples.forEach((example) => {
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'example-chip';
+                chip.textContent = example;
+                chip.addEventListener('click', () => {
+                    const input = document.getElementById('promptOverride');
+                    input.value = example;
+                    input.focus();
+                });
+                box.appendChild(chip);
+            });
+        }
+
+        // Enter submits the AI search; Shift+Enter keeps a line break.
+        document.getElementById('promptOverride').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                document.getElementById('configForm').requestSubmit();
+            }
         });
 
         const countrySelect = document.getElementById('country');
@@ -242,8 +293,8 @@
 
         const translations = {
             ar: {
-                toggle: 'English', badge: 'بحث ويب مباشر • مدعوم بالذكاء الاصطناعي', title: 'إعدادات باحث فرص SaaS',
-                subtitle: 'محرك الذكاء الاصطناعي لاكتشاف وتحليل فرص الاستثمار البرمجية', search: '⌕ بحث Google مباشر',
+                toggle: 'English', badge: 'بحث ويب مباشر • مدعوم بالذكاء الاصطناعي', title: 'اكتشف فرص SaaS بالذكاء الاصطناعي',
+                subtitle: 'محرك الذكاء الاصطناعي لاكتشاف وتحليل فرص الاستثمار البرمجية', search: '⌕ بحث في الأسواق الموثوقة',
                 sources: '↗ مصادر وروابط موثقة', usage: '✦ تتبع التكلفة والاستهلاك', country: 'الدولة المستهدفة',
                 budget: 'الميزانية المتاحة', industry: 'القطاع المستهدف', goal: 'الهدف التجاري', opportunityCount: 'عدد الفرص المطلوب الحصول عليها',
                 filtersLegend: 'خصائص SaaS المطلوبة (اختياري)', filtersHint: 'اختر خاصية واحدة أو أكثر لتصفية الفرص.',
@@ -251,8 +302,10 @@
                 filterArabic: 'تعريب وواجهة باللغة العربية', filterApi: 'تكاملات API', filterAi: 'ميزات الذكاء الاصطناعي',
                 filterWhiteLabel: 'إمكانية العلامة البيضاء', filterSecurity: 'أمن وامتثال', noFilters: 'لا توجد خصائص محددة',
                 filterOptions: { rtl_support: 'دعم RTL', multi_tenant: 'بنية متعددة المستأجرين', arabic_localization: 'تعريب وواجهة عربية', api_integrations: 'تكاملات API', ai_features: 'ميزات الذكاء الاصطناعي', white_label: 'علامة بيضاء', security_compliance: 'أمن وامتثال' },
-                hint: 'سيتم البحث عن فرص SaaS حقيقية وإرفاق المصادر الموثوقة المتاحة.', advanced: 'الإعدادات المتقدمة', prompt: 'توجيهات إضافية (اختياري)',
-                placeholder: 'اكتب هنا أي توجيهات مخصصة للبحث المباشر...', start: 'بدء البحث المباشر في الويب', loading: 'يتم البحث في الويب وتحليل الفرص... يرجى الانتظار',
+                hint: 'نعرض أفضل 5 فرص من الأسواق الموثوقة، ويمكنك طلب المزيد بعد ظهور النتائج.', prompt: '✦ صف الفرصة التي تبحث عنها', refine: 'تخصيص البحث (اختياري)',
+                placeholder: 'مثال: نظام محاسبة SaaS يدعم الفوترة الإلكترونية (ZATCA) للشركات الصغيرة في السعودية', start: 'ابحث بالذكاء الاصطناعي', loading: 'يبحث QLook في الأسواق ويحلل الفرص... قد يستغرق ذلك نحو نصف دقيقة',
+                examples: ['نظام محاسبة وفوترة إلكترونية متوافق مع ZATCA', 'منصة حجوزات للعيادات تدعم العربية', 'متجر إلكتروني متعدد البائعين White Label', 'مشروع SaaS قائم للبيع بأقل من 5,000 دولار'],
+                moreBtn: 'ابحث عن 5 فرص إضافية', moreLoading: 'جاري البحث عن فرص إضافية...', moreNone: 'لم نجد فرصاً جديدة إضافية لهذا البحث. جرّب تعديل الوصف أو التخصيص.', moreAdded: 'أُضيفت فرص جديدة إلى الجدول:',
                 sourceTitle: 'المصادر والروابط الموثقة', tokenIn: 'توكن الإدخال', tokenOut: 'توكن الإخراج', total: 'إجمالي التوكنز', cost: 'التكلفة التقديرية',
                 error: 'حدث خطأ في الاتصال بالخادم.', invalid: 'لم يُرجع الخادم تقريراً صالحاً.',
                 found: 'الفرص التي تم التحقق منها', requested: 'المطلوب', excluded: 'فرص مستبعدة لعدم كفاية التحقق',
@@ -261,6 +314,9 @@
                 confidence: 'مستوى الثقة', lastVerified: 'آخر تحقق', high: 'مرتفع', medium: 'متوسط', low: 'منخفض',
                 verifiedFacts: 'معلومات موثقة', estimates: 'تقديرات', noOpportunities: 'لم يتم التحقق من فرص مطابقة؛ راجع الملاحظة أدناه.',
                 availability: 'الإتاحة', availability_available: 'متاحة (حسب المصدر)', availability_unknown: 'غير مؤكدة',
+                colRank: 'الترتيب', colName: 'المنتج', colSource: 'المصدر', colPrice: 'السعر', colCommercial: 'الاستخدام التجاري',
+                colPopularity: 'الشعبية', colUpdated: 'آخر تحديث', colConfidence: 'الثقة',
+                tableHint: 'اضغط على عنوان أي عمود للترتيب، وعلى أي صف لعرض التحليل الكامل.',
                 viaApi: 'من الواجهة الرسمية للسوق', viaSearch: 'من البحث داخل السوق', sales: 'المبيعات', rating: 'التقييم', updated: 'آخر تحديث',
                 fitNote: 'ملاءمة السوق المستهدف', coverage: 'المصادر التي فُحصت', coverageApi: 'واجهة رسمية', coverageError: 'تعذّر الوصول', coverageSearch: 'بحث داخل الأسواق الأخرى، عدد عمليات البحث',
                 errorCodes: {
@@ -279,8 +335,8 @@
                 actualBilling: 'الفوترة الفعلية: راجع Google AI Studio أو Cloud Billing', billingNote: 'هذه تقديرات وليست سجلاً للفوترة الفعلية.'
             },
             en: {
-                toggle: 'العربية', badge: 'LIVE WEB RESEARCH • AI-POWERED', title: 'SaaS Opportunity Hunter',
-                subtitle: 'AI engine for discovering and analyzing software investment opportunities', search: '⌕ Live Google Search',
+                toggle: 'العربية', badge: 'LIVE WEB RESEARCH • AI-POWERED', title: 'Discover SaaS opportunities with AI',
+                subtitle: 'AI engine for discovering and analyzing software investment opportunities', search: '⌕ Trusted marketplace search',
                 sources: '↗ Verified sources & links', usage: '✦ Usage and cost tracking', country: 'Target country',
                 budget: 'Available budget', industry: 'Target industry', goal: 'Business goal', opportunityCount: 'Number of opportunities requested',
                 filtersLegend: 'Required SaaS capabilities (optional)', filtersHint: 'Choose one or more capabilities to filter opportunities.',
@@ -288,8 +344,10 @@
                 filterArabic: 'Arabic localization and interface', filterApi: 'API integrations', filterAi: 'AI features',
                 filterWhiteLabel: 'White-label capability', filterSecurity: 'Security and compliance', noFilters: 'No specific capabilities',
                 filterOptions: { rtl_support: 'RTL support', multi_tenant: 'Multi-tenant architecture', arabic_localization: 'Arabic localization', api_integrations: 'API integrations', ai_features: 'AI features', white_label: 'White-label', security_compliance: 'Security and compliance' },
-                hint: 'Live web search will find real SaaS opportunities and cite available sources.', advanced: 'Advanced settings', prompt: 'Additional instructions (optional)',
-                placeholder: 'Add custom instructions for the live search...', start: 'Start live web search', loading: 'Searching the web and analyzing opportunities...',
+                hint: 'We show the best 5 opportunities from trusted marketplaces; you can ask for more once results appear.', prompt: '✦ Describe the opportunity you are looking for', refine: 'Refine search (optional)',
+                placeholder: 'Example: SaaS accounting with ZATCA e-invoicing for small businesses in Saudi Arabia', start: 'Search with AI', loading: 'QLook is searching marketplaces and analysing opportunities... this takes about half a minute',
+                examples: ['Accounting and ZATCA e-invoicing system', 'Clinic booking platform with Arabic support', 'White-label multi-vendor marketplace', 'Existing SaaS business for sale under $5,000'],
+                moreBtn: 'Find 5 more opportunities', moreLoading: 'Searching for more opportunities...', moreNone: 'No new opportunities found for this search. Try changing the description or filters.', moreAdded: 'New opportunities added to the table:',
                 sourceTitle: 'Verified sources & links', tokenIn: 'Prompt tokens', tokenOut: 'Completion tokens', total: 'Total tokens', cost: 'Estimated cost',
                 error: 'An error occurred while contacting the server.', invalid: 'The server did not return a valid report.',
                 found: 'Verified opportunities', requested: 'Requested', excluded: 'Excluded for insufficient verification',
@@ -298,6 +356,9 @@
                 confidence: 'Confidence', lastVerified: 'Last verified', high: 'High', medium: 'Medium', low: 'Low',
                 verifiedFacts: 'Verified facts', estimates: 'Estimates', noOpportunities: 'No matching opportunities could be verified; see the note below.',
                 availability: 'Availability', availability_available: 'Available (per source)', availability_unknown: 'Not confirmed',
+                colRank: 'Rank', colName: 'Product', colSource: 'Source', colPrice: 'Price', colCommercial: 'Commercial use',
+                colPopularity: 'Popularity', colUpdated: 'Updated', colConfidence: 'Confidence',
+                tableHint: 'Click a column heading to sort, and a row to open its full analysis.',
                 viaApi: 'From the official marketplace API', viaSearch: 'From a marketplace search', sales: 'Sales', rating: 'Rating', updated: 'Updated',
                 fitNote: 'Target market fit', coverage: 'Sources checked', coverageApi: 'official API', coverageError: 'unreachable', coverageSearch: 'search in other marketplaces, searches run',
                 errorCodes: {
@@ -321,13 +382,13 @@
             overviewTitle: 'QLook — باحث فرص SaaS',
             overviewText: 'أداة تجريبية تبحث في الويب مباشرة عن فرص برمجيات قابلة للتشغيل كخدمة SaaS، وتعرض لكل فرصة مصادرها وترخيصها وسعرها عند توفرها.',
             overviewStep1: 'حدّد الدولة والميزانية والقطاع والاستراتيجية في «اكتشاف الفرص».',
-            overviewStep2: 'ابدأ البحث المباشر؛ تُكتب التقارير دائماً باللغة العربية.',
+            overviewStep2: 'ابدأ البحث المباشر؛ يُكتب التقرير بلغة الواجهة (العربية أو الإنجليزية).',
             overviewStep3: 'احفظ الفرص المهمة في «قائمة المتابعة» لمراجعتها لاحقاً.',
             overviewStart: 'ابدأ اكتشاف الفرص', statReports: 'تقارير أُنشئت على هذا الجهاز', statWatchlist: 'فرص في قائمة المتابعة', statLastRun: 'آخر بحث',
             resultsEmpty: 'لا توجد نتائج بعد. ابدأ بحثاً من «اكتشاف الفرص».',
             watchlistText: 'الفرص المحفوظة تبقى في هذا المتصفح فقط.', watchlistEmpty: 'لم تُحفظ أي فرصة بعد. استخدم زر «أضف إلى قائمة المتابعة» في نتائج الفرص.',
             watchAdd: 'أضف إلى قائمة المتابعة', watchSaved: 'محفوظة في قائمة المتابعة', watchRemove: 'إزالة من قائمة المتابعة', savedOn: 'حُفظت في',
-            settingsText: 'قيم افتراضية تُملأ تلقائياً في «اكتشاف الفرص». تُحفظ في هذا المتصفح فقط، والتقارير تُكتب دائماً بالعربية.',
+            settingsText: 'قيم افتراضية تُملأ تلقائياً في «اكتشاف الفرص». تُحفظ في هذا المتصفح فقط، ويُكتب التقرير بلغة الواجهة.',
             settingsSave: 'حفظ الإعدادات الافتراضية', settingsReset: 'مسح الإعدادات', settingsSaved: 'تم حفظ الإعدادات وتطبيقها على «اكتشاف الفرص».', settingsCleared: 'تم مسح الإعدادات الافتراضية.'
         });
         Object.assign(translations.en, {
@@ -335,13 +396,13 @@
             overviewTitle: 'QLook — SaaS Opportunity Hunter',
             overviewText: 'An experimental tool that searches the live web for software you can run as a SaaS, with sources, license and price for each opportunity when available.',
             overviewStep1: 'Choose country, budget, industry and strategy in Discover Opportunities.',
-            overviewStep2: 'Start the live search. Reports are always written in Arabic.',
+            overviewStep2: 'Start the live search. The report is written in the interface language (Arabic or English).',
             overviewStep3: 'Save promising opportunities to your Watchlist to review later.',
             overviewStart: 'Start discovering', statReports: 'Reports created on this device', statWatchlist: 'Opportunities in your watchlist', statLastRun: 'Last search',
             resultsEmpty: 'No results yet. Start a search from Discover Opportunities.',
             watchlistText: 'Saved opportunities stay in this browser only.', watchlistEmpty: 'Nothing saved yet. Use “Add to watchlist” on an opportunity result.',
             watchAdd: 'Add to watchlist', watchSaved: 'Saved to watchlist', watchRemove: 'Remove from watchlist', savedOn: 'Saved on',
-            settingsText: 'Defaults that prefill Discover Opportunities. They are kept in this browser only, and reports are always written in Arabic.',
+            settingsText: 'Defaults that prefill Discover Opportunities. They are kept in this browser only; the report follows the interface language.',
             settingsSave: 'Save defaults', settingsReset: 'Clear defaults', settingsSaved: 'Defaults saved and applied to Discover Opportunities.', settingsCleared: 'Defaults cleared.'
         });
         let currentLang = 'ar';
@@ -362,7 +423,6 @@
             document.getElementById('lblBudget').textContent = t.budget;
             document.getElementById('lblIndustry').textContent = t.industry;
             document.getElementById('lblGoal').textContent = t.goal;
-            document.getElementById('lblOpportunityCount').textContent = t.opportunityCount;
             document.getElementById('filtersLegend').textContent = t.filtersLegend;
             document.getElementById('filtersHint').textContent = t.filtersHint;
             document.getElementById('filterRtl').textContent = t.filterRtl;
@@ -373,8 +433,9 @@
             document.getElementById('filterWhiteLabel').textContent = t.filterWhiteLabel;
             document.getElementById('filterSecurity').textContent = t.filterSecurity;
             document.getElementById('lblHint').textContent = t.hint;
-            document.getElementById('advTitle').textContent = t.advanced;
+            document.getElementById('refineTitle').textContent = t.refine;
             document.getElementById('lblPrompt').textContent = t.prompt;
+            renderExamples();
             document.getElementById('promptOverride').placeholder = t.placeholder;
             document.getElementById('startBtn').textContent = t.start;
             document.getElementById('loading').textContent = t.loading;
@@ -390,6 +451,13 @@
             });
             renderOverview();
             renderWatchlist();
+            // Table headings and labels follow the new language; the report text
+            // keeps the language it was written in.
+            if (lastReport) {
+                const output = document.getElementById('reportOutput');
+                output.replaceChildren();
+                renderReport(output, lastReport, t);
+            }
         }
 
         document.getElementById('langToggle').addEventListener('click', () => {
@@ -610,17 +678,153 @@
             }
             output.appendChild(summary);
 
-            const list = document.createElement('div');
-            list.className = 'opportunity-list';
             if (!data.opportunities?.length) {
                 const empty = document.createElement('p');
                 empty.textContent = t.noOpportunities;
-                list.appendChild(empty);
+                output.appendChild(empty);
             } else {
-                data.opportunities.forEach((opportunity) => list.appendChild(renderOpportunity(opportunity, t)));
+                output.appendChild(renderResultsTable(data, t));
             }
-            output.appendChild(list);
+            const more = document.createElement('div');
+            more.className = 'more-row';
+            const moreButton = document.createElement('button');
+            moreButton.type = 'button';
+            moreButton.id = 'moreBtn';
+            moreButton.className = 'btn-secondary more-btn';
+            moreButton.textContent = t.moreBtn;
+            moreButton.addEventListener('click', loadMore);
+            const moreMessage = document.createElement('p');
+            moreMessage.id = 'moreMsg';
+            moreMessage.className = 'hint';
+            moreMessage.setAttribute('role', 'status');
+            more.append(moreButton, moreMessage);
+            output.appendChild(more);
             appendUsage(output, data.usage, data.estimatedCosts, t);
+        }
+
+        // Results table: one row per opportunity, sortable by any column; a click
+        // (or Enter) on a row opens its full analysis card underneath.
+        let lastReport = null;
+        let reportSort = { key: 'rank', dir: 'asc' };
+
+        const LEVELS = { high: 3, medium: 2, low: 1, allowed: 3, unclear: 2, restricted: 1 };
+
+        function priceValue(price) {
+            if (!price || price.status === 'unknown' || !price.amount) return null;
+            const value = Number.parseFloat(String(price.amount).replace(/[^0-9.]/g, ''));
+            return Number.isFinite(value) ? value : null;
+        }
+
+        function tableRows(data) {
+            return data.opportunities.map((opportunity, index) => ({
+                opportunity,
+                rank: index + 1,
+                name: opportunity.productName,
+                source: opportunity.catalogueSource || opportunity.originName,
+                price: priceValue(opportunity.price),
+                commercial: LEVELS[opportunity.commercialUse?.status] ?? null,
+                popularity: opportunity.stats?.stars ?? opportunity.stats?.sales ?? null,
+                updated: opportunity.stats?.updatedAt || null,
+                confidence: LEVELS[opportunity.confidence] ?? null
+            }));
+        }
+
+        function sortRows(rows) {
+            const { key, dir } = reportSort;
+            const factor = dir === 'asc' ? 1 : -1;
+            return [...rows].sort((a, b) => {
+                const x = a[key];
+                const y = b[key];
+                // Missing values always sink to the bottom, whatever the direction.
+                if (x === null || x === undefined) return (y === null || y === undefined) ? a.rank - b.rank : 1;
+                if (y === null || y === undefined) return -1;
+                if (typeof x === 'string') return factor * x.localeCompare(y, currentLang);
+                return factor * (x - y) || a.rank - b.rank;
+            });
+        }
+
+        function renderResultsTable(data, t) {
+            const columns = [
+                ['rank', t.colRank], ['name', t.colName], ['source', t.colSource], ['price', t.colPrice],
+                ['commercial', t.colCommercial], ['popularity', t.colPopularity], ['updated', t.colUpdated], ['confidence', t.colConfidence]
+            ];
+            const wrap = document.createElement('div');
+            wrap.className = 'table-wrap';
+            const hint = document.createElement('p');
+            hint.className = 'hint';
+            hint.textContent = t.tableHint;
+            const table = document.createElement('table');
+            table.className = 'results-table';
+            const head = table.createTHead().insertRow();
+            columns.forEach(([key, label]) => {
+                const th = document.createElement('th');
+                th.scope = 'col';
+                th.setAttribute('aria-sort', reportSort.key === key ? (reportSort.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'sort-btn';
+                button.textContent = `${label}${reportSort.key === key ? (reportSort.dir === 'asc' ? ' ▲' : ' ▼') : ''}`;
+                button.addEventListener('click', () => {
+                    // Numbers start high-to-low (best first); rank and text start A-to-Z.
+                    const firstDir = ['rank', 'name', 'source'].includes(key) ? 'asc' : 'desc';
+                    reportSort = reportSort.key === key
+                        ? { key, dir: reportSort.dir === 'asc' ? 'desc' : 'asc' }
+                        : { key, dir: firstDir };
+                    wrap.replaceWith(renderResultsTable(data, translations[currentLang]));
+                });
+                th.appendChild(button);
+                head.appendChild(th);
+            });
+
+            const body = table.createTBody();
+            const locale = currentLang === 'ar' ? 'ar' : 'en';
+            sortRows(tableRows(data)).forEach((row) => {
+                const tr = body.insertRow();
+                tr.className = 'result-row';
+                tr.tabIndex = 0;
+                tr.setAttribute('aria-expanded', 'false');
+                const priceText = row.price === null ? t.unknown : `${row.opportunity.price.amount} ${row.opportunity.price.currency || ''}`.trim();
+                const commercialStatus = row.opportunity.commercialUse?.status || 'unclear';
+                const cells = [
+                    String(row.rank),
+                    row.name,
+                    row.source || '—',
+                    priceText,
+                    t[`commercial_${commercialStatus}`]?.split(' — ')[0] || '—',
+                    row.popularity === null ? '—' : `${row.opportunity.stats?.stars != null ? '★ ' : ''}${row.popularity.toLocaleString(locale)}`,
+                    row.updated || '—',
+                    t[row.opportunity.confidence] || '—'
+                ];
+                cells.forEach((text, index) => {
+                    const td = tr.insertCell();
+                    td.textContent = text;
+                    if (index === 4) td.className = `commercial-cell commercial-${commercialStatus}`;
+                });
+                const toggle = () => {
+                    const open = tr.getAttribute('aria-expanded') === 'true';
+                    tr.setAttribute('aria-expanded', String(!open));
+                    if (open) {
+                        tr.nextElementSibling?.classList.contains('detail-row') && tr.nextElementSibling.remove();
+                        return;
+                    }
+                    const detail = document.createElement('tr');
+                    detail.className = 'detail-row';
+                    const td = document.createElement('td');
+                    td.colSpan = columns.length;
+                    td.appendChild(renderOpportunity(row.opportunity, translations[currentLang]));
+                    detail.appendChild(td);
+                    tr.after(detail);
+                };
+                tr.addEventListener('click', toggle);
+                tr.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        toggle();
+                    }
+                });
+            });
+            wrap.append(hint, table);
+            return wrap;
         }
 
         // Browser storage holds only per-visitor conveniences (watchlist, defaults,
@@ -735,7 +939,7 @@
 
         // Research Settings reuses the Discover fields so both stay identical.
         const SETTINGS_FIELDS = [
-            ['country', 'country'], ['budget', 'budget'], ['industry', 'industry'], ['goal', 'goal'], ['opportunityCount', 'opportunityCount']
+            ['country', 'country'], ['budget', 'budget'], ['industry', 'industry'], ['goal', 'goal']
         ];
 
         function buildSettingsForm() {
@@ -800,8 +1004,97 @@
         });
 
         buildSettingsForm();
+        renderExamples();
         applyDefaults(readStore(STORE.defaults, null));
         renderOverview();
+
+        // The search always asks for 5 opportunities; "Find 5 more" repeats the same
+        // search while telling the server which opportunities are already shown.
+        let lastRequest = null;
+
+        function buildSearchRequest(t) {
+            const selectedFilters = Array.from(document.querySelectorAll('input[name="featureFilter"]:checked'), (input) => input.value);
+            const selectedFilterLabels = selectedFilters.map((filter) => t.filterOptions[filter]);
+            const description = document.getElementById('promptOverride').value.trim();
+            // The report follows the interface language.
+            const settings = `Country: ${selectedLabel('country')}; Budget: ${selectedLabel('budget')}; Industry: ${selectedLabel('industry')}; Goal: ${selectedLabel('goal')}; Requested SaaS opportunities: ${OPPORTUNITIES_PER_SEARCH}; Required SaaS capabilities: ${selectedFilterLabels.join(', ') || t.noFilters}; What the investor is looking for: ${description || 'None'}. Write the report in ${currentLang === 'ar' ? 'Arabic' : 'English'}.`;
+            return {
+                settings,
+                language: currentLang,
+                opportunityCount: OPPORTUNITIES_PER_SEARCH,
+                filters: selectedFilters,
+                website: document.getElementById('website').value,
+                country: document.getElementById('country').value,
+                budget: document.getElementById('budget').value,
+                industry: document.getElementById('industry').value,
+                goal: document.getElementById('goal').value
+            };
+        }
+
+        async function postSearch(body, t) {
+            const response = await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(t.errorCodes[data.errorCode] || t.error);
+            if (!Array.isArray(data.opportunities) || !Number.isInteger(data.verifiedCount)) throw new Error(t.invalid);
+            return data;
+        }
+
+        function countReport() {
+            const stats = readStore(STORE.stats, {});
+            writeStore(STORE.stats, { reports: (Number(stats.reports) || 0) + 1, lastRun: new Date().toISOString() });
+        }
+
+        const sumFields = (a = {}, b = {}, keys, money) => Object.fromEntries(keys.map((key) => {
+            const total = (Number(a[key]) || 0) + (Number(b[key]) || 0);
+            return [key, money ? total.toFixed(6) : total];
+        }));
+
+        async function loadMore() {
+            if (!lastReport || !lastRequest) return;
+            const t = translations[currentLang];
+            const button = document.getElementById('moreBtn');
+            const message = document.getElementById('moreMsg');
+            button.disabled = true;
+            button.textContent = t.moreLoading;
+            message.textContent = '';
+            const exclude = lastReport.opportunities.map((opportunity) => opportunity.directUrl).slice(0, 60);
+            try {
+                const data = await postSearch({ ...lastRequest, exclude }, t);
+                countReport();
+                const known = new Set(exclude);
+                const fresh = data.opportunities.filter((opportunity) => !known.has(opportunity.directUrl));
+                if (!fresh.length) {
+                    message.textContent = t.moreNone;
+                    return;
+                }
+                lastReport = {
+                    ...lastReport,
+                    opportunities: [...lastReport.opportunities, ...fresh],
+                    verifiedCount: lastReport.opportunities.length + fresh.length,
+                    requestedCount: (lastReport.requestedCount || OPPORTUNITIES_PER_SEARCH) + OPPORTUNITIES_PER_SEARCH,
+                    excludedCount: (lastReport.excludedCount || 0) + (data.excludedCount || 0),
+                    coverage: data.coverage,
+                    usage: sumFields(lastReport.usage, data.usage, ['promptTokens', 'completionTokens', 'thinkingTokens', 'totalTokens', 'webSearches']),
+                    estimatedCosts: sumFields(lastReport.estimatedCosts, data.estimatedCosts, ['modelUsd', 'searchUsd', 'totalUsd'], true)
+                };
+                const output = document.getElementById('reportOutput');
+                output.replaceChildren();
+                renderReport(output, lastReport, t);
+                document.getElementById('moreMsg').textContent = `${t.moreAdded} ${fresh.length}`;
+            } catch (error) {
+                message.textContent = error.message || t.error;
+            } finally {
+                const current = document.getElementById('moreBtn');
+                if (current) {
+                    current.disabled = false;
+                    current.textContent = translations[currentLang].moreBtn;
+                }
+            }
+        }
 
         document.getElementById('configForm').addEventListener('submit', async (event) => {
             event.preventDefault();
@@ -809,12 +1102,7 @@
             const loading = document.getElementById('loading');
             const output = document.getElementById('reportOutput');
             const t = translations[currentLang];
-            const opportunityCount = Number(document.getElementById('opportunityCount').value);
-            const website = document.getElementById('website').value;
-            const selectedFilters = Array.from(document.querySelectorAll('input[name="featureFilter"]:checked'), (input) => input.value);
-            const selectedFilterLabels = selectedFilters.map((filter) => t.filterOptions[filter]);
-            // Reports are always Arabic; the server enforces this as well.
-            const settings = `Country: ${selectedLabel('country')}; Budget: ${selectedLabel('budget')}; Industry: ${selectedLabel('industry')}; Goal: ${selectedLabel('goal')}; Requested SaaS opportunities: ${opportunityCount}; Required SaaS capabilities: ${selectedFilterLabels.join(', ') || t.noFilters}; Additional instructions: ${document.getElementById('promptOverride').value.trim() || 'None'}. Write the report in Arabic.`;
+            const body = buildSearchRequest(t);
 
             button.disabled = true;
             loading.style.display = 'block';
@@ -822,29 +1110,14 @@
             output.replaceChildren();
 
             try {
-                const response = await fetch('/api/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        settings,
-                        language: 'ar',
-                        opportunityCount,
-                        filters: selectedFilters,
-                        website,
-                        country: document.getElementById('country').value,
-                        budget: document.getElementById('budget').value,
-                        industry: document.getElementById('industry').value,
-                        goal: document.getElementById('goal').value
-                    })
-                });
-                const data = await response.json().catch(() => ({}));
-                if (!response.ok) throw new Error(t.errorCodes[data.errorCode] || t.error);
-                if (!Array.isArray(data.opportunities) || !Number.isInteger(data.verifiedCount)) throw new Error(t.invalid);
+                const data = await postSearch(body, t);
+                lastRequest = body;
+                lastReport = data;
+                reportSort = { key: 'rank', dir: 'asc' };
                 renderReport(output, data, t);
                 output.style.display = 'block';
                 document.getElementById('resultsEmpty').classList.add('hidden');
-                const stats = readStore(STORE.stats, {});
-                writeStore(STORE.stats, { reports: (Number(stats.reports) || 0) + 1, lastRun: new Date().toISOString() });
+                countReport();
                 showView('results');
             } catch (error) {
                 alert(error.message || t.error);

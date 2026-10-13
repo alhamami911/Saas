@@ -327,12 +327,12 @@ test("mocked handler accepts 5, 10, and 20 results and returns per-opportunity c
                 const response = await handler({
                     httpMethod: "POST",
                     headers: { "content-type": "application/json", "x-qlook-client-ip": "203.0.113.5" },
-                    // An English interface still gets an Arabic report.
+                    // The report follows the interface language.
                     body: JSON.stringify({ settings: "UAT", opportunityCount: count, language: count === 10 ? "en" : "ar" })
                 });
                 assert.equal(response.statusCode, 200);
                 const data = JSON.parse(response.body);
-                assert.match(lastPrompt, /Return ONLY a JSON object in Arabic/);
+                assert.match(lastPrompt, count === 10 ? /Return ONLY a JSON object in English/ : /Return ONLY a JSON object in Arabic/);
                 assert.equal(data.verifiedCount, count);
                 assert.equal(data.requestedCount, count);
                 assert.equal(data.opportunities.length, count);

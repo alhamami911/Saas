@@ -3,7 +3,7 @@
 const { getConfig, estimateCosts, searchAllowance } = require("./config");
 const { checkRateLimit } = require("./rate-limit");
 const { createUsageEvent, storeUsage, dailySpendUsd, addDailySpend } = require("./usage-store");
-const { buildResearchPrompt, validateRequest, validateResearchResult, applyCatalogue, catalogueChunks, RESEARCH_SCHEMA } = require("./research");
+const { buildResearchPrompt, validateRequest, validateResearchResult, applyCatalogue, catalogueChunks, normalizePublicUrl, RESEARCH_SCHEMA } = require("./research");
 const { collectCandidates } = require("./sources/catalog");
 const { runGeminiResearch } = require("./providers/gemini");
 const { runClaudeResearch } = require("./providers/claude");
@@ -114,11 +114,14 @@ exports.handler = async function (event) {
         }, { "Retry-After": "3600" });
     }
 
-    // Reports are always written in Arabic, whatever language the interface uses.
-    const request = { ...validation.value, language: "ar" };
+    // The report is written in the language the dashboard was using.
+    const request = validation.value;
+    const shown = new Set(request.exclude);
     const catalogue = config.catalogEnabled
         ? await collectCandidates(request, { envatoToken: config.envatoToken, githubToken: config.githubToken })
         : { candidates: [], coverage: [] };
+    // Products already on the visitor's screen are not offered again.
+    catalogue.candidates = catalogue.candidates.filter((candidate) => !shown.has(normalizePublicUrl(candidate.url)));
     const webDomains = config.provider === "claude"
         ? [...WEB_SEARCH_DOMAINS, ...(config.envatoToken ? [] : ["codecanyon.net"])]
         : [];
@@ -165,12 +168,17 @@ exports.handler = async function (event) {
     }
 
     const groundingChunks = [...result.sources.map((source) => ({ web: source })), ...catalogueChunks(catalogue.candidates)];
-    const research = validateResearchResult(result.text, groundingChunks, request.opportunityCount);
+    const research = validateResearchResult(result.text, groundingChunks, request.opportunityCount, new Date(), request.language);
     if (research.error) {
         await persistFailure(config, { ...baseFields, outcome: research.errorCode }, result.usage, result.grounded);
         return jsonResponse(502, { errorCode: research.errorCode, error: research.error });
     }
-    research.value = await dropClosedListings(applyCatalogue(research.value, catalogue.candidates));
+    research.value = await dropClosedListings(applyCatalogue(research.value, catalogue.candidates, request.language));
+    const repeated = research.value.opportunities.filter((opportunity) => shown.has(opportunity.directUrl)).length;
+    if (repeated) {
+        const opportunities = research.value.opportunities.filter((opportunity) => !shown.has(opportunity.directUrl));
+        research.value = { ...research.value, opportunities, verifiedCount: opportunities.length, excludedCount: research.value.excludedCount + repeated };
+    }
 
     let accounting;
     try {

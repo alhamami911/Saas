@@ -129,12 +129,29 @@ test("Claude research resumes paused turns and verifies real search URLs", async
         assert.equal(first.output_config.effort, "low");
         assert.equal(first.output_config.format.type, "json_schema");
         assert.ok(first.output_config.format.schema.properties.opportunities);
-        assert.match(first.messages[0].content, /Return ONLY a JSON object in Arabic/);
+        assert.match(first.messages[0].content, /Return ONLY a JSON object in English/);
         assert.match(first.messages[0].content, /CodeCanyon, Codester, GitHub/);
         assert.ok(calls[0].options.signal);
         // The paused assistant turn goes back unchanged so the server can resume it.
         assert.equal(calls[1].params.messages[1].role, "assistant");
         assert.equal(calls[1].params.messages[1].content[1].type, "web_search_tool_result");
+    });
+});
+
+test("find-more requests skip products the visitor has already seen", async () => {
+    const searchResults = {
+        type: "web_search_tool_result",
+        content: [{ type: "web_search_result", url: PRODUCT, title: "SaaS Starter" }, { type: "web_search_result", url: ORIGIN, title: "PHP Scripts" }]
+    };
+    await withClaude([message("end_turn", [searchResults, { type: "text", text: report() }])], async ({ call, calls }) => {
+        const response = await call({ exclude: [PRODUCT, "javascript:alert(1)"] });
+        const data = JSON.parse(response.body);
+        assert.equal(response.statusCode, 200);
+        assert.equal(data.verifiedCount, 0, "a repeated product is dropped even if the model returns it");
+        assert.equal(data.excludedCount, 1);
+        assert.match(calls[0].params.messages[0].content, /already seen these products/);
+        assert.match(calls[0].params.messages[0].content, /codecanyon\.net\/item\/saas-starter\/123/);
+        assert.doesNotMatch(calls[0].params.messages[0].content, /javascript:/);
     });
 });
 
