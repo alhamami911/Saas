@@ -158,7 +158,9 @@ async function runClaudeSearch(config, request, shown, visitor, event) {
         if (result.kind === "quota") return jsonResponse(429, { errorCode: "AI_QUOTA_EXCEEDED", error: "Claude usage quota or credit is exhausted." });
         if (result.kind === "timeout") return jsonResponse(504, { errorCode: "AI_TIMEOUT", error: "The analysis timed out. Try again." });
         if (result.kind === "network") return jsonResponse(502, { errorCode: "AI_UNAVAILABLE", error: "Claude could not be reached" });
-        return jsonResponse(502, { errorCode: "AI_REQUEST_FAILED", error: "The analysis could not be completed. Try again." });
+        console.error("Claude pipeline failed", result.kind, result.status || "", result.message || "");
+        // The failure kind (never provider text) helps a reviewer report what went wrong.
+        return jsonResponse(502, { errorCode: "AI_REQUEST_FAILED", reason: result.kind, error: "The analysis could not be completed. Try again." });
     }
 
     let research = { opportunities: result.opportunities, verifiedCount: result.opportunities.length, excludedCount: 0 };

@@ -447,7 +447,7 @@ async function runPipeline(config, request, { shown = new Set(), now = () => Dat
     const candidates = pickCandidates(catalogue, marketLog, shown, 16);
     const withEvidence = await gatherEvidence(client, config, usage, candidates, evidenceBy);
     const analysis = await analyse(client, config, usage, request, withEvidence, analyseBy);
-    if (!analysis.ok) return { ok: false, kind: analysis.kind, message: analysis.message, usage, log, candidates: withEvidence };
+    if (!analysis.ok) return { ok: false, kind: analysis.kind, status: analysis.status, message: analysis.message, usage, log, candidates: withEvidence };
 
     const today = new Date(startedAt).toISOString().slice(0, 10);
     const byId = new Map(withEvidence.map((candidate) => [candidate.id, candidate]));
