@@ -8,7 +8,9 @@
 // collected text, and every licence, price or capability claim must quote it;
 // the server keeps a claim only when the quote is found in the page.
 
+const { createHash } = require("node:crypto");
 const { claudeClient, webSearchTool, classifyError } = require("./providers/claude");
+const { redisCommand } = require("./usage-store");
 const { collectCandidates } = require("./sources/catalog");
 const { searchTerms } = require("./sources/keywords");
 const { isProductPage, normalizePublicUrl, commercialUseFor, FILTER_DESCRIPTIONS } = require("./research");
@@ -67,7 +69,46 @@ function siteQuery(source, request, round) {
 }
 
 // One web search restricted to one marketplace, with the exact query the server chose.
+// ---- Shared cache --------------------------------------------------------
+// The same marketplace query gives the same results for a while, so a search
+// is reused for 24 hours and a product page for 7 days. The log says when a
+// result came from this cache and when that search really ran. Cache trouble
+// never blocks research: it simply runs the search again.
+const SEARCH_CACHE_SECONDS = 24 * 60 * 60;
+const PAGE_CACHE_SECONDS = 7 * 24 * 60 * 60;
+const cacheKey = (kind, value) => `ql:cache:${kind}:${createHash("sha256").update(value).digest("hex").slice(0, 40)}`;
+
+async function cacheGet(config, key) {
+    if (!config.redisUrl || !config.redisToken) return null;
+    try {
+        const value = await redisCommand(config, ["GET", key]);
+        return value ? JSON.parse(value) : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+async function cacheSet(config, key, value, seconds) {
+    if (!config.redisUrl || !config.redisToken) return;
+    try {
+        await redisCommand(config, ["SET", key, JSON.stringify(value), "EX", seconds]);
+    } catch (error) {
+        // A cache write failure only means the next search runs again.
+    }
+}
+
 async function siteSearch(client, config, usage, source, query, deadline, round) {
+    const key = cacheKey("search", `${source.domain}|${query}`);
+    const cached = await cacheGet(config, key);
+    if (cached) {
+        return { ...cached, round, cached: true, cachedAt: cached.startedAt, startedAt: new Date().toISOString(), ms: 0 };
+    }
+    const entry = await siteSearchLive(client, config, usage, source, query, deadline, round);
+    if (["found", "no_results"].includes(entry.status)) await cacheSet(config, key, entry, SEARCH_CACHE_SECONDS);
+    return entry;
+}
+
+async function siteSearchLive(client, config, usage, source, query, deadline, round) {
     const startedAt = Date.now();
     const entry = { source: source.label, domain: source.domain, method: "site_search", query, round, startedAt: new Date(startedAt).toISOString() };
     const finish = (fields) => ({ ...entry, ms: Date.now() - startedAt, results: 0, products: 0, links: [], ...fields });
@@ -193,6 +234,15 @@ async function fetchReadme(url, deadline) {
 
 // Reads one product page through Claude's web fetch and returns its text.
 async function webFetch(client, config, usage, url, deadline) {
+    const key = cacheKey("page", url);
+    const cached = await cacheGet(config, key);
+    if (cached?.text) return { ...cached, cached: true };
+    const page = await webFetchLive(client, config, usage, url, deadline);
+    if (page.text) await cacheSet(config, key, { method: page.method, url: page.url, text: page.text.slice(0, 80000), fetchedAt: new Date().toISOString() }, PAGE_CACHE_SECONDS);
+    return page;
+}
+
+async function webFetchLive(client, config, usage, url, deadline) {
     const remaining = deadline - Date.now();
     if (remaining < 3000) return { error: "time_limit" };
     try {

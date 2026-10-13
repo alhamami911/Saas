@@ -56,6 +56,11 @@
         .usage-table th, .usage-table td { padding: 6px 8px; border-bottom: 1px solid var(--border-color); text-align: left; white-space: nowrap; }
         .usage-table td.cov { white-space: normal; max-width: 260px; color: var(--text-secondary); }
         .usage-scroll { overflow-x: auto; }
+        .plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0 12px; }
+        .limits-table td:first-child { color: var(--text-secondary); }
+        .credentials { margin-top: 12px; padding: 12px; border-radius: var(--radius); background: var(--ok-bg); color: var(--ok-fg); font-size: 0.85rem; }
+        .credentials code { font-size: 0.85rem; }
+        .row-actions button { padding: 4px 8px; font-size: 0.75rem; margin-inline-end: 4px; }
     </style>
 </head>
 <body>
@@ -75,6 +80,39 @@
             <span>Deployed version <code id="version">…</code></span>
             <span><a href="/">Open app</a> · <a href="#" id="logout">Sign out</a></span>
         </div>
+
+        <section class="card wide">
+            <h1>Trial plan</h1>
+            <p class="sub">Splits a credit budget between trial accounts and a small shared pool for visitors without an account. Each account's share is spent across a 5-hour session, the day, the week and the whole trial; every window allows at least one search while the trial has room. Saving with "start a new period" resets everyone's counters.</p>
+            <form id="planForm">
+                <div class="plan-grid">
+                    <div><label for="planBudget">Credit budget (USD)</label><input id="planBudget" type="number" min="1" step="0.01" required></div>
+                    <div><label for="planAccounts">Accounts</label><input id="planAccounts" type="number" min="1" step="1" required></div>
+                    <div><label for="planDays">Trial days</label><input id="planDays" type="number" min="1" step="1" required></div>
+                    <div><label for="planVisitors">Visitor share %</label><input id="planVisitors" type="number" min="0" max="90" step="1" required></div>
+                    <div><label for="planReserve">Reserve %</label><input id="planReserve" type="number" min="0" max="50" step="1" required></div>
+                </div>
+                <label><input id="planRestart" type="checkbox" style="width:auto"> Start a new period (reset all trial counters)</label>
+                <div class="row"><button class="primary" type="submit">Save plan</button></div>
+                <div class="msg" id="planMsg"></div>
+            </form>
+            <table class="usage-table limits-table" id="planLimits"><tbody></tbody></table>
+        </section>
+
+        <section class="card wide">
+            <h1>Trial accounts</h1>
+            <p class="sub">Passwords are shown only once, right after they are created or reset. Download them and send each person their own username and password. The trial starts at the person's first sign-in.</p>
+            <div class="row">
+                <input id="newAccounts" type="number" min="1" max="500" value="50" style="max-width:110px">
+                <button class="primary" type="button" id="createAccounts">Create accounts</button>
+                <button class="secondary" type="button" id="refreshAccounts">Refresh</button>
+            </div>
+            <div class="credentials" id="newCredentials" hidden></div>
+            <div class="msg" id="accountsMsg"></div>
+            <div class="usage-scroll"><table class="usage-table" id="accountsTable"><thead><tr>
+                <th>Username</th><th>Status</th><th>First sign-in</th><th>Trial ends</th><th>Spent (USD)</th><th>Actions</th>
+            </tr></thead><tbody></tbody></table></div>
+        </section>
 
         <section class="card wide">
             <h1>Usage and estimated cost</h1>
@@ -262,6 +300,8 @@
             if (data.envato) renderEnvato(data.envato);
             $('envatoToken').value = '';
             loadUsage();
+            loadPlan();
+            loadAccounts();
         }
 
         async function loadUsage() {
@@ -289,6 +329,110 @@
             }
         }
         $('refreshUsage').addEventListener('click', loadUsage);
+
+        const usd = (value) => `${Number(value || 0).toFixed(3)}`;
+        async function loadPlan() {
+            const { ok, data } = await api('/plan');
+            if (!ok) return showMsg('planMsg', data.error || 'Could not load the plan', false);
+            const { plan, limits, estimates, usedUsd } = data;
+            $('planBudget').value = plan.totalBudgetUsd;
+            $('planAccounts').value = plan.accounts;
+            $('planDays').value = plan.periodDays;
+            $('planVisitors').value = plan.visitorSharePct;
+            $('planReserve').value = plan.reservePct;
+            $('planRestart').checked = false;
+            const searches = (value) => Math.floor(value / estimates.search + 1e-9);
+            const rows = [
+                ['Spent in this period', `${usedUsd === null ? 'unavailable' : usd(usedUsd)} of ${usd(limits.usable)} usable (period started ${plan.startedAt ? new Date(plan.startedAt).toLocaleDateString() : 'not yet'})`],
+                ['Visitor pool (whole period)', `${usd(limits.visitorPool)}; up to ${usd(limits.visitorDay)} a day ≈ ${searches(limits.visitorDay)} search(es)`],
+                ['Per account: whole trial', `${usd(limits.perAccount.period)} ≈ ${searches(limits.perAccount.period)} searches`],
+                ['Per account: week', `${usd(limits.perAccount.week)} ≈ ${searches(limits.perAccount.week)} searches`],
+                ['Per account: day', `${usd(limits.perAccount.day)} ≈ ${searches(limits.perAccount.day)} searches`],
+                ['Per account: 5-hour session', `${usd(limits.perAccount.session)} ≈ ${searches(limits.perAccount.session)} searches`],
+                ['Estimates used for limits', `search ${usd(estimates.search)}, message ${usd(estimates.discuss)} (a repeated search costs less thanks to the 24-hour search cache)`]
+            ];
+            const body = $('planLimits').querySelector('tbody');
+            body.replaceChildren();
+            rows.forEach(([label, value]) => {
+                const tr = body.insertRow();
+                tr.insertCell().textContent = label;
+                tr.insertCell().textContent = value;
+            });
+        }
+
+        $('planForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            busy(event.submitter, async () => {
+                const { ok, data } = await api('/plan', { method: 'PUT', body: JSON.stringify({
+                    totalBudgetUsd: Number($('planBudget').value), accounts: Number($('planAccounts').value), periodDays: Number($('planDays').value),
+                    visitorSharePct: Number($('planVisitors').value), reservePct: Number($('planReserve').value), restart: $('planRestart').checked
+                }) });
+                if (!ok) return showMsg('planMsg', data.error || 'Could not save the plan', false);
+                showMsg('planMsg', 'Plan saved.', true);
+                loadPlan();
+            });
+        });
+
+        function showCredentials(list, title) {
+            const box = $('newCredentials');
+            box.replaceChildren();
+            const heading = document.createElement('strong');
+            heading.textContent = title;
+            const csv = ['username,password', ...list.map((item) => `${item.username},${item.password}`)].join('\n');
+            const download = document.createElement('a');
+            download.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+            download.download = `qlook-trial-accounts-${new Date().toISOString().slice(0, 10)}.csv`;
+            download.textContent = 'Download CSV';
+            const pre = document.createElement('pre');
+            pre.textContent = list.map((item) => `${item.username}  ${item.password}`).join('\n');
+            box.append(heading, document.createTextNode(' · '), download, pre);
+            box.hidden = false;
+        }
+
+        async function loadAccounts() {
+            const { ok, data } = await api('/accounts');
+            if (!ok) return showMsg('accountsMsg', data.error || 'Could not load accounts', false);
+            const body = $('accountsTable').querySelector('tbody');
+            body.replaceChildren();
+            for (const account of data.accounts) {
+                const tr = body.insertRow();
+                const expired = account.expiresAt && Date.parse(account.expiresAt) < Date.now();
+                const status = account.disabled ? 'paused' : !account.activatedAt ? 'not used yet' : expired ? 'ended' : 'active';
+                [account.username, status, account.activatedAt ? new Date(account.activatedAt).toLocaleString() : '—',
+                    account.expiresAt ? new Date(account.expiresAt).toLocaleDateString() : '—', usd(account.spentUsd)].forEach((value) => { tr.insertCell().textContent = value; });
+                const actions = tr.insertCell();
+                actions.className = 'row-actions';
+                const button = (label, run) => {
+                    const b = document.createElement('button');
+                    b.type = 'button';
+                    b.className = 'secondary';
+                    b.textContent = label;
+                    b.addEventListener('click', () => busy(b, run));
+                    actions.appendChild(b);
+                };
+                button(account.disabled ? 'Resume' : 'Pause', async () => {
+                    await api(`/accounts/${account.id}`, { method: 'PUT', body: JSON.stringify({ disabled: !account.disabled }) });
+                    loadAccounts();
+                });
+                button('New password', async () => {
+                    const { ok: done, data: result } = await api(`/accounts/${account.id}/password`, { method: 'POST' });
+                    if (done) showCredentials([result], `New password for ${result.username} (shown once)`);
+                });
+                button('Delete', async () => {
+                    if (!confirm(`Delete ${account.username}? This cannot be undone.`)) return;
+                    await api(`/accounts/${account.id}`, { method: 'DELETE' });
+                    loadAccounts();
+                });
+            }
+        }
+
+        $('createAccounts').addEventListener('click', (event) => busy(event.currentTarget, async () => {
+            const { ok, data } = await api('/accounts', { method: 'POST', body: JSON.stringify({ count: Number($('newAccounts').value) }) });
+            if (!ok) return showMsg('accountsMsg', data.error || 'Could not create accounts', false);
+            showCredentials(data.created, `${data.created.length} accounts created. Passwords are shown once:`);
+            loadAccounts();
+        }));
+        $('refreshAccounts').addEventListener('click', loadAccounts);
 
         function renderEnvato(envato) {
             $('envatoStatus').innerHTML = envato.configured

@@ -10,6 +10,22 @@ const { runGeminiResearch } = require("./providers/gemini");
 const { runClaudeResearch } = require("./providers/claude");
 const { dropClosedListings } = require("./listing-check");
 const { runPipeline } = require("./pipeline");
+const { checkAccess, chargeAccess, accessStatus } = require("./quota");
+
+// Trial limits apply when the server passes the plan: to the signed-in account,
+// or to the shared visitor pool for everyone else.
+const whoFor = (event) => (event.account ? { account: event.account } : { visitor: true });
+
+async function chargeAndStatus(config, event, usd, personal) {
+    if (!event.plan) return null;
+    try {
+        await chargeAccess(config, event.plan, whoFor(event), usd, { personal });
+        return await accessStatus(config, event.plan, whoFor(event));
+    } catch (error) {
+        console.error("Could not record trial usage", error.message);
+        return null;
+    }
+}
 
 const PROVIDER_LABELS = { claude: "Claude", gemini: "Gemini" };
 
@@ -75,9 +91,11 @@ async function persistRequest(config, fields, usage, grounded) {
     return { requestId: event.requestId, usage: event.usage, costs };
 }
 
-async function persistFailure(config, fields, usage, grounded) {
+async function persistFailure(config, fields, usage, grounded, event) {
     try {
-        await persistRequest(config, fields, usage, grounded);
+        const accounting = await persistRequest(config, fields, usage, grounded);
+        // A failed request still cost money: it counts against the plan, not the person.
+        if (event) await chargeAndStatus(config, event, Number(accounting.costs.totalUsd), false);
     } catch (error) {
         console.error("Could not persist failed request usage", error.message);
     }
@@ -141,7 +159,9 @@ function publicLog(log) {
         results: entry.results,
         products: entry.products,
         links: entry.links,
-        firstAttempt: entry.firstAttempt || null
+        firstAttempt: entry.firstAttempt || null,
+        cached: Boolean(entry.cached),
+        cachedAt: entry.cachedAt || null
     }));
 }
 
@@ -154,7 +174,7 @@ async function runClaudeSearch(config, request, shown, visitor, event) {
     if (!result.ok) {
         // A failed search is not charged to the visitor's daily searches.
         await refundRateLimit(event, config).catch(() => {});
-        await persistFailure(config, { ...baseFields, outcome: result.kind, coverage: summarizeLog(result.log) }, result.usage, true);
+        await persistFailure(config, { ...baseFields, outcome: result.kind, coverage: summarizeLog(result.log) }, result.usage, true, event);
         if (result.kind === "quota") return jsonResponse(429, { errorCode: "AI_QUOTA_EXCEEDED", error: "Claude usage quota or credit is exhausted." });
         if (result.kind === "timeout") return jsonResponse(504, { errorCode: "AI_TIMEOUT", error: "The analysis timed out. Try again." });
         if (result.kind === "network") return jsonResponse(502, { errorCode: "AI_UNAVAILABLE", error: "Claude could not be reached" });
@@ -168,7 +188,7 @@ async function runClaudeSearch(config, request, shown, visitor, event) {
     const siteSearches = result.log.filter((entry) => entry.method === "site_search");
     if (siteSearches.length && siteSearches.every((entry) => entry.error === "quota")) {
         await refundRateLimit(event, config).catch(() => {});
-        await persistFailure(config, { ...baseFields, outcome: "provider_quota_exceeded", coverage: summarizeLog(result.log) }, result.usage, true);
+        await persistFailure(config, { ...baseFields, outcome: "provider_quota_exceeded", coverage: summarizeLog(result.log) }, result.usage, true, event);
         return jsonResponse(429, { errorCode: "AI_QUOTA_EXCEEDED", error: "Claude usage quota or credit is exhausted." });
     }
     let research = { opportunities: result.opportunities, verifiedCount: result.opportunities.length, excludedCount: 0 };
@@ -194,7 +214,9 @@ async function runClaudeSearch(config, request, shown, visitor, event) {
         await refundRateLimit(event, config).catch(() => {});
         return jsonResponse(503, { errorCode: "USAGE_ACCOUNTING_UNAVAILABLE", error: "Usage tracking is temporarily unavailable. Please retry shortly." });
     }
+    const access = await chargeAndStatus(config, event, Number(accounting.costs.totalUsd), true);
     return jsonResponse(200, {
+        access,
         summary: buildSummary(request.language, { ...research, log, notRelevant: result.notRelevant, pagesRead: result.pagesRead, candidatesChecked: result.candidatesChecked, requestedCount: request.opportunityCount }),
         verificationNote: "",
         opportunities: research.opportunities,
@@ -273,6 +295,19 @@ exports.handler = async function (event) {
     if (!limit.allowed) {
         const headers = limit.retryAfter ? { "Retry-After": String(limit.retryAfter) } : {};
         return jsonResponse(limit.statusCode, { errorCode: limit.errorCode, error: limit.error }, headers);
+    }
+    if (event.plan) {
+        let access;
+        try {
+            access = await checkAccess(config, event.plan, whoFor(event), "search");
+        } catch (error) {
+            await refundRateLimit(event, config).catch(() => {});
+            return jsonResponse(503, { errorCode: "RATE_LIMIT_UNAVAILABLE", error: "Usage limits are temporarily unavailable" });
+        }
+        if (!access.allowed) {
+            await refundRateLimit(event, config).catch(() => {});
+            return jsonResponse(429, { errorCode: access.errorCode, scope: access.scope || null, resetsAt: access.resetsAt || null, access: access.status, error: "Usage limit reached" });
+        }
     }
 
     // Stop before spending once today's estimated provider cost reaches the budget.

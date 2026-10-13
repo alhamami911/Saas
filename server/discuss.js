@@ -10,6 +10,7 @@ const { getConfig, estimateCosts } = require("./config");
 const { clientHash } = require("./rate-limit");
 const { createUsageEvent, storeUsage, dailySpendUsd, addDailySpend, recordRecent, utcDayInfo, redisCommand } = require("./usage-store");
 const { claudeClient, classifyError } = require("./providers/claude");
+const { checkAccess, chargeAccess, accessStatus } = require("./quota");
 
 const MAX_BODY_BYTES = 40000;
 const MAX_HISTORY = 12;
@@ -106,7 +107,9 @@ exports.handler = async function (event) {
     if (!config.redisUrl || !config.redisToken || !config.rateLimitSalt) {
         return json(503, { errorCode: "RATE_LIMIT_UNAVAILABLE", error: "Request protection is not configured" });
     }
-    const visitor = clientHash(event, config);
+    // A signed-in trial account keeps one counter on every device; visitors are counted by IP.
+    const visitor = event.account ? `account-${event.account.id}` : clientHash(event, config);
+    const who = event.account ? { account: event.account } : { visitor: true };
 
     if (event.httpMethod === "GET") {
         try {
@@ -151,6 +154,18 @@ exports.handler = async function (event) {
     } catch (error) {
         return json(503, { errorCode: "RATE_LIMIT_UNAVAILABLE", error: "Request protection is temporarily unavailable" });
     }
+    if (reserved >= 0 && event.plan) {
+        let access;
+        try {
+            access = await checkAccess(config, event.plan, who, "discuss");
+        } catch (error) {
+            access = { allowed: false, errorCode: "RATE_LIMIT_UNAVAILABLE" };
+        }
+        if (!access.allowed) {
+            await redisCommand(config, ["EVAL", REFUND, 1, dayKey(visitor, now)]).catch(() => {});
+            return json(access.errorCode === "RATE_LIMIT_UNAVAILABLE" ? 503 : 429, { errorCode: access.errorCode, scope: access.scope || null, resetsAt: access.resetsAt || null, access: access.status || null, quota: await quotaFor(config, visitor).catch(() => null) });
+        }
+    }
     if (reserved < 0) {
         return json(429, { errorCode: "DISCUSS_LIMIT_REACHED", error: "Today's discussion messages are used up.", quota: await quotaFor(config, visitor) });
     }
@@ -189,12 +204,14 @@ exports.handler = async function (event) {
         const usageEvent = createUsageEvent({ provider: config.provider, model: config.model, kind: "discuss", outcome: "success", elapsedMs: Date.now() - startedAt, usage, grounded: false });
         usageEvent.estimatedCosts = estimateCosts(usage, config, false);
         usageEvent.spentTodayUsd = await addDailySpend(config, Number(usageEvent.estimatedCosts.totalUsd));
+        if (event.plan) await chargeAccess(config, event.plan, who, Number(usageEvent.estimatedCosts.totalUsd));
         await storeUsage(config, usageEvent, false);
         await recordRecent(config, usageEvent);
     } catch (error) {
         console.error("Could not record discussion usage", error.message);
     }
-    return json(200, { reply: reply.slice(0, 8000), quota: await quotaFor(config, visitor).catch(() => null) });
+    const access = event.plan ? await accessStatus(config, event.plan, who).catch(() => null) : null;
+    return json(200, { reply: reply.slice(0, 8000), quota: await quotaFor(config, visitor).catch(() => null), access });
 };
 
 module.exports.parseHistory = parseHistory;

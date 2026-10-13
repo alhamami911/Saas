@@ -13,6 +13,9 @@ const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 const LOGIN_MAX_FAILURES = 5;
 const LOGIN_LOCK_MS = 15 * 60 * 1000;
 const SESSION_COOKIE = "ql_admin";
+// Trial accounts sign in with their own cookie, separate from the admin session.
+const ACCOUNT_COOKIE = "ql_user";
+const ACCOUNT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 const CSRF_HEADER = "x-qlook-admin";
 
@@ -79,7 +82,8 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
     // Loaded after the settings store so the handler sees the saved Gemini key.
     const { handler } = require("./server/generate");
     const discuss = require("./server/discuss");
-    const { recentUsage, dailySpendUsd } = require("./server/usage-store");
+    const { recentUsage, dailySpendUsd, redisCommand } = require("./server/usage-store");
+    const { accessStatus, planLimits } = require("./server/quota");
     const { getConfig } = require("./server/config");
 
     const sessionSecret = env.SESSION_SECRET || randomBytes(32).toString("hex");
@@ -106,6 +110,92 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         const expires = Date.now() + SESSION_TTL_MS;
         const secure = req.headers["x-forwarded-proto"] === "https" ? "; Secure" : "";
         return `${SESSION_COOKIE}=${expires}.${sign(expires)}; Path=/admin; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL_MS / 1000}${secure}`;
+    }
+
+    function signAccount(id, expires) {
+        return createHmac("sha256", sessionSecret)
+            .update(`account.${id}.${expires}.${settings.accountFingerprint(id)}`)
+            .digest("base64url");
+    }
+
+    function accountCookie(req, id) {
+        const expires = Date.now() + ACCOUNT_TTL_MS;
+        const secure = req.headers["x-forwarded-proto"] === "https" ? "; Secure" : "";
+        return `${ACCOUNT_COOKIE}=${id}.${expires}.${signAccount(id, expires)}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${ACCOUNT_TTL_MS / 1000}${secure}`;
+    }
+
+    // The signed-in trial account, or null. A password reset or deletion ends it.
+    function currentAccount(req) {
+        const token = parseCookies(req.headers.cookie)[ACCOUNT_COOKIE];
+        if (!token) return null;
+        const [id, expires, signature] = token.split(".");
+        if (!id || !signature || !(Number(expires) > Date.now()) || !settings.accountFingerprint(id)) return null;
+        const expected = Buffer.from(signAccount(id, expires));
+        const actual = Buffer.from(signature);
+        if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) return null;
+        return settings.findAccount(id);
+    }
+
+    function publicOrigin(req) {
+        const origin = req.headers.origin;
+        if (!origin) return true;
+        try {
+            return new URL(origin).host === req.headers.host;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    async function handleAccount(req, res, route) {
+        if (req.method !== "GET" && !publicOrigin(req)) return sendJson(res, 403, { error: "Cross-site request rejected" });
+        const config = getConfig();
+        const status = async (account) => {
+            try {
+                return await accessStatus(config, settings.plan(), account ? { account } : { visitor: true });
+            } catch (error) {
+                return null;
+            }
+        };
+        if (route === "/login" && req.method === "POST") {
+            const ip = `account:${clientIp(req)}`;
+            const record = loginFailures.get(ip);
+            if (record && record.until > Date.now()) return sendJson(res, 429, { errorCode: "LOGIN_LOCKED", error: "Too many attempts. Try again in 15 minutes." });
+            const { username, password } = await readJson(req);
+            const account = settings.verifyAccount(username, password);
+            if (!account) {
+                const count = (record?.count || 0) + 1;
+                if (loginFailures.size > 10000) loginFailures.clear();
+                loginFailures.set(ip, count >= LOGIN_MAX_FAILURES ? { count: 0, until: Date.now() + LOGIN_LOCK_MS } : { count, until: 0 });
+                return sendJson(res, 401, { errorCode: "LOGIN_FAILED", error: "Wrong username or password" });
+            }
+            loginFailures.delete(ip);
+            return sendJson(res, 200, { signedIn: true, username: account.username, access: await status(account) }, { "Set-Cookie": accountCookie(req, account.id) });
+        }
+        if (route === "/logout" && req.method === "POST") {
+            return sendJson(res, 200, { signedIn: false }, { "Set-Cookie": `${ACCOUNT_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0` });
+        }
+        if (route === "" && req.method === "GET") {
+            const account = currentAccount(req);
+            return sendJson(res, 200, { signedIn: Boolean(account), username: account?.username || null, access: await status(account) });
+        }
+        return sendJson(res, 404, { error: "Not found" });
+    }
+
+    // Usage spent by every trial account in the current plan period.
+    async function accountsWithUsage() {
+        const config = getConfig();
+        const plan = settings.plan();
+        const list = settings.accounts();
+        let spent = [];
+        try {
+            spent = list.length ? await redisCommand(config, ["MGET", ...list.map((account) => `ql:q:${plan.id}:a:${account.id}:period`)]) : [];
+        } catch (error) {
+            spent = [];
+        }
+        return list.map((account, index) => {
+            const expiresAt = account.activatedAt ? new Date(Date.parse(account.activatedAt) + plan.periodDays * 86400000).toISOString() : null;
+            return { ...account, expiresAt, spentUsd: Number(spent[index]) || 0 };
+        });
     }
 
     function hasSession(req) {
@@ -195,14 +285,14 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
     async function handleGenerate(req, res) {
         const body = await readBody(req);
         const headers = { ...req.headers, "x-qlook-client-ip": clientIp(req) };
-        const result = await handler({ httpMethod: req.method, headers, body, isBase64Encoded: false });
+        const result = await handler({ httpMethod: req.method, headers, body, isBase64Encoded: false, account: currentAccount(req), plan: settings.plan() });
         send(res, result.statusCode, result.body, { "Cache-Control": "no-store", ...result.headers });
     }
 
     async function handleDiscuss(req, res) {
         const body = req.method === "POST" ? await readBody(req) : "";
         const headers = { ...req.headers, "x-qlook-client-ip": clientIp(req) };
-        const result = await discuss.handler({ httpMethod: req.method, headers, body });
+        const result = await discuss.handler({ httpMethod: req.method, headers, body, account: currentAccount(req), plan: settings.plan() });
         send(res, result.statusCode, result.body, { "Cache-Control": "no-store", ...result.headers });
     }
 
@@ -247,6 +337,44 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
                 research: { provider: researchProvider(env), providers: PROVIDERS, claudeModels: CLAUDE_MODELS },
                 version
             });
+        }
+
+        // ---- Trial plan and accounts ----
+        if (route === "/plan" && req.method === "GET") {
+            const config = getConfig();
+            const plan = settings.plan();
+            let used = 0;
+            try {
+                used = Number(await redisCommand(config, ["GET", `ql:q:${plan.id}:total`])) || 0;
+            } catch (error) {
+                used = null;
+            }
+            const estimates = { search: config.searchEstimateUsd, discuss: config.discussEstimateUsd };
+            return sendJson(res, 200, { plan, limits: planLimits(plan, estimates), estimates, usedUsd: used });
+        }
+        if (route === "/plan" && req.method === "PUT") {
+            const result = settings.setPlan(await readJson(req));
+            if (result.error) return sendJson(res, 400, { error: result.error });
+            return sendJson(res, 200, result);
+        }
+        if (route === "/accounts" && req.method === "GET") {
+            return sendJson(res, 200, { accounts: await accountsWithUsage() });
+        }
+        if (route === "/accounts" && req.method === "POST") {
+            const { count, prefix } = await readJson(req);
+            const result = settings.generateAccounts(count, prefix || "trial");
+            if (result.error) return sendJson(res, 400, { error: result.error });
+            return sendJson(res, 200, result);
+        }
+        const accountRoute = route.match(/^\/accounts\/([0-9a-f-]{36})(\/password)?$/);
+        if (accountRoute) {
+            const [, id, password] = accountRoute;
+            let result;
+            if (password && req.method === "POST") result = settings.resetAccountPassword(id);
+            else if (!password && req.method === "PUT") result = settings.updateAccount(id, await readJson(req));
+            else if (!password && req.method === "DELETE") result = settings.deleteAccount(id);
+            else return sendJson(res, 404, { error: "Not found" });
+            return result.error ? sendJson(res, 404, { error: result.error }) : sendJson(res, 200, result);
         }
 
         // Tokens and estimated cost per request, shown on the admin page only.
@@ -350,6 +478,7 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         if (pathname === "/healthz") return sendJson(res, 200, { ok: true, version });
         if (pathname === "/api/generate") return handleGenerate(req, res);
         if (pathname === "/api/discuss") return handleDiscuss(req, res);
+        if (pathname === "/api/account" || pathname.startsWith("/api/account/")) return handleAccount(req, res, pathname.slice("/api/account".length));
         if (pathname.startsWith("/admin/api/")) return handleAdminApi(req, res, pathname.slice("/admin/api".length));
         if (pathname === "/admin" || pathname === "/admin/") {
             return send(res, 200, pages.admin, { ...ADMIN_HEADERS, "Content-Type": "text/html; charset=utf-8" });

@@ -240,6 +240,24 @@
         .chip-default { border-color: var(--primary-color); }
         .progress.done .progress-steps { display: none; }
         .restored-note { margin: 0 0 10px; }
+        .account-box { display: grid; gap: 8px; padding: 10px; border-radius: 14px; background: var(--surface-color); }
+        .account-login { width: 100%; }
+        .account-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .link-btn { border: 0; background: none; color: var(--primary-color); font: inherit; font-size: 0.82rem; cursor: pointer; padding: 0; }
+        .meters { display: grid; gap: 8px; }
+        .meter { font-size: 0.74rem; color: var(--text-secondary); }
+        .meter-head { display: flex; justify-content: space-between; gap: 6px; }
+        .meter-left { color: var(--text-primary); white-space: nowrap; }
+        .meter-bar { height: 5px; margin-top: 4px; border-radius: 999px; background: var(--secondary-hover); overflow: hidden; }
+        .meter-bar i { display: block; height: 100%; background: var(--primary-color); }
+        .meter-bar.full i { background: #d93025; }
+        .meter-reset { margin-top: 2px; font-size: 0.7rem; }
+        .login-dialog { width: min(92vw, 380px); border: 0; border-radius: 18px; padding: 22px; background: var(--surface-color); color: var(--text-primary); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25); }
+        .login-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
+        .login-dialog h2 { margin: 0 0 6px; font-size: 1.1rem; }
+        .login-dialog label { display: block; margin: 12px 0 6px; font-size: 0.85rem; font-weight: 600; }
+        .login-dialog input { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-color); color: var(--text-primary); font: inherit; }
+        .login-error { min-height: 1.2em; margin: 10px 0 0; color: #d93025; font-size: 0.85rem; }
         .discuss-head { width: 100%; max-width: 860px; margin: 0 auto; padding: 16px 24px 0; display: flex; gap: 14px; align-items: center; }
         .discuss-title h2 { margin: 0; font-size: 1.1rem; }
         .discuss-title .hint { margin: 2px 0 0; }
@@ -270,11 +288,37 @@
             <button type="button" data-view="overview" data-i18n="navOverview">حول QLook</button>
         </nav>
         <div class="side-foot">
+            <div class="account-box" id="accountBox">
+                <div id="accountSignedOut">
+                    <button type="button" class="btn-secondary account-login" id="accountLoginBtn" data-i18n="accountLogin">تسجيل الدخول بحساب تجريبي</button>
+                    <div class="meters" id="visitorMeters"></div>
+                </div>
+                <div id="accountSignedIn" hidden>
+                    <div class="account-head"><strong id="accountName"></strong><button type="button" class="link-btn" id="accountLogout" data-i18n="accountLogout">خروج</button></div>
+                    <div class="meters" id="accountMeters"></div>
+                    <p class="side-note" id="accountExpiry"></p>
+                </div>
+            </div>
             <button class="lang-btn" id="langToggle" type="button">English</button>
             <p class="side-note" data-i18n="sideNote">نتائج من أسواق برمجيات موثوقة، مع مصادرها.</p>
         </div>
     </aside>
     <div class="scrim" id="scrim" hidden></div>
+    <dialog class="login-dialog" id="loginDialog">
+        <form id="accountLoginForm">
+            <h2 data-i18n="accountLoginTitle">الدخول إلى حسابك التجريبي</h2>
+            <p class="hint" data-i18n="accountLoginHint">استخدم اسم المستخدم وكلمة المرور اللذين وصلاك من فريق QLook.</p>
+            <label for="accUser" data-i18n="accountUser">اسم المستخدم</label>
+            <input id="accUser" autocomplete="username" spellcheck="false" required>
+            <label for="accPass" data-i18n="accountPass">كلمة المرور</label>
+            <input id="accPass" type="password" autocomplete="current-password" required>
+            <p class="login-error" id="accountLoginError" role="alert"></p>
+            <div class="button-row">
+                <button type="submit" class="btn-primary" data-i18n="accountSignIn">دخول</button>
+                <button type="button" class="btn-secondary" id="accountLoginCancel" data-i18n="accountCancel">إلغاء</button>
+            </div>
+        </form>
+    </dialog>
 
     <div class="main">
         <header class="mobile-bar">
@@ -617,8 +661,23 @@
             coverageTitle: 'سجل تغطية المصادر', cov_found: 'فُحص وله نتائج', cov_no_results: 'فُحص دون نتائج', cov_error: 'تعذّر فحصه', cov_not_checked: 'لم يُفحص في هذا البحث',
             coverageIncomplete: 'لم تُفحص كل المصادر المعتمدة في هذا البحث، لذلك لا يُعد البحث شاملاً.',
             viaOfficial: 'بيانات رسمية', viaSearch2: 'بحث داخل الموقع',
-            searchDone: 'اكتمل البحث.', restoredNote: 'آخر تقرير محفوظ على هذا الجهاز من',
+            searchDone: 'اكتمل البحث.', searchStopped: 'توقف البحث.', restoredNote: 'آخر تقرير محفوظ على هذا الجهاز من',
             defaultMark: 'افتراضي',
+            accountLogin: 'تسجيل الدخول بحساب تجريبي', accountLogout: 'خروج', accountLoginTitle: 'الدخول إلى حسابك التجريبي',
+            accountLoginHint: 'استخدم اسم المستخدم وكلمة المرور اللذين وصلاك من فريق QLook.', accountUser: 'اسم المستخدم', accountPass: 'كلمة المرور',
+            accountSignIn: 'دخول', accountCancel: 'إلغاء', accountLoginFailed: 'اسم المستخدم أو كلمة المرور غير صحيحة.', accountLocked: 'محاولات كثيرة. حاول بعد 15 دقيقة.',
+            scope: { session: 'الجلسة (5 ساعات)', day: 'اليوم', week: 'الأسبوع', period: 'الفترة التجريبية' },
+            meterLeft: (searches, messages) => `≈ ${searches} بحث أو ${messages} رسالة`,
+            meterReset: (at) => `يتجدد ${new Date(at).toLocaleString('ar', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}`,
+            visitorPool: 'حصة الزوار المشتركة اليوم',
+            accountExpiry: (at) => `تنتهي الفترة التجريبية ${new Date(at).toLocaleDateString('ar', { dateStyle: 'medium' })}`,
+            limitMessage: (scope, at) => `بلغت حد ${scope} في حسابك التجريبي.${at ? ` يتجدد ${new Date(at).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' })}.` : ''} يبقى سجل المحادثة والتقارير المحفوظة متاحاً.`,
+            periodUsed: 'استهلكت حصة فترتك التجريبية كاملة. تواصل مع فريق QLook إن احتجت المزيد.',
+            accountExpired: (at) => `انتهت فترتك التجريبية${at ? ` في ${new Date(at).toLocaleDateString('ar', { dateStyle: 'medium' })}` : ''}. تواصل مع فريق QLook لتمديدها.`,
+            accountDisabled: 'هذا الحساب التجريبي موقوف. تواصل مع فريق QLook.',
+            visitorLimit: (at) => `انتهت حصة الزوار المشتركة لهذا اليوم${at ? `، وتتجدد ${new Date(at).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' })}` : ''}. سجّل الدخول بحسابك التجريبي لتستخدم حصتك الخاصة.`,
+            planExhausted: 'انتهى الرصيد المخصص للتجربة. تواصل مع مسؤول الموقع لزيادة الرصيد.',
+            logCached: (at) => `من نتيجة بحث محفوظة نُفّذت ${new Date(at).toLocaleString('ar', { dateStyle: 'short', timeStyle: 'short' })}`,
             budgetReached: (at) => `استُهلكت ميزانية البحث المخصصة لليوم. تتجدد ${new Date(at).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' })}؛ انتظر حتى ذلك الوقت، أو تواصل مع مسؤول الموقع لزيادة الرصيد. سجل المحادثة والتقارير المحفوظة يبقى متاحاً.`,
             discussBtn: 'ناقش هذه الفرصة مع QLook', discussBack: 'رجوع إلى قائمة المتابعة',
             discussIntro: (name) => `لنناقش «${name}». لدي بيانات الفرصة كما حفظتها: الترخيص والسعر وحالة الخصائص المطلوبة والمصادر. اسألني عن ملاءمتها للسوق، أو التعريب والتطوير المطلوب، أو تشغيلها كـ SaaS، أو المخاطر والبدائل. سأفصل دائماً بين ما تحقق منه QLook وبين تقديراتي.`,
@@ -647,8 +706,23 @@
             coverageTitle: 'Source coverage log', cov_found: 'Checked, results found', cov_no_results: 'Checked, no results', cov_error: 'Could not be checked', cov_not_checked: 'Not checked in this search',
             coverageIncomplete: 'Not every approved source was checked in this search, so it is not a complete search.',
             viaOfficial: 'official data', viaSearch2: 'site search',
-            searchDone: 'Search complete.', restoredNote: 'Last report saved on this device from',
+            searchDone: 'Search complete.', searchStopped: 'Search stopped.', restoredNote: 'Last report saved on this device from',
             defaultMark: 'default',
+            accountLogin: 'Sign in with a trial account', accountLogout: 'Sign out', accountLoginTitle: 'Sign in to your trial account',
+            accountLoginHint: 'Use the username and password the QLook team sent you.', accountUser: 'Username', accountPass: 'Password',
+            accountSignIn: 'Sign in', accountCancel: 'Cancel', accountLoginFailed: 'Wrong username or password.', accountLocked: 'Too many attempts. Try again in 15 minutes.',
+            scope: { session: 'session (5 hours)', day: 'day', week: 'week', period: 'trial period' },
+            meterLeft: (searches, messages) => `≈ ${searches} searches or ${messages} messages`,
+            meterReset: (at) => `renews ${new Date(at).toLocaleString('en', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}`,
+            visitorPool: "Today's shared visitor allowance",
+            accountExpiry: (at) => `Trial ends ${new Date(at).toLocaleDateString('en', { dateStyle: 'medium' })}`,
+            limitMessage: (scope, at) => `You reached your trial ${scope} limit.${at ? ` It renews ${new Date(at).toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short' })}.` : ''} Your conversation and saved reports stay available.`,
+            periodUsed: 'You have used your whole trial allowance. Contact the QLook team if you need more.',
+            accountExpired: (at) => `Your trial ended${at ? ` on ${new Date(at).toLocaleDateString('en', { dateStyle: 'medium' })}` : ''}. Contact the QLook team to extend it.`,
+            accountDisabled: 'This trial account is paused. Contact the QLook team.',
+            visitorLimit: (at) => `Today's shared visitor allowance is used up${at ? `; it renews ${new Date(at).toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short' })}` : ''}. Sign in with your trial account to use your own allowance.`,
+            planExhausted: 'The credit set aside for the trial is used up. Ask the site administrator to add credit.',
+            logCached: (at) => `from a saved search that ran ${new Date(at).toLocaleString('en', { dateStyle: 'short', timeStyle: 'short' })}`,
             budgetReached: (at) => `Today's research budget has been used. It renews ${new Date(at).toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short' })}; please wait until then, or ask the site administrator to add credit. Your conversation and saved reports stay available.`,
             discussBtn: 'Discuss this opportunity with QLook', discussBack: 'Back to the watchlist',
             discussIntro: (name) => `Let's discuss "${name}". I have the opportunity as you saved it: licence, price, the status of the required capabilities and the sources. Ask about market fit, localisation and development, running it as a SaaS, or risks and alternatives. I will always separate what QLook verified from my own estimates.`,
@@ -701,6 +775,7 @@
             });
             renderOverview();
             renderWatchlist();
+            try { renderAccess(null); } catch (error) { /* account box not ready yet */ }
             // Table headings and labels follow the new language; the report text
             // keeps the language it was written in.
             if (lastReport) {
@@ -1004,6 +1079,7 @@
                 if (Number.isFinite(entry.products ?? entry.count)) facts.push(`${entry.products ?? entry.count} ${t.logProducts}`);
                 if (entry.error) facts.push(`${t.logError}: ${t.logErrors?.[entry.error] || entry.error}`);
                 if (entry.firstAttempt) facts.push(t.logRetry);
+                if (entry.cached && entry.cachedAt) facts.push(t.logCached(entry.cachedAt));
                 const meta = document.createElement('div');
                 meta.className = 'cov-meta';
                 meta.textContent = facts.join(' · ');
@@ -1393,6 +1469,21 @@
             };
         }
 
+        const WAIT_ONLY = ['DAILY_BUDGET_REACHED', 'DAILY_LIMIT_REACHED', 'DISCUSS_LIMIT_REACHED', 'ACCOUNT_LIMIT', 'ACCOUNT_EXPIRED', 'ACCOUNT_DISABLED', 'VISITOR_LIMIT', 'PLAN_BUDGET_EXHAUSTED'];
+
+        function limitError(data, t) {
+            if (data.access) renderAccess(data.access);
+            switch (data.errorCode) {
+                case 'DAILY_BUDGET_REACHED': return data.resetsAt ? t.budgetReached(data.resetsAt) : t.errorCodes.DAILY_BUDGET_REACHED;
+                case 'ACCOUNT_LIMIT': return data.scope === 'period' ? t.periodUsed : t.limitMessage(t.scope[data.scope] || data.scope, data.resetsAt);
+                case 'ACCOUNT_EXPIRED': return t.accountExpired(data.access?.expiresAt);
+                case 'ACCOUNT_DISABLED': return t.accountDisabled;
+                case 'VISITOR_LIMIT': return t.visitorLimit(data.resetsAt);
+                case 'PLAN_BUDGET_EXHAUSTED': return t.planExhausted;
+                default: return t.errorCodes[data.errorCode] || t.error;
+            }
+        }
+
         async function postSearch(body, t) {
             let response;
             try {
@@ -1406,9 +1497,9 @@
             }
             const data = await response.json().catch(() => ({}));
             if (!response.ok) {
-                const message = data.errorCode === 'DAILY_BUDGET_REACHED' && data.resetsAt ? t.budgetReached(data.resetsAt) : t.errorCodes[data.errorCode] || t.error;
-                throw Object.assign(new Error(message), { code: data.errorCode });
+                throw Object.assign(new Error(limitError(data, t)), { code: data.errorCode });
             }
+            if (data.access) renderAccess(data.access);
             if (!Array.isArray(data.opportunities) || !Number.isInteger(data.verifiedCount)) throw new Error(t.invalid);
             return data;
         }
@@ -1729,7 +1820,7 @@
             card.stop = (failed) => {
                 clearInterval(timer);
                 steps.querySelectorAll('li').forEach((item) => { item.className = 'done'; });
-                status.textContent = failed ? c.failed : translations[currentLang].searchDone;
+                status.textContent = failed ? translations[currentLang].searchStopped : translations[currentLang].searchDone;
                 card.classList.add('done');
                 card.closest('.msg')?.querySelector('.msg-avatar')?.classList.remove('thinking');
             };
@@ -1774,8 +1865,12 @@
             } catch (error) {
                 card.stop(true);
                 chatState.step = 'error';
-                const waitOnly = ['DAILY_BUDGET_REACHED', 'DAILY_LIMIT_REACHED'].includes(error.code);
-                await botSay(`${c.failed} ${error.message || t.error}`, waitOnly ? null : chipRow([{ label: c.retry, value: 'retry', className: 'chip-primary' }], () => runSearch()));
+                const waitOnly = WAIT_ONLY.includes(error.code);
+                // Visitors who hit the shared allowance are offered their own account.
+                const next = error.code === 'VISITOR_LIMIT'
+                    ? chipRow([{ label: t.accountLogin, value: 'login', className: 'chip-primary' }], () => openLogin())
+                    : waitOnly ? null : chipRow([{ label: c.retry, value: 'retry', className: 'chip-primary' }], () => runSearch());
+                await botSay(`${c.failed} ${error.message || t.error}`, next);
             } finally {
                 chatState.busy = false;
                 setBusy(false);
@@ -1842,6 +1937,100 @@
             if (name === 'discuss') document.querySelector('#appNav button[data-view="watchlist"]').setAttribute('aria-current', 'page');
             setDrawer(false);
         };
+        // ---- Trial account ------------------------------------------------------
+        // The server keeps the account and its limits; the page only shows them.
+        const accountState = { signedIn: false, username: null, access: null };
+
+        function meter(label, window, estimates, t) {
+            const box = el('div', 'meter');
+            const left = Math.max(0, window.limit - window.used);
+            const pct = window.limit > 0 ? Math.min(100, Math.round((window.used / window.limit) * 100)) : 100;
+            const head = el('div', 'meter-head');
+            head.append(el('span', '', label), el('span', 'meter-left', t.meterLeft(Math.floor(left / estimates.search + 1e-9), Math.floor(left / estimates.discuss + 1e-9))));
+            const bar = el('div', 'meter-bar');
+            const fill = el('i');
+            fill.style.width = `${pct}%`;
+            if (pct >= 100) bar.classList.add('full');
+            bar.appendChild(fill);
+            box.append(head, bar);
+            if (window.resetsAt && window.used > 0) box.appendChild(el('div', 'meter-reset', t.meterReset(window.resetsAt)));
+            return box;
+        }
+
+        function renderAccess(access) {
+            if (access) accountState.access = access;
+            const t = translations[currentLang];
+            const current = accountState.access;
+            document.getElementById('accountSignedOut').hidden = accountState.signedIn;
+            document.getElementById('accountSignedIn').hidden = !accountState.signedIn;
+            const target = document.getElementById(accountState.signedIn ? 'accountMeters' : 'visitorMeters');
+            target.replaceChildren();
+            if (accountState.signedIn) {
+                document.getElementById('accountName').textContent = accountState.username;
+                document.getElementById('accountExpiry').textContent = current?.expiresAt ? t.accountExpiry(current.expiresAt) : '';
+            }
+            if (!current?.windows) return;
+            const scopes = current.kind === 'account' ? ['session', 'day', 'week', 'period'] : ['day'];
+            scopes.forEach((scope) => {
+                if (current.windows[scope]) target.appendChild(meter(current.kind === 'account' ? t.scope[scope] : t.visitorPool, current.windows[scope], current.estimates, t));
+            });
+        }
+
+        async function loadAccount() {
+            try {
+                const data = await (await fetch('/api/account')).json();
+                accountState.signedIn = Boolean(data.signedIn);
+                accountState.username = data.username;
+                renderAccess(data.access || null);
+            } catch (error) {
+                renderAccess(null);
+            }
+        }
+
+        const loginDialog = document.getElementById('loginDialog');
+        function openLogin() {
+            document.getElementById('accountLoginError').textContent = '';
+            setDrawer(false);
+            if (typeof loginDialog.showModal === 'function') loginDialog.showModal();
+            else loginDialog.setAttribute('open', '');
+            document.getElementById('accUser').focus();
+        }
+        document.getElementById('accountLoginBtn').addEventListener('click', openLogin);
+        document.getElementById('accountLoginCancel').addEventListener('click', () => loginDialog.close());
+        document.getElementById('accountLoginForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const t = translations[currentLang];
+            const error = document.getElementById('accountLoginError');
+            error.textContent = '';
+            try {
+                const response = await fetch('/api/account/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: document.getElementById('accUser').value, password: document.getElementById('accPass').value })
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    error.textContent = data.errorCode === 'LOGIN_LOCKED' ? t.accountLocked : t.accountLoginFailed;
+                    return;
+                }
+                document.getElementById('accPass').value = '';
+                loginDialog.close();
+                accountState.signedIn = true;
+                accountState.username = data.username;
+                renderAccess(data.access || null);
+                if (!data.access) loadAccount();
+            } catch (failure) {
+                error.textContent = t.errorCodes.NETWORK;
+            }
+        });
+        document.getElementById('accountLogout').addEventListener('click', async () => {
+            await fetch('/api/account/logout', { method: 'POST' }).catch(() => {});
+            accountState.signedIn = false;
+            accountState.username = null;
+            accountState.access = null;
+            loadAccount();
+        });
+
         // ---- Discussing a saved opportunity -----------------------------------
         // Each opportunity keeps its own conversation in this browser; the server
         // holds the one daily message limit shared by all opportunities and tabs.
@@ -1934,15 +2123,15 @@
                 const data = await response.json().catch(() => ({}));
                 if (data.quota) discussState.quota = data.quota;
                 if (!response.ok || !data.reply) {
-                    const message = data.errorCode === 'DAILY_BUDGET_REACHED' && data.resetsAt ? t.budgetReached(data.resetsAt) : t.errorCodes[data.errorCode] || t.error;
-                    throw Object.assign(new Error(message), { code: data.errorCode });
+                    throw Object.assign(new Error(limitError(data, t)), { code: data.errorCode });
                 }
+                if (data.access) renderAccess(data.access);
                 pending.textContent = data.reply.replace(/\*\*|__|^#+\s*/gm, '');
                 // Only answered messages are kept, so a retry never duplicates a turn.
                 writeStore(key, [...history, { role: 'user', content: message }, { role: 'assistant', content: data.reply }].slice(-40));
             } catch (error) {
                 const box = el('div');
-                const waitOnly = ['DAILY_BUDGET_REACHED', 'DISCUSS_LIMIT_REACHED'].includes(error.code);
+                const waitOnly = WAIT_ONLY.includes(error.code);
                 box.appendChild(document.createTextNode(waitOnly ? error.message : `${t.discussFailed} ${error.message}`));
                 if (!waitOnly && !(discussState.quota && discussState.quota.remaining <= 0)) {
                     box.appendChild(chipRow([{ label: t.discussRetry, value: 'retry', className: 'chip-primary' }], () => {
@@ -1974,6 +2163,7 @@
 
         startChat();
         if (readStore(STORE.lang, 'ar') === 'en') setLanguage('en');
+        loadAccount();
         const saved = readStore(STORE.lastReport, null);
         if (saved?.report && Array.isArray(saved.report.opportunities)) {
             lastReport = saved.report;

@@ -76,6 +76,10 @@ function getConfig(env = process.env) {
         // across all opportunities and tabs, enforced by the server.
         discussPerDay: numericSetting(env, "QL_MAX_DISCUSS_PER_DAY", 30, 1, 1000),
         discussPerMinute: numericSetting(env, "QL_MAX_DISCUSS_PER_MINUTE", 6, 1, 100),
+        // Expected cost of one search or message, used to decide whether it still
+        // fits a trial limit before running it (the real cost is charged after).
+        searchEstimateUsd: numericSetting(env, "QL_SEARCH_ESTIMATE_USD", 0.08, 0.001, 10),
+        discussEstimateUsd: numericSetting(env, "QL_DISCUSS_ESTIMATE_USD", 0.002, 0.0001, 1),
         maxSettingsCharacters: numericSetting(env, "QL_MAX_SETTINGS_CHARACTERS", 4000, 100, 20000),
         maxRequestBodyBytes: numericSetting(env, "QL_MAX_REQUEST_BODY_BYTES", 16000, 1000, 100000),
         maxOutputTokens: numericSetting(env, "QL_MAX_OUTPUT_TOKENS", 16384, 512, 32768),

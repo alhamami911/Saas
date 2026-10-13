@@ -2,7 +2,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { randomBytes, scryptSync, timingSafeEqual, createHash } = require("node:crypto");
+const { randomBytes, randomUUID, scryptSync, timingSafeEqual, createHash } = require("node:crypto");
 
 const KEY_PATTERN = /^[A-Za-z0-9_\-.]{20,200}$/;
 const CLAUDE_KEY_PATTERN = /^sk-ant-[A-Za-z0-9_\-]{20,300}$/;
@@ -179,6 +179,122 @@ function createSettingsStore({ dataDir, env = process.env }) {
         return { ok: true };
     }
 
+    // ---- Trial plan and accounts ------------------------------------------
+    // The plan divides a credit budget between trial accounts and a small shared
+    // visitor pool; each account has its own username and a scrypt password hash.
+    const DEFAULT_PLAN = { totalBudgetUsd: 20, accounts: 50, periodDays: 30, visitorSharePct: 10, reservePct: 10 };
+    const USERNAME_PATTERN = /^[a-z0-9][a-z0-9_.-]{2,31}$/;
+
+    function plan() {
+        return { ...DEFAULT_PLAN, ...(state.plan || {}), id: state.plan?.id || "default", startedAt: state.plan?.startedAt || null };
+    }
+
+    function setPlan(input) {
+        const number = (value, min, max) => {
+            const parsed = Number(value);
+            return Number.isFinite(parsed) && parsed >= min && parsed <= max ? parsed : null;
+        };
+        const next = {
+            totalBudgetUsd: number(input.totalBudgetUsd, 1, 100000),
+            accounts: number(input.accounts, 1, 10000),
+            periodDays: number(input.periodDays, 1, 366),
+            visitorSharePct: number(input.visitorSharePct, 0, 90),
+            reservePct: number(input.reservePct, 0, 50)
+        };
+        if (Object.values(next).some((value) => value === null)) return { error: "Check the plan values" };
+        if (next.visitorSharePct + next.reservePct >= 100) return { error: "Visitor share and reserve must leave room for accounts" };
+        // A new budget starts a new period: spend counters are kept per plan id.
+        const restart = Boolean(input.restart) || !state.plan?.id;
+        state.plan = { ...next, id: restart ? randomUUID() : state.plan.id, startedAt: restart ? new Date().toISOString() : state.plan.startedAt };
+        save();
+        return { ok: true, plan: plan() };
+    }
+
+    function publicAccount(account) {
+        if (!account) return null;
+        const { passwordHash, ...rest } = account;
+        return rest;
+    }
+
+    function accounts() {
+        return (state.accounts || []).map(publicAccount);
+    }
+
+    function findAccount(id) {
+        return (state.accounts || []).find((account) => account.id === id) || null;
+    }
+
+    function randomPassword() {
+        // Readable characters only, 14 long: about 80 bits.
+        const alphabet = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        const bytes = randomBytes(14);
+        return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
+    }
+
+    // Creates accounts trial01, trial02, ... and returns their passwords once.
+    function generateAccounts(count, prefix = "trial") {
+        const total = Math.max(1, Math.min(500, Number(count) || 0));
+        if (!/^[a-z][a-z0-9]{1,15}$/.test(prefix)) return { error: "Prefix must be lowercase letters and digits" };
+        state.accounts = state.accounts || [];
+        const taken = new Set(state.accounts.map((account) => account.username));
+        const created = [];
+        for (let index = 1; created.length < total && index < 100000; index += 1) {
+            const username = `${prefix}${String(index).padStart(2, "0")}`;
+            if (taken.has(username)) continue;
+            const password = randomPassword();
+            const account = { id: randomUUID(), username, passwordHash: hashPassword(password), createdAt: new Date().toISOString(), activatedAt: null, disabled: false };
+            state.accounts.push(account);
+            taken.add(username);
+            created.push({ id: account.id, username, password });
+        }
+        save();
+        return { ok: true, created };
+    }
+
+    function updateAccount(id, { disabled }) {
+        const account = findAccount(id);
+        if (!account) return { error: "Account not found" };
+        if (typeof disabled === "boolean") account.disabled = disabled;
+        save();
+        return { ok: true, account: publicAccount(account) };
+    }
+
+    function resetAccountPassword(id) {
+        const account = findAccount(id);
+        if (!account) return { error: "Account not found" };
+        const password = randomPassword();
+        account.passwordHash = hashPassword(password);
+        account.passwordChangedAt = new Date().toISOString();
+        save();
+        return { ok: true, username: account.username, password };
+    }
+
+    function deleteAccount(id) {
+        const before = (state.accounts || []).length;
+        state.accounts = (state.accounts || []).filter((account) => account.id !== id);
+        save();
+        return before === state.accounts.length ? { error: "Account not found" } : { ok: true };
+    }
+
+    // Checks a trial login; the trial period starts at the first successful sign-in.
+    function verifyAccount(username, password) {
+        const name = String(username || "").trim().toLowerCase();
+        if (!USERNAME_PATTERN.test(name) || typeof password !== "string" || !password) return null;
+        const account = (state.accounts || []).find((item) => item.username === name);
+        if (!account || !passwordMatches(password, account.passwordHash)) return null;
+        if (!account.activatedAt) {
+            account.activatedAt = new Date().toISOString();
+            save();
+        }
+        return publicAccount(account);
+    }
+
+    // Changes when the account's password changes, which signs out its old sessions.
+    function accountFingerprint(id) {
+        const account = findAccount(id);
+        return account ? sha256(account.passwordHash).toString("hex") : null;
+    }
+
     // Changes whenever the admin password changes, which invalidates old sessions.
     function credentialFingerprint() {
         return sha256(state.adminPasswordHash || env.ADMIN_PASSWORD || "").toString("hex");
@@ -199,7 +315,17 @@ function createSettingsStore({ dataDir, env = process.env }) {
         adminConfigured,
         verifyAdminPassword,
         setAdminPassword,
-        credentialFingerprint
+        credentialFingerprint,
+        plan,
+        setPlan,
+        accounts,
+        findAccount: (id) => publicAccount(findAccount(id)),
+        generateAccounts,
+        updateAccount,
+        resetAccountPassword,
+        deleteAccount,
+        verifyAccount,
+        accountFingerprint
     };
 }
 

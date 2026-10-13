@@ -262,3 +262,57 @@ test("generate endpoint runs the research handler", async () => {
         assert.equal((await call("/api/generate")).status, 405);
     });
 });
+
+test("trial accounts: admin creates them, users sign in, resets end old sessions", async () => {
+    await withServer(async ({ call, login }) => {
+        assert.equal((await call("/admin/api/accounts")).status, 401, "accounts are admin-only");
+        const admin = await login();
+        const created = await call("/admin/api/accounts", { method: "POST", cookie: admin, body: { count: 2 } });
+        assert.equal(created.status, 200);
+        assert.deepEqual(created.data.created.map((item) => item.username), ["trial01", "trial02"]);
+        const [first] = created.data.created;
+        assert.equal(first.password.length, 14);
+        const listed = await call("/admin/api/accounts", { cookie: admin });
+        assert.equal(listed.data.accounts.length, 2);
+        assert.ok(listed.data.accounts.every((account) => !("passwordHash" in account) && !("password" in account)), "passwords are shown once only");
+
+        const wrong = await call("/api/account/login", { method: "POST", csrf: false, body: { username: "trial01", password: "nope" } });
+        assert.equal(wrong.status, 401);
+        const crossSite = await call("/api/account/login", { method: "POST", csrf: false, headers: { Origin: "https://evil.example" }, body: { username: "trial01", password: first.password } });
+        assert.equal(crossSite.status, 403);
+        const signedIn = await call("/api/account/login", { method: "POST", csrf: false, body: { username: "TRIAL01", password: first.password } });
+        assert.equal(signedIn.status, 200);
+        assert.match(signedIn.cookie, /^ql_user=/);
+        const me = await call("/api/account", { cookie: signedIn.cookie });
+        assert.equal(me.data.signedIn, true);
+        assert.equal(me.data.username, "trial01");
+        const afterList = await call("/admin/api/accounts", { cookie: admin });
+        assert.ok(afterList.data.accounts[0].activatedAt, "the trial starts at the first sign-in");
+        assert.ok(afterList.data.accounts[0].expiresAt);
+
+        const reset = await call(`/admin/api/accounts/${first.id}/password`, { method: "POST", cookie: admin });
+        assert.equal(reset.status, 200);
+        assert.notEqual(reset.data.password, first.password);
+        assert.equal((await call("/api/account", { cookie: signedIn.cookie })).data.signedIn, false, "a reset signs the old session out");
+        const disabled = await call(`/admin/api/accounts/${first.id}`, { method: "PUT", cookie: admin, body: { disabled: true } });
+        assert.equal(disabled.data.account.disabled, true);
+        const removed = await call(`/admin/api/accounts/${created.data.created[1].id}`, { method: "DELETE", cookie: admin });
+        assert.equal(removed.status, 200);
+        assert.equal((await call("/admin/api/accounts", { cookie: admin })).data.accounts.length, 1);
+    });
+});
+
+test("the trial plan is validated and its limits are shown to the admin", async () => {
+    await withServer(async ({ call, login }) => {
+        const admin = await login();
+        const plan = await call("/admin/api/plan", { cookie: admin });
+        assert.equal(plan.data.plan.totalBudgetUsd, 20);
+        assert.equal(plan.data.limits.perAccount.period.toFixed(2), "0.32");
+        const bad = await call("/admin/api/plan", { method: "PUT", cookie: admin, body: { totalBudgetUsd: 20, accounts: 50, periodDays: 30, visitorSharePct: 60, reservePct: 40 } });
+        assert.equal(bad.status, 400);
+        const good = await call("/admin/api/plan", { method: "PUT", cookie: admin, body: { totalBudgetUsd: 40, accounts: 50, periodDays: 30, visitorSharePct: 10, reservePct: 10, restart: true } });
+        assert.equal(good.status, 200);
+        assert.equal(good.data.plan.totalBudgetUsd, 40);
+        assert.ok(good.data.plan.startedAt);
+    });
+});

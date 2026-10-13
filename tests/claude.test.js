@@ -113,6 +113,10 @@ function fakeRedis(seen = []) {
         const [name, a, , key, arg1, arg2] = command;
         if (name === "SMEMBERS") return seen;
         if (name === "GET") return store.get(a) ?? null;
+        if (name === "SET") {
+            store.set(a, command[2]);
+            return "OK";
+        }
         if (name === "LRANGE") return [];
         if (name !== "EVAL") return 0;
         if (a.includes("local results")) return [1, 1, 1];
@@ -352,5 +356,25 @@ test("when the AI credit is used up the search says so instead of returning a th
         } finally {
             claude.setClientFactory(previous);
         }
+    });
+});
+
+test("a repeated search reuses cached marketplace results and pages, and says so", async () => {
+    await withEnv({}, async ({ calls }) => {
+        const first = JSON.parse((await search()).body);
+        const searchesFirst = calls.filter((call) => call.tools?.[0]?.name === "web_search").length;
+        const fetchesFirst = calls.filter((call) => call.tools?.[0]?.name === "web_fetch").length;
+        assert.equal(searchesFirst, 8);
+        assert.ok(fetchesFirst > 0);
+        const before = calls.length;
+        const second = JSON.parse((await search()).body);
+        assert.equal(calls.filter((call) => call.tools?.[0]?.name === "web_search").length, searchesFirst, "no new paid searches");
+        // Pages that were read are reused; pages that failed are tried again.
+        const readAgain = calls.slice(before).filter((call) => call.tools?.[0]?.name === "web_fetch" && Object.keys(PAGES).some((url) => call.messages[0].content.includes(url)));
+        assert.equal(readAgain.length, 0, "no new reads of pages already read");
+        const codecanyon = second.coverage.find((entry) => entry.source === "CodeCanyon");
+        assert.equal(codecanyon.cached, true);
+        assert.equal(codecanyon.cachedAt, first.coverage.find((entry) => entry.source === "CodeCanyon").startedAt, "the log keeps when the search really ran");
+        assert.deepEqual(second.opportunities.map((o) => o.productName), first.opportunities.map((o) => o.productName));
     });
 });
