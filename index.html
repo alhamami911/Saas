@@ -1760,6 +1760,9 @@
                 reportBubble.appendChild(output);
                 chatState.reportSlot = reportBubble;
                 chatState.step = 'results';
+                // The report is shown: accept the next message while the follow-up types.
+                chatState.busy = false;
+                setBusy(false);
                 await botSay(c.followUp);
             } catch (error) {
                 card.stop(true);

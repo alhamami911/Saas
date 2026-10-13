@@ -79,7 +79,7 @@ export default async function run(page) {
     await clickChip("متابعة");
     await page.waitForSelector(".summary-list");
     await clickChip("ابدأ البحث");
-    await page.waitForSelector(".progress .progress-steps li.active");
+    await page.waitForSelector(".progress", { state: "attached" });
     await page.locator(".bubble .results-table .result-row").first().waitFor({ state: "visible" });
 
     const table = await page.evaluate(() => ({
