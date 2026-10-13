@@ -140,4 +140,8 @@ async function testClaudeKey(apiKey, model, { research = false } = {}) {
     }
 }
 
-module.exports = { runClaudeResearch, testClaudeKey, setClientFactory, webSearchTool };
+function claudeClient(config) {
+    return createClient({ apiKey: config.apiKey, maxRetries: 1, timeout: config.requestTimeoutMs });
+}
+
+module.exports = { runClaudeResearch, testClaudeKey, setClientFactory, webSearchTool, claudeClient, classifyError };

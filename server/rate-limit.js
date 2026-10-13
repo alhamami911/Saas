@@ -83,4 +83,17 @@ async function checkRateLimit(event, config, now = Date.now()) {
     }
 }
 
-module.exports = { checkRateLimit, clientHash };
+// Gives back the day's search when it failed, so a failed attempt is not charged.
+async function refundRateLimit(event, config, now = Date.now()) {
+    if (!config.redisUrl || !config.redisToken || !config.rateLimitSalt) return;
+    const day = new Date(now).toISOString().slice(0, 10);
+    const ipHash = clientHash(event, config);
+    await fetch(config.redisUrl, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${config.redisToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify(["EVAL", "local v = tonumber(redis.call('GET', KEYS[1]) or '0') if v > 0 then return redis.call('DECR', KEYS[1]) end return 0", 1, `ql:limit:ip-day:${ipHash}:${day}`]),
+        signal: AbortSignal.timeout(3000)
+    });
+}
+
+module.exports = { checkRateLimit, refundRateLimit, clientHash };

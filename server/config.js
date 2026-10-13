@@ -72,6 +72,10 @@ function getConfig(env = process.env) {
         maxRequestsPerMinutePerIp: numericSetting(env, "QL_MAX_REQUESTS_PER_MINUTE_PER_IP", 3, 1, 100),
         maxRequestsPerDayPerIp: numericSetting(env, "QL_MAX_REQUESTS_PER_DAY_PER_IP", 30, 1, 1000),
         maxRequestsPerDayGlobal: numericSetting(env, "QL_MAX_REQUESTS_PER_DAY_GLOBAL", 200, 1, 100000),
+        // Discussion messages about saved opportunities: one daily limit per visitor
+        // across all opportunities and tabs, enforced by the server.
+        discussPerDay: numericSetting(env, "QL_MAX_DISCUSS_PER_DAY", 30, 1, 1000),
+        discussPerMinute: numericSetting(env, "QL_MAX_DISCUSS_PER_MINUTE", 6, 1, 100),
         maxSettingsCharacters: numericSetting(env, "QL_MAX_SETTINGS_CHARACTERS", 4000, 100, 20000),
         maxRequestBodyBytes: numericSetting(env, "QL_MAX_REQUEST_BODY_BYTES", 16000, 1000, 100000),
         maxOutputTokens: numericSetting(env, "QL_MAX_OUTPUT_TOKENS", 16384, 512, 32768),

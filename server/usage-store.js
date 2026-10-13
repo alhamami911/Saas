@@ -87,10 +87,40 @@ function createUsageEvent(fields) {
     return {
         requestId: randomUUID(),
         createdAt: new Date().toISOString(),
-        provider: "google_gemini",
+        provider: fields.provider || "claude",
         actualProviderBilling: "not_available_from_api_response",
         ...fields
     };
 }
 
-module.exports = { createUsageEvent, storeUsage, utcDayInfo, dailySpendUsd, addDailySpend };
+// The most recent requests, newest first, for the admin cost view.
+const RECENT_KEY = "ql:usage:recent";
+async function recordRecent(config, event) {
+    const entry = {
+        requestId: event.requestId,
+        createdAt: event.createdAt,
+        kind: event.kind || "search",
+        outcome: event.outcome,
+        model: event.model,
+        elapsedMs: event.elapsedMs,
+        verifiedCount: event.verifiedCount ?? null,
+        reviewCount: event.reviewCount ?? null,
+        coverage: event.coverage || null,
+        usage: event.usage || null,
+        estimatedCosts: event.estimatedCosts || null
+    };
+    await redisCommand(config, ["EVAL", "redis.call('LPUSH', KEYS[1], ARGV[1]) redis.call('LTRIM', KEYS[1], 0, 199) return 1", 1, RECENT_KEY, JSON.stringify(entry)]);
+}
+
+async function recentUsage(config, count = 50) {
+    const rows = await redisCommand(config, ["LRANGE", RECENT_KEY, 0, Math.max(0, count - 1)]);
+    return (Array.isArray(rows) ? rows : []).map((row) => {
+        try {
+            return JSON.parse(row);
+        } catch (error) {
+            return null;
+        }
+    }).filter(Boolean);
+}
+
+module.exports = { createUsageEvent, storeUsage, utcDayInfo, dailySpendUsd, addDailySpend, recordRecent, recentUsage, redisCommand };

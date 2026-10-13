@@ -338,7 +338,7 @@ test("mocked handler accepts 5, 10, and 20 results and returns per-opportunity c
                 assert.equal(data.requestedCount, count);
                 assert.equal(data.opportunities.length, count);
                 assert.ok(data.opportunities.every((item) => item.supportingSources.length > 0));
-                assert.equal(data.estimatedCosts.actualBilling, undefined);
+                assert.equal(data.estimatedCosts, undefined, "costs are shown on the admin page only");
                 assert.ok(data.requestId);
             }
         } finally {
@@ -437,12 +437,15 @@ test("eligibility gate keeps only licensed, capable, in-budget products and list
         item("conditional", { commercialUse: { status: "conditional" }, license: { name: "Regular License", status: "verified" }, price: { status: "verified", amount: "49", currency: "USD" } })
     ] };
     const result = partitionEligible(research, { opportunityCount: 5, budget: "حتى 500 دولار" });
-    assert.deepEqual(result.opportunities.map((o) => o.productName), ["ok", "conditional"]);
-    assert.equal(result.verifiedCount, 2);
+    assert.deepEqual(result.opportunities.map((o) => o.productName), [], "unknown prices are never treated as within budget");
+    assert.equal(result.verifiedCount, 0);
     assert.deepEqual(result.alternatives.map((o) => [o.productName, o.reasons.join()]), [
-        ["unclear", "license_unclear"], ["restricted", "license_restricted"], ["lacks-api", "missing_capability"], ["pricey", "over_budget"]
+        ["ok", "budget_unverified"], ["unclear", "license_unclear,budget_unverified"], ["restricted", "license_restricted,budget_unverified"],
+        ["lacks-api", "missing_capability,budget_unverified"], ["pricey", "over_budget"], ["conditional", "budget_unverified"]
     ]);
-    assert.equal(result.opportunities[1].budgetFit, "unknown", "a Regular License price is not the price of the licence needed");
+    const free = partitionEligible({ opportunities: [item("repo", { originType: "repository", requirements: [{ capability: "rtl_support", status: "verified" }] }), item("repo2", { originType: "repository", requirements: [{ capability: "rtl_support", status: "unverified" }] })] }, { opportunityCount: 5, budget: "حتى 100 دولار" });
+    assert.deepEqual(free.opportunities.map((o) => o.productName), ["repo"], "a free open-source product with every capability verified is eligible");
+    assert.deepEqual(free.alternatives[0].reasons, ["capability_unverified"]);
     assert.equal(budgetFitFor(item("x", { price: { status: "verified", amount: "$120", currency: "USD" } }), "حتى 500 دولار"), "within");
     assert.equal(budgetFitFor(item("x"), "مفتوح"), "open");
     assert.equal(budgetFitFor(item("repo", { originType: "repository" }), "حتى 100 دولار"), "free");

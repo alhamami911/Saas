@@ -128,7 +128,7 @@ function isProductPage(value) {
 // Listings whose own search title says they are gone are never shown as opportunities.
 const CLOSED_LISTING = /\b(sold on|listing ended|auction ended|listing closed|no longer available)\b/i;
 // License families, from most to least restrictive for a paid hosted service.
-const RESTRICTED_LICENSE = /(SSPL|BUSL|Business Source|Commons Clause|Elastic License|non-?commercial|CC[- ]?BY[- ]?NC)/i;
+const RESTRICTED_LICENSE = /(SSPL|BUSL|\bBSL\b|Business Source|Commons Clause|Elastic License|non-?commercial|CC[- ]?BY[- ]?NC)/i;
 const NETWORK_COPYLEFT = /AGPL|Affero/i;
 const COPYLEFT_LICENSE = /\b(L?GPL|MPL|EPL|EUPL|GNU)\b/i;
 const PERMISSIVE_LICENSE = /\b(MIT|Apache|BSD|ISC|Unlicense|Zlib|0BSD|PostgreSQL)\b/i;
@@ -199,13 +199,13 @@ function budgetLimit(budget) {
 // is the price of the licence the investor would actually need.
 function budgetFitFor(opportunity, budget) {
     const limit = budgetLimit(budget);
-    if (limit === null) return "open";
     const price = opportunity.price;
-    if (/regular license/i.test(opportunity.license?.name || "")) return "unknown";
     // An open-source repository with a verified licence costs nothing to license.
     if (opportunity.originType === "repository" && opportunity.license?.status === "verified"
         && ["allowed", "conditional"].includes(opportunity.commercialUse?.status)
         && !/regular|extended/i.test(opportunity.license.name || "")) return "free";
+    if (limit === null) return "open";
+    if (/regular license/i.test(opportunity.license?.name || "")) return "unknown";
     if (price?.status !== "verified" || !/^(USD|\$|US\$)$/i.test(String(price.currency || "").trim())) return "unknown";
     const amount = Number.parseFloat(String(price.amount).replace(/[^0-9.]/g, ""));
     if (!Number.isFinite(amount)) return "unknown";
@@ -222,15 +222,21 @@ function partitionEligible(research, request) {
     for (const opportunity of research.opportunities) {
         const withFit = { ...opportunity, budgetFit: budgetFitFor(opportunity, request.budget) };
         const reasons = [];
-        if (opportunity.commercialUse?.status === "restricted") reasons.push("license_restricted");
+        const requirements = opportunity.requirements || [];
+        if (opportunity.commercialUse?.notPerpetual) reasons.push("license_not_perpetual");
+        else if (opportunity.commercialUse?.status === "restricted") reasons.push("license_restricted");
         if (opportunity.commercialUse?.status === "unclear") reasons.push("license_unclear");
-        if ((opportunity.requirements || []).some((entry) => entry.status === "absent")) reasons.push("missing_capability");
+        if (opportunity.license?.status !== "verified" && opportunity.commercialUse?.status !== "unclear") reasons.push("license_unclear");
+        // A mandatory capability counts only when a source shows it.
+        if (requirements.some((entry) => entry.status === "absent")) reasons.push("missing_capability");
+        if (requirements.some((entry) => entry.status === "unverified")) reasons.push("capability_unverified");
         if (withFit.budgetFit === "over") reasons.push("over_budget");
+        if (withFit.budgetFit === "unknown") reasons.push("budget_unverified");
         if (reasons.length) alternatives.push({ ...withFit, reasons });
         else eligible.push(withFit);
     }
     const accepted = eligible.slice(0, request.opportunityCount);
-    return { ...research, opportunities: accepted, alternatives: alternatives.slice(0, 8), verifiedCount: accepted.length };
+    return { ...research, opportunities: accepted, alternatives: alternatives.slice(0, 12), verifiedCount: accepted.length };
 }
 
 function validateResearchResult(responseText, groundingChunks, requestedCount, verifiedAt = new Date(), language = "ar", filters = []) {
@@ -510,6 +516,7 @@ function catalogueChunks(candidates) {
 }
 
 module.exports = {
+    FILTER_DESCRIPTIONS,
     CLOSED_LISTING,
     RESEARCH_SCHEMA,
     isProductPage,

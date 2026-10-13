@@ -153,12 +153,14 @@ async function collectCandidates(request, { envatoToken, githubToken } = {}) {
     if (envatoToken) tasks.push(["CodeCanyon", () => searchCodeCanyon(terms, { token: envatoToken, maxPriceUsd: budgetCap(request.budget) })]);
 
     const results = await Promise.all(tasks.map(async ([source, run]) => {
+        const started = Date.now();
         try {
             const items = (await run()).filter((item) => item.url && item.name);
-            return { source, items, coverage: { source, method: "official_api", status: "ok", count: items.length } };
+            return { source, items, coverage: { source, method: "official_api", status: "ok", count: items.length, ms: Date.now() - started } };
         } catch (error) {
             console.error(`Catalogue search failed for ${source}`, error.message);
-            return { source, items: [], coverage: { source, method: "official_api", status: "error", count: 0 } };
+            const reason = error.name === "TimeoutError" ? "timeout" : error.status ? `HTTP ${error.status}` : "request_failed";
+            return { source, items: [], coverage: { source, method: "official_api", status: "error", error: reason, count: 0, ms: Date.now() - started } };
         }
     }));
     return {

@@ -227,7 +227,10 @@
         .coverage, .alternatives { margin-top: 12px; font-size: 0.88rem; }
         .coverage summary, .alternatives summary { cursor: pointer; font-weight: 600; color: var(--text-secondary); }
         .coverage ul, .alternatives ul { margin: 8px 0 0; padding-inline-start: 22px; }
-        .coverage li { margin: 3px 0; }
+        .coverage li { margin: 8px 0; }
+        .cov-meta { color: var(--text-secondary); font-size: 0.82rem; overflow-wrap: anywhere; }
+        .coverage details summary, .alternatives details summary { font-weight: 400; color: var(--text-primary); }
+        .alternatives details .opportunity { margin-top: 8px; }
         .cov-found { color: #1e8e3e; } .cov-no_results { color: var(--text-secondary); } .cov-error, .cov-not_checked { color: #d93025; }
         .coverage-warn { margin: 8px 0 0; color: #d93025; font-weight: 600; }
         .alternatives { padding: 12px 14px; border: 1px dashed var(--border-color); border-radius: 12px; }
@@ -240,6 +243,14 @@
         .chip-default { border-color: var(--primary-color); }
         .progress.done .progress-steps { display: none; }
         .restored-note { margin: 0 0 10px; }
+        .discuss-head { width: 100%; max-width: 860px; margin: 0 auto; padding: 16px 24px 0; display: flex; gap: 14px; align-items: center; }
+        .discuss-title h2 { margin: 0; font-size: 1.1rem; }
+        .discuss-title .hint { margin: 2px 0 0; }
+        .quota-out { color: #d93025; font-weight: 600; }
+        .discuss-bubble { white-space: pre-wrap; }
+        .discuss-btn { margin-inline-end: 8px; }
+        .card-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+        @media (max-width: 560px) { .discuss-head { padding: 12px 14px 0; flex-direction: column; align-items: flex-start; } }
     </style>
 </head>
 <body>
@@ -334,6 +345,26 @@
                 <section class="report-container" id="reportOutput" aria-live="polite"></section>
             </div>
         </section>
+
+        <main class="chat-page view hidden" id="view-discuss">
+            <div class="discuss-head">
+                <button type="button" class="btn-secondary" id="discussBack" data-i18n="discussBack">رجوع إلى قائمة المتابعة</button>
+                <div class="discuss-title">
+                    <h2 id="discussTitle"></h2>
+                    <p class="hint" id="discussQuota" role="status"></p>
+                </div>
+            </div>
+            <div class="chat-scroll" id="discussScroll"><div class="chat" id="discussLog" aria-live="polite"></div></div>
+            <div class="composer-wrap">
+                <div class="composer">
+                    <textarea id="discussInput" rows="1" maxlength="1000"></textarea>
+                    <button type="button" class="send-btn" id="discussSend">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                </div>
+                <p class="composer-hint" id="discussHint"></p>
+            </div>
+        </main>
 
         <section class="page view hidden" id="view-watchlist">
             <div class="page-inner">
@@ -437,14 +468,14 @@
                     summary: 'هذا ملخص طلبك:', labels: { description: 'الفكرة', country: 'السوق', industry: 'القطاع', budget: 'الميزانية', goal: 'الهدف', filters: 'الخصائص' },
                     none: 'بلا شروط إضافية', go: 'ابدأ البحث', edit: 'تعديل الإجابات',
                     searching: 'أبحث في الأسواق وأحلل الفرص…',
-                    steps: ['أفحص قواعد بيانات GitHub وGitLab وقائمة Awesome Selfhosted', 'أبحث داخل CodeCanyon وCodester والأسواق الأخرى', 'أتحقق من التراخيص والأسعار وتوفر كل منتج', 'أكتب لك التحليل وأرتب الفرص'],
+                    steps: ['أبحث في المصادر المعتمدة الأحد عشر، كل مصدر على حدة', 'أقرأ صفحات المنتجات المرشحة', 'أتحقق من الترخيص والخصائص المطلوبة والسعر من نص الصفحات', 'أطبّق شروط الأهلية وأرتب الفرص'],
                     found: (n) => n ? `وجدت لك ${n} من الفرص المؤهلة: ترخيصها يسمح بتشغيلها تجارياً كـ SaaS (أو يسمح بذلك بشرط موضّح)، ولا تنقصها خاصية مطلوبة. رتّبتها من الأنسب إلى الأقل ملاءمة؛ اضغط على أي فرصة لقراءة تحليلها وما لم يُتحقق منه.` : 'لم أجد هذه المرة فرصاً تجتاز شروط الترخيص والخصائص والميزانية. راجع قائمة المنتجات المستبعدة أسفل التقرير، أو جرّب وصفاً مختلفاً.',
                     followUp: 'هل تريد المزيد؟ اطلب 5 فرص إضافية من أسفل الجدول، أو اكتب لي وصفاً جديداً لأبحث به مباشرة.',
                     failed: 'تعذّر إكمال البحث:', retry: 'حاول مرة أخرى', restart: 'بحث جديد',
                     noted: 'سأبحث بهذا الوصف مع إبقاء إجاباتك السابقة.',
                     examples: ['نظام محاسبة وفوترة إلكترونية متوافق مع هيئة الزكاة (ZATCA)', 'منصة حجوزات للعيادات تدعم العربية', 'متجر إلكتروني متعدد البائعين بعلامة بيضاء', 'مشروع SaaS قائم للبيع بأقل من 5,000 دولار']
                 },
-                moreBtn: 'ابحث عن 5 فرص إضافية', moreLoading: 'جاري البحث عن فرص إضافية...', moreNone: 'لم نجد فرصاً جديدة إضافية لهذا البحث. جرّب تعديل الوصف أو التخصيص.', moreAdded: 'أُضيفت فرص جديدة إلى الجدول:',
+                moreBtn: 'ابحث عن 5 فرص إضافية', moreLoading: 'جاري البحث عن فرص إضافية...', moreNone: 'لم نجد فرصاً مؤهلة جديدة لهذا البحث. راجع قائمة «للمراجعة» أو جرّب وصفاً مختلفاً.', moreAdded: 'أُضيفت فرص مؤهلة جديدة إلى الجدول:', moreShort: (n) => `وُجدت ${n} فرص مؤهلة جديدة فقط من 5 مطلوبة؛ لم يجتز الباقي شروط الأهلية.`,
                 sourceTitle: 'المصادر والروابط الموثقة', tokenIn: 'توكن الإدخال', tokenOut: 'توكن الإخراج', total: 'إجمالي التوكنز', cost: 'التكلفة التقديرية',
                 error: 'حدث خطأ في الاتصال بالخادم.', invalid: 'لم يُرجع الخادم تقريراً صالحاً.',
                 found: 'فرص موثّقة', requested: 'المطلوب', excluded: 'نتائج استُبعدت لنقص الأدلة',
@@ -467,7 +498,12 @@
                     OUTPUT_LIMIT_REACHED: 'التقرير أطول من الحد المسموح. اطلب عدداً أقل من الفرص.',
                     CLAUDE_KEY_MISSING: 'خدمة البحث غير مهيأة بعد. يرجى إبلاغ مسؤول الموقع.',
                     GEMINI_KEY_MISSING: 'خدمة البحث غير مهيأة بعد. يرجى إبلاغ مسؤول الموقع.',
-                    INVALID_SETTINGS: 'يرجى اختيار جميع الحقول المطلوبة.'
+                    INVALID_SETTINGS: 'يرجى اختيار جميع الحقول المطلوبة.',
+                    AI_UNAVAILABLE: 'تعذّر الوصول إلى خدمة التحليل. حاول مرة أخرى بعد قليل.',
+                    AI_REQUEST_FAILED: 'تعذّر إكمال التحليل. حاول مرة أخرى؛ المحاولة الفاشلة لا تُحتسب.',
+                    RATE_LIMIT_UNAVAILABLE: 'الخدمة غير متاحة مؤقتاً. حاول بعد قليل.',
+                    DISCUSS_LIMIT_REACHED: 'استُهلكت رسائل المناقشة لهذا اليوم.',
+                    NETWORK: 'انقطع الاتصال بالخادم. تحقق من الإنترنت ثم أعد المحاولة.'
                 },
                 commercialUse: 'الاستخدام التجاري كـ SaaS', commercial_allowed: 'مسموح', commercial_restricted: 'مقيَّد', commercial_unclear: 'غير واضح — راجع الترخيص قبل الشراء',
                 modelCost: 'تكلفة النموذج المقدرة', searchCost: 'رسوم البحث المقدرة', totalCost: 'الإجمالي المقدر',
@@ -498,14 +534,14 @@
                     summary: 'Here is your request:', labels: { description: 'Idea', country: 'Market', industry: 'Industry', budget: 'Budget', goal: 'Goal', filters: 'Capabilities' },
                     none: 'No extra requirements', go: 'Start the search', edit: 'Change answers',
                     searching: 'Searching marketplaces and analysing opportunities…',
-                    steps: ['Checking GitHub, GitLab and Awesome Selfhosted', 'Searching CodeCanyon, Codester and other marketplaces', 'Verifying licenses, prices and availability', 'Writing your analysis and ranking the opportunities'],
+                    steps: ['Searching each of the eleven approved sources', 'Reading the candidate product pages', 'Checking licence, required capabilities and price from the page text', 'Applying the eligibility rules and ranking'],
                     found: (n) => n ? `I found ${n} eligible opportunities: their licence allows running them as a paid SaaS (or allows it on a stated condition) and none lacks a required capability. They are ranked from best fit down; click a row for its analysis and what could not be verified.` : 'This time nothing passed the licence, capability and budget checks. See the excluded products below the report, or try a different description.',
                     followUp: 'Want more? Ask for 5 more below the table, or type a new description and I will search with it right away.',
                     failed: 'The search could not finish:', retry: 'Try again', restart: 'New search',
                     noted: 'I will search with this description and keep your other answers.',
                     examples: ['Accounting and ZATCA e-invoicing system', 'Clinic booking platform with Arabic support', 'White-label multi-vendor marketplace', 'Existing SaaS business for sale under $5,000']
                 },
-                moreBtn: 'Find 5 more opportunities', moreLoading: 'Searching for more opportunities...', moreNone: 'No new opportunities found for this search. Try changing the description or filters.', moreAdded: 'New opportunities added to the table:',
+                moreBtn: 'Find 5 more opportunities', moreLoading: 'Searching for more opportunities...', moreNone: 'No new eligible opportunities for this search. See the review list or try a different description.', moreAdded: 'New eligible opportunities added to the table:', moreShort: (n) => `Only ${n} new eligible opportunities of the 5 requested; the rest failed the eligibility rules.`,
                 sourceTitle: 'Verified sources & links', tokenIn: 'Prompt tokens', tokenOut: 'Completion tokens', total: 'Total tokens', cost: 'Estimated cost',
                 error: 'An error occurred while contacting the server.', invalid: 'The server did not return a valid report.',
                 found: 'Verified opportunities', requested: 'Requested', excluded: 'Excluded for insufficient verification',
@@ -528,7 +564,12 @@
                     OUTPUT_LIMIT_REACHED: 'The report was too long. Request fewer opportunities.',
                     CLAUDE_KEY_MISSING: 'Search is not set up yet. Please tell the site administrator.',
                     GEMINI_KEY_MISSING: 'Search is not set up yet. Please tell the site administrator.',
-                    INVALID_SETTINGS: 'Please fill in all required fields.'
+                    INVALID_SETTINGS: 'Please fill in all required fields.',
+                    AI_UNAVAILABLE: 'The analysis service could not be reached. Try again shortly.',
+                    AI_REQUEST_FAILED: 'The analysis could not finish. Try again; a failed attempt is not counted.',
+                    RATE_LIMIT_UNAVAILABLE: 'The service is temporarily unavailable. Try again shortly.',
+                    DISCUSS_LIMIT_REACHED: "Today's discussion messages are used up.",
+                    NETWORK: 'The connection to the server was lost. Check your internet and try again.'
                 },
                 commercialUse: 'Commercial SaaS use', commercial_allowed: 'Allowed', commercial_restricted: 'Restricted', commercial_unclear: 'Unclear — check the license before buying',
                 modelCost: 'Estimated model cost', searchCost: 'Estimated search fee', totalCost: 'Estimated total',
@@ -575,12 +616,23 @@
             alternativesHint: 'هذه المنتجات لا تُحسب ضمن الفرص لأنها لم تجتز شروط الترخيص أو الخصائص أو الميزانية. راجعها بنفسك قبل أي قرار.',
             reason_license_restricted: 'الترخيص يمنع الاستخدام التجاري كخدمة مدفوعة', reason_license_unclear: 'لم يثبت أن الترخيص يسمح بالاستخدام التجاري',
             reason_missing_capability: 'تنقصه خاصية مطلوبة', reason_over_budget: 'أعلى من الميزانية',
+            reason_capability_unverified: 'خاصية مطلوبة غير متحققة من المصدر', reason_budget_unverified: 'لم يُتحقق من الميزانية (السعر غير متحقق)', reason_license_not_perpetual: 'اشتراك وليس ترخيصاً دائماً',
+            priceFree: 'تكلفة الترخيص مجانية', priceFreeNote: 'الاستضافة والتطوير تكلفة منفصلة', priceUnverified: 'لم يُتحقق', priceUnverifiedLong: 'لم يُتحقق من الميزانية',
+            logQuery: 'عبارة البحث', logTime: 'المدة', logResults: 'نتائج', logProducts: 'صفحات منتجات', logRetry: 'جولة استكمال بعد تعذّر المحاولة الأولى', logError: 'السبب',
+            evidenceQuote: 'الدليل من الصفحة', pagesRead: (n, total) => `قُرئت صفحات ${n} من ${total} منتجاً مرشحاً`,
             coverageTitle: 'سجل تغطية المصادر', cov_found: 'فُحص وله نتائج', cov_no_results: 'فُحص دون نتائج', cov_error: 'تعذّر فحصه', cov_not_checked: 'لم يُفحص في هذا البحث',
             coverageIncomplete: 'لم تُفحص كل المصادر المعتمدة في هذا البحث، لذلك لا يُعد البحث شاملاً.',
             viaOfficial: 'بيانات رسمية', viaSearch2: 'بحث داخل الموقع',
             tokenThinking: 'توكنز الاستدلال', tokenNote: 'الإجمالي = الإدخال + الإخراج + الاستدلال.',
             searchDone: 'اكتمل البحث.', restoredNote: 'آخر تقرير محفوظ على هذا الجهاز من',
-            defaultMark: 'افتراضي'
+            defaultMark: 'افتراضي',
+            discussBtn: 'ناقش هذه الفرصة مع QLook', discussBack: 'رجوع إلى قائمة المتابعة',
+            discussIntro: (name) => `لنناقش «${name}». لدي بيانات الفرصة كما حفظتها: الترخيص والسعر وحالة الخصائص المطلوبة والمصادر. اسألني عن ملاءمتها للسوق، أو التعريب والتطوير المطلوب، أو تشغيلها كـ SaaS، أو المخاطر والبدائل. سأفصل دائماً بين ما تحقق منه QLook وبين تقديراتي.`,
+            discussPlaceholder: 'اكتب سؤالك عن هذه الفرصة...',
+            discussHint: 'المناقشة لا تُعد تحققاً جديداً؛ الحقائق المتحققة هي المحفوظة مع الفرصة فقط.',
+            discussQuota: (q) => `المتبقي اليوم: ${q.remaining} من ${q.limit} رسالة · يتجدد ${new Date(q.resetsAt).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' })}`,
+            discussLimit: (q) => `استُهلكت رسائل اليوم (${q.limit}). سجل المحادثة متاح، ويمكنك الإرسال مجدداً بعد التجديد: ${new Date(q.resetsAt).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' })}.`,
+            discussFailed: 'تعذّر الحصول على إجابة، ولم تُحتسب الرسالة:', discussRetry: 'إعادة الإرسال'
         });
         Object.assign(translations.en, {
             found: 'Eligible opportunities', commercial_conditional: 'Allowed with conditions',
@@ -593,12 +645,23 @@
             alternativesHint: 'These products are not counted as opportunities because they failed the licence, capability or budget checks. Review them yourself before deciding.',
             reason_license_restricted: 'The licence forbids paid hosted use', reason_license_unclear: 'No proof the licence allows commercial use',
             reason_missing_capability: 'Missing a required capability', reason_over_budget: 'Over budget',
+            reason_capability_unverified: 'Required capability not verified from a source', reason_budget_unverified: 'Budget not verified (price unknown)', reason_license_not_perpetual: 'A subscription, not a perpetual licence',
+            priceFree: 'Licence cost: free', priceFreeNote: 'hosting and development cost extra', priceUnverified: 'Not verified', priceUnverifiedLong: 'Budget not verified',
+            logQuery: 'Query', logTime: 'Time', logResults: 'results', logProducts: 'product pages', logRetry: 'completion round after the first attempt failed', logError: 'Reason',
+            evidenceQuote: 'Evidence from the page', pagesRead: (n, total) => `Pages of ${n} of ${total} candidate products were read`,
             coverageTitle: 'Source coverage log', cov_found: 'Checked, results found', cov_no_results: 'Checked, no results', cov_error: 'Could not be checked', cov_not_checked: 'Not checked in this search',
             coverageIncomplete: 'Not every approved source was checked in this search, so it is not a complete search.',
             viaOfficial: 'official data', viaSearch2: 'site search',
             tokenThinking: 'Reasoning tokens', tokenNote: 'Total = input + output + reasoning.',
             searchDone: 'Search complete.', restoredNote: 'Last report saved on this device from',
-            defaultMark: 'default'
+            defaultMark: 'default',
+            discussBtn: 'Discuss this opportunity with QLook', discussBack: 'Back to the watchlist',
+            discussIntro: (name) => `Let's discuss "${name}". I have the opportunity as you saved it: licence, price, the status of the required capabilities and the sources. Ask about market fit, localisation and development, running it as a SaaS, or risks and alternatives. I will always separate what QLook verified from my own estimates.`,
+            discussPlaceholder: 'Ask about this opportunity...',
+            discussHint: 'A discussion is not a new verification; only the facts saved with the opportunity are verified.',
+            discussQuota: (q) => `Left today: ${q.remaining} of ${q.limit} messages · resets ${new Date(q.resetsAt).toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short' })}`,
+            discussLimit: (q) => `Today's ${q.limit} messages are used up. The conversation stays available; you can send again after the reset: ${new Date(q.resetsAt).toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short' })}.`,
+            discussFailed: 'No answer could be produced, and the message was not counted:', discussRetry: 'Send again'
         });
         let currentLang = 'ar';
 
@@ -661,33 +724,6 @@
             return option.dataset[currentLang] || option.value;
         }
 
-        function appendUsage(output, usage, costs, t) {
-            if (!usage && !costs) return;
-            const panel = document.createElement('div');
-            panel.className = 'usage-stats';
-            const entries = [
-                [t.tokenIn, usage?.promptTokens],
-                [t.tokenOut, usage?.completionTokens],
-                [t.tokenThinking, usage?.thinkingTokens],
-                [t.total, usage?.totalTokens],
-                [t.modelCost, costs ? `$${costs.modelUsd}` : null],
-                [t.searchCost, costs ? `$${costs.searchUsd}` : null],
-                [t.totalCost, costs ? `$${costs.totalUsd}` : null]
-            ].filter((entry) => entry[1] !== null && entry[1] !== undefined);
-            entries.forEach(([label, value]) => {
-                const item = document.createElement('div');
-                const strong = document.createElement('strong');
-                strong.textContent = `${label}:`;
-                item.append(strong, document.createTextNode(` ${value}`));
-                panel.appendChild(item);
-            });
-            output.appendChild(panel);
-            const note = document.createElement('p');
-            note.className = 'hint';
-            note.textContent = `${t.tokenNote} ${t.billingNote} ${t.actualBilling}.`;
-            output.appendChild(note);
-        }
-
         function addSection(container, title, values, t) {
             if (!Array.isArray(values) || values.length === 0) return;
             const section = document.createElement('div');
@@ -723,6 +759,15 @@
             } catch (error) {
                 return null;
             }
+        }
+
+        function priceText(opportunity, t, long) {
+            if (opportunity.budgetFit === 'free') return long ? `${t.priceFree} (${t.priceFreeNote})` : t.priceFree;
+            const price = opportunity.price;
+            if (price?.status === 'verified' && price.amount) {
+                return `${price.amount} ${price.currency || ''}${long && price.label ? ` — ${price.label}` : ''}`.trim();
+            }
+            return long ? t.priceUnverifiedLong : t.priceUnverified;
         }
 
         function renderOpportunity(opportunity, t) {
@@ -780,18 +825,15 @@
                 card.appendChild(via);
             }
 
-            const priceText = opportunity.price?.status === 'unknown'
-                ? t.unknown
-                : `${opportunity.price.amount || ''} ${opportunity.price.currency || ''} ${opportunity.price.period || ''} (${t[opportunity.price.status] || t.unverified})`.trim();
             const licenseText = `${opportunity.license?.name || t.unknown} (${opportunity.license?.status === 'verified' ? t.verified : t.unverified})`;
             const facts = document.createElement('div');
             facts.className = 'opportunity-meta opportunity-section';
-            metaItem(facts, `${t.price}: ${priceText}`);
+            metaItem(facts, `${t.price}: ${priceText(opportunity, t, true)}`);
             metaItem(facts, `${t.license}: ${licenseText}`);
             if (opportunity.availability) {
                 metaItem(facts, `${t.availability}: ${t[`availability_${opportunity.availability.status}`] || t.unknown}`);
             }
-            if (opportunity.budgetFit) metaItem(facts, `${t.budgetFit}: ${t[`budget_${opportunity.budgetFit}`] || t.unknown}`);
+            if (opportunity.budgetFit && opportunity.budgetFit !== 'free') metaItem(facts, `${t.budgetFit}: ${t[`budget_${opportunity.budgetFit}`] || t.unknown}`);
             card.appendChild(facts);
 
             if (Array.isArray(opportunity.requirements) && opportunity.requirements.length) {
@@ -804,7 +846,7 @@
                 opportunity.requirements.forEach((entry) => {
                     const item = document.createElement('li');
                     item.className = `req-${entry.status}`;
-                    item.textContent = `${t.filterOptions[entry.capability] || entry.capability}: ${t[`req_${entry.status}`] || t.unverified}`;
+                    item.textContent = `${t.filterOptions[entry.capability] || entry.capability}: ${t[`req_${entry.status}`] || t.unverified}${entry.quote ? ` — «${entry.quote}»` : ''}`;
                     const url = entry.sourceUrl && safeHttpUrl(entry.sourceUrl);
                     if (url) {
                         const link = document.createElement('a');
@@ -914,7 +956,6 @@
             moreMessage.setAttribute('role', 'status');
             more.append(moreButton, moreMessage);
             output.appendChild(more);
-            appendUsage(output, data.usage, data.estimatedCosts, t);
         }
 
         // Counts, per field, the opportunities whose facts could not be verified, so
@@ -924,7 +965,7 @@
             box.className = 'gaps';
             const list = data.opportunities || [];
             const checks = [
-                [t.gapPrice, (o) => o.price?.status !== 'verified'],
+                [t.gapPrice, (o) => o.price?.status !== 'verified' && o.budgetFit !== 'free'],
                 [t.gapLicense, (o) => o.license?.status !== 'verified'],
                 [t.gapAvailability, (o) => o.availability?.status !== 'available'],
                 [t.gapRequirement, (o) => (o.requirements || []).some((entry) => entry.status !== 'verified')]
@@ -958,7 +999,39 @@
                 const item = document.createElement('li');
                 item.className = `cov-${entry.status}`;
                 const how = entry.method === 'official_api' ? t.viaOfficial : t.viaSearch2;
-                item.textContent = `${entry.source} (${how}): ${t[`cov_${entry.status}`] || entry.status}${entry.count ? ` — ${entry.count}` : ''}`;
+                const head = document.createElement('strong');
+                head.textContent = `${entry.source} (${how}): ${t[`cov_${entry.status}`] || entry.status}`;
+                item.appendChild(head);
+                const facts = [];
+                if (entry.query) facts.push(`${t.logQuery}: «${entry.query}»`);
+                if (Number.isFinite(entry.ms)) facts.push(`${t.logTime}: ${(entry.ms / 1000).toFixed(1)}s`);
+                if (Number.isFinite(entry.results)) facts.push(`${entry.results} ${t.logResults}`);
+                if (Number.isFinite(entry.products ?? entry.count)) facts.push(`${entry.products ?? entry.count} ${t.logProducts}`);
+                if (entry.error) facts.push(`${t.logError}: ${entry.error}`);
+                if (entry.firstAttempt) facts.push(t.logRetry);
+                const meta = document.createElement('div');
+                meta.className = 'cov-meta';
+                meta.textContent = facts.join(' · ');
+                item.appendChild(meta);
+                const links = (entry.links || []).map((link) => safeHttpUrl(link.url)).filter(Boolean).slice(0, 10);
+                if (links.length) {
+                    const more = document.createElement('details');
+                    const label = document.createElement('summary');
+                    label.textContent = `${links.length} ${t.logProducts}`;
+                    const linkList = document.createElement('ol');
+                    links.forEach((url, index) => {
+                        const li = document.createElement('li');
+                        const a = document.createElement('a');
+                        a.href = url.href;
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                        a.textContent = entry.links[index]?.title || url.href;
+                        li.appendChild(a);
+                        linkList.appendChild(li);
+                    });
+                    more.append(label, linkList);
+                    item.appendChild(more);
+                }
                 list.appendChild(item);
             });
             details.appendChild(list);
@@ -976,15 +1049,14 @@
             const list = document.createElement('ul');
             alternatives.forEach((opportunity) => {
                 const item = document.createElement('li');
-                const url = safeHttpUrl(opportunity.directUrl);
-                const name = document.createElement(url ? 'a' : 'span');
-                name.textContent = opportunity.productName;
-                if (url) {
-                    name.href = url.href;
-                    name.target = '_blank';
-                    name.rel = 'noopener noreferrer';
-                }
-                item.append(name, document.createTextNode(` — ${opportunity.originName}: ${(opportunity.reasons || []).map((reason) => t[`reason_${reason}`] || reason).join('، ')}`));
+                const box = document.createElement('details');
+                const label = document.createElement('summary');
+                label.textContent = `${opportunity.productName} — ${opportunity.originName}: ${(opportunity.reasons || []).map((reason) => t[`reason_${reason}`] || reason).join(currentLang === 'ar' ? '، ' : ', ')}`;
+                box.appendChild(label);
+                box.addEventListener('toggle', () => {
+                    if (box.open && !box.querySelector('.opportunity')) box.appendChild(renderOpportunity(opportunity, translations[currentLang]));
+                }, { once: false });
+                item.appendChild(box);
                 list.appendChild(item);
             });
             details.append(title, hint, list);
@@ -1010,7 +1082,7 @@
                 rank: index + 1,
                 name: opportunity.productName,
                 source: opportunity.catalogueSource || opportunity.originName,
-                price: priceValue(opportunity.price),
+                price: opportunity.budgetFit === 'free' ? 0 : priceValue(opportunity.price),
                 commercial: LEVELS[opportunity.commercialUse?.status] ?? null,
                 popularity: opportunity.stats?.stars ?? opportunity.stats?.sales ?? null,
                 updated: opportunity.stats?.updatedAt || null,
@@ -1072,13 +1144,13 @@
                 tr.className = 'result-row';
                 tr.tabIndex = 0;
                 tr.setAttribute('aria-expanded', 'false');
-                const priceText = row.price === null ? t.unknown : `${row.opportunity.price.amount} ${row.opportunity.price.currency || ''}`.trim();
+
                 const commercialStatus = row.opportunity.commercialUse?.status || 'unclear';
                 const cells = [
                     String(row.rank),
                     row.name,
                     row.source || '—',
-                    priceText,
+                    priceText(row.opportunity, t, false),
                     t[`commercial_${commercialStatus}`]?.split(' — ')[0] || '—',
                     row.popularity === null ? '—' : `${row.opportunity.stats?.stars != null ? '★ ' : ''}${row.popularity.toLocaleString(locale)}`,
                     row.updated || '—',
@@ -1222,7 +1294,12 @@
                         .filter((item) => watchlistKey(item.opportunity) !== watchlistKey(entry.opportunity)));
                     renderWatchlist();
                 });
-                actions.append(saved, remove);
+                const talk = document.createElement('button');
+                talk.type = 'button';
+                talk.className = 'btn-primary discuss-btn';
+                talk.textContent = t.discussBtn;
+                talk.addEventListener('click', () => openDiscussion(entry.opportunity));
+                actions.append(saved, talk, remove);
                 card.appendChild(actions);
                 container.appendChild(card);
             });
@@ -1322,11 +1399,16 @@
         }
 
         async function postSearch(body, t) {
-            const response = await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
+            let response;
+            try {
+                response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+            } catch (error) {
+                throw new Error(t.errorCodes.NETWORK);
+            }
             const data = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(t.errorCodes[data.errorCode] || t.error);
             if (!Array.isArray(data.opportunities) || !Number.isInteger(data.verifiedCount)) throw new Error(t.invalid);
@@ -1355,14 +1437,20 @@
             button.disabled = true;
             button.textContent = t.moreLoading;
             message.textContent = '';
-            const exclude = lastReport.opportunities.map((opportunity) => opportunity.directUrl).slice(0, 60);
+            const exclude = [...lastReport.opportunities, ...(lastReport.alternatives || [])].map((opportunity) => opportunity.directUrl).slice(0, 60);
             try {
                 const data = await postSearch({ ...lastRequest, exclude }, t);
                 countReport();
                 const known = new Set(exclude);
                 const fresh = data.opportunities.filter((opportunity) => !known.has(opportunity.directUrl));
+                const freshAlternatives = (data.alternatives || []).filter((opportunity) => !known.has(opportunity.directUrl));
                 if (!fresh.length) {
-                    message.textContent = t.moreNone;
+                    lastReport = { ...lastReport, alternatives: [...(lastReport.alternatives || []), ...freshAlternatives].slice(0, 24), coverage: data.coverage, summary: data.summary };
+                    saveLastReport();
+                    const output = document.getElementById('reportOutput');
+                    output.replaceChildren();
+                    renderReport(output, lastReport, t);
+                    document.getElementById('moreMsg').textContent = t.moreNone;
                     return;
                 }
                 lastReport = {
@@ -1372,15 +1460,14 @@
                     requestedCount: (lastReport.requestedCount || OPPORTUNITIES_PER_SEARCH) + OPPORTUNITIES_PER_SEARCH,
                     excludedCount: (lastReport.excludedCount || 0) + (data.excludedCount || 0),
                     coverage: data.coverage,
-                    usage: sumFields(lastReport.usage, data.usage, ['promptTokens', 'completionTokens', 'thinkingTokens', 'totalTokens', 'webSearches']),
-                    alternatives: [...(lastReport.alternatives || []), ...(data.alternatives || [])].slice(0, 16),
-                    estimatedCosts: sumFields(lastReport.estimatedCosts, data.estimatedCosts, ['modelUsd', 'searchUsd', 'totalUsd'], true)
+                    summary: data.summary,
+                    alternatives: [...(lastReport.alternatives || []), ...freshAlternatives].slice(0, 24)
                 };
                 saveLastReport();
                 const output = document.getElementById('reportOutput');
                 output.replaceChildren();
                 renderReport(output, lastReport, t);
-                document.getElementById('moreMsg').textContent = `${t.moreAdded} ${fresh.length}`;
+                document.getElementById('moreMsg').textContent = fresh.length < OPPORTUNITIES_PER_SEARCH ? t.moreShort(fresh.length) : `${t.moreAdded} ${fresh.length}`;
             } catch (error) {
                 message.textContent = error.message || t.error;
             } finally {
@@ -1750,8 +1837,135 @@
             if (name === 'results') document.getElementById('view-results').querySelector('.page-inner').appendChild(output);
             else if (chatState.reportSlot) chatState.reportSlot.appendChild(output);
             baseShowView(name);
+            if (name === 'discuss') document.querySelector('#appNav button[data-view="watchlist"]').setAttribute('aria-current', 'page');
             setDrawer(false);
         };
+        // ---- Discussing a saved opportunity -----------------------------------
+        // Each opportunity keeps its own conversation in this browser; the server
+        // holds the one daily message limit shared by all opportunities and tabs.
+        const discussState = { opportunity: null, key: null, busy: false, quota: null };
+        const discussKey = (opportunity) => `qlook.discuss.${watchlistKey(opportunity)}`;
+
+        function discussMessage(role, text) {
+            const row = el('div', `msg msg-${role}`);
+            if (role === 'bot') row.appendChild(sparkAvatar());
+            const bubble = el('div', 'bubble discuss-bubble');
+            if (text instanceof Node) bubble.appendChild(text);
+            else bubble.textContent = text;
+            row.appendChild(bubble);
+            document.getElementById('discussLog').appendChild(row);
+            const scroller = document.getElementById('discussScroll');
+            scroller.scrollTop = scroller.scrollHeight;
+            return bubble;
+        }
+
+        function renderQuota() {
+            const t = translations[currentLang];
+            const q = discussState.quota;
+            const line = document.getElementById('discussQuota');
+            const input = document.getElementById('discussInput');
+            const send = document.getElementById('discussSend');
+            if (!q) {
+                line.textContent = '';
+                return;
+            }
+            const out = q.remaining <= 0;
+            line.textContent = out ? t.discussLimit(q) : t.discussQuota(q);
+            line.classList.toggle('quota-out', out);
+            input.disabled = out;
+            send.disabled = out || discussState.busy;
+        }
+
+        async function loadQuota() {
+            try {
+                const response = await fetch('/api/discuss', { method: 'GET' });
+                const data = await response.json();
+                if (data.quota) discussState.quota = data.quota;
+            } catch (error) {
+                // The limit is still enforced by the server when a message is sent.
+            }
+            renderQuota();
+        }
+
+        function openDiscussion(opportunity) {
+            const t = translations[currentLang];
+            discussState.opportunity = opportunity;
+            discussState.key = discussKey(opportunity);
+            document.getElementById('discussTitle').textContent = opportunity.productName;
+            document.getElementById('discussInput').placeholder = t.discussPlaceholder;
+            document.getElementById('discussHint').textContent = t.discussHint;
+            document.getElementById('discussLog').replaceChildren();
+            discussMessage('bot', t.discussIntro(opportunity.productName));
+            readStore(discussState.key, []).forEach((turn) => discussMessage(turn.role === 'assistant' ? 'bot' : 'user', turn.content));
+            showView('discuss');
+            loadQuota();
+            document.getElementById('discussInput').focus();
+        }
+
+        async function sendDiscussion(text, retryBubble) {
+            const t = translations[currentLang];
+            const message = String(text || '').trim();
+            if (!message || discussState.busy || !discussState.opportunity) return;
+            if (discussState.quota && discussState.quota.remaining <= 0) return renderQuota();
+            const input = document.getElementById('discussInput');
+            input.value = '';
+            autoGrow(input);
+            if (!retryBubble) discussMessage('user', message);
+            discussState.busy = true;
+            renderQuota();
+            const dots = el('span', 'typing');
+            dots.append(el('i'), el('i'), el('i'));
+            const pending = discussMessage('bot', dots);
+            const key = discussState.key;
+            const history = readStore(key, []);
+            try {
+                let response;
+                try {
+                    response = await fetch('/api/discuss', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ opportunity: discussState.opportunity, history, message, language: currentLang })
+                    });
+                } catch (error) {
+                    throw new Error(t.errorCodes.NETWORK);
+                }
+                const data = await response.json().catch(() => ({}));
+                if (data.quota) discussState.quota = data.quota;
+                if (!response.ok || !data.reply) throw new Error(t.errorCodes[data.errorCode] || t.error);
+                pending.textContent = data.reply;
+                // Only answered messages are kept, so a retry never duplicates a turn.
+                writeStore(key, [...history, { role: 'user', content: message }, { role: 'assistant', content: data.reply }].slice(-40));
+            } catch (error) {
+                const box = el('div');
+                box.appendChild(document.createTextNode(`${t.discussFailed} ${error.message}`));
+                if (!(discussState.quota && discussState.quota.remaining <= 0)) {
+                    box.appendChild(chipRow([{ label: t.discussRetry, value: 'retry', className: 'chip-primary' }], () => {
+                        pending.closest('.msg').remove();
+                        sendDiscussion(message, true);
+                    }));
+                }
+                pending.replaceChildren(box);
+            } finally {
+                discussState.busy = false;
+                renderQuota();
+            }
+        }
+
+        const discussInput = document.getElementById('discussInput');
+        discussInput.addEventListener('input', () => autoGrow(discussInput));
+        discussInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendDiscussion(discussInput.value);
+            }
+        });
+        document.getElementById('discussSend').addEventListener('click', () => sendDiscussion(discussInput.value));
+        document.getElementById('discussBack').addEventListener('click', () => showView('watchlist'));
+        // Another tab may have used messages: refresh the remaining count on return.
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && !document.getElementById('view-discuss').classList.contains('hidden')) loadQuota();
+        });
+
         startChat();
         if (readStore(STORE.lang, 'ar') === 'en') setLanguage('en');
         const saved = readStore(STORE.lastReport, null);

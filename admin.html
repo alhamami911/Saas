@@ -51,6 +51,11 @@
         .topbar { width: 100%; max-width: 560px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.85rem; color: var(--text-secondary); }
         a { color: var(--primary-color); }
         [hidden] { display: none !important; }
+        .card.wide { max-width: 860px; }
+        .usage-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 12px; }
+        .usage-table th, .usage-table td { padding: 6px 8px; border-bottom: 1px solid var(--border-color); text-align: left; white-space: nowrap; }
+        .usage-table td.cov { white-space: normal; max-width: 260px; color: var(--text-secondary); }
+        .usage-scroll { overflow-x: auto; }
     </style>
 </head>
 <body>
@@ -70,6 +75,17 @@
             <span>Deployed version <code id="version">…</code></span>
             <span><a href="/">Open app</a> · <a href="#" id="logout">Sign out</a></span>
         </div>
+
+        <section class="card wide">
+            <h1>Usage and estimated cost</h1>
+            <p class="sub">Tokens and estimated cost for each recent search and discussion message. These are estimates from list prices, not actual billing; check the Anthropic console for real charges.</p>
+            <dl><dt>Estimated spend today</dt><dd id="spentToday">—</dd></dl>
+            <div class="row"><button class="secondary" type="button" id="refreshUsage">Refresh</button></div>
+            <div class="usage-scroll"><table class="usage-table" id="usageTable"><thead><tr>
+                <th>Time</th><th>Kind</th><th>Outcome</th><th>Eligible / review</th><th>Input</th><th>Output</th><th>Reasoning</th><th>Total tokens</th><th>Searches</th><th>Page reads</th><th>Est. cost (USD)</th><th>Sources</th>
+            </tr></thead><tbody></tbody></table></div>
+            <div class="msg" id="usageMsg"></div>
+        </section>
 
         <section class="card">
             <h1>Research provider</h1>
@@ -245,7 +261,34 @@
             if (data.research) $('provider').value = data.research.provider;
             if (data.envato) renderEnvato(data.envato);
             $('envatoToken').value = '';
+            loadUsage();
         }
+
+        async function loadUsage() {
+            const { ok, data } = await api('/usage');
+            if (!ok) return showMsg('usageMsg', data.error || 'Could not load usage', false);
+            $('spentToday').textContent = `${Number(data.spentTodayUsd || 0).toFixed(4)} of ${data.dailyBudgetUsd} daily budget`;
+            const body = $('usageTable').querySelector('tbody');
+            body.replaceChildren();
+            for (const row of data.recent || []) {
+                const usage = row.usage || {};
+                const cells = [
+                    new Date(row.createdAt).toLocaleString(), row.kind || 'search', row.outcome || '—',
+                    row.kind === 'discuss' ? '—' : `${row.verifiedCount ?? '—'} / ${row.reviewCount ?? '—'}`,
+                    usage.promptTokenCount ?? 0, usage.candidatesTokenCount ?? 0, usage.thoughtsTokenCount ?? 0, usage.totalTokenCount ?? 0,
+                    usage.webSearchRequests ?? 0, usage.webFetchRequests ?? 0,
+                    row.estimatedCosts ? `${row.estimatedCosts.totalUsd} (model ${row.estimatedCosts.modelUsd} + search ${row.estimatedCosts.searchUsd})` : '—',
+                    row.coverage || ''
+                ];
+                const tr = body.insertRow();
+                cells.forEach((value, index) => {
+                    const td = tr.insertCell();
+                    td.textContent = String(value);
+                    if (index === cells.length - 1) td.className = 'cov';
+                });
+            }
+        }
+        $('refreshUsage').addEventListener('click', loadUsage);
 
         function renderEnvato(envato) {
             $('envatoStatus').innerHTML = envato.configured

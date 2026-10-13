@@ -78,6 +78,9 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
     settings.load();
     // Loaded after the settings store so the handler sees the saved Gemini key.
     const { handler } = require("./server/generate");
+    const discuss = require("./server/discuss");
+    const { recentUsage, dailySpendUsd } = require("./server/usage-store");
+    const { getConfig } = require("./server/config");
 
     const sessionSecret = env.SESSION_SECRET || randomBytes(32).toString("hex");
     const trustProxy = env.TRUST_PROXY === "1";
@@ -196,6 +199,13 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         send(res, result.statusCode, result.body, { "Cache-Control": "no-store", ...result.headers });
     }
 
+    async function handleDiscuss(req, res) {
+        const body = req.method === "POST" ? await readBody(req) : "";
+        const headers = { ...req.headers, "x-qlook-client-ip": clientIp(req) };
+        const result = await discuss.handler({ httpMethod: req.method, headers, body });
+        send(res, result.statusCode, result.body, { "Cache-Control": "no-store", ...result.headers });
+    }
+
     async function handleAdminApi(req, res, route) {
         if (req.method !== "GET" && !sameOrigin(req)) {
             return sendJson(res, 403, { error: "Cross-site request rejected" });
@@ -237,6 +247,17 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
                 research: { provider: researchProvider(env), providers: PROVIDERS, claudeModels: CLAUDE_MODELS },
                 version
             });
+        }
+
+        // Tokens and estimated cost per request, shown on the admin page only.
+        if (route === "/usage" && req.method === "GET") {
+            try {
+                const config = getConfig();
+                const [recent, spentToday] = await Promise.all([recentUsage(config, 50), dailySpendUsd(config)]);
+                return sendJson(res, 200, { recent, spentTodayUsd: spentToday, dailyBudgetUsd: config.dailyBudgetUsd });
+            } catch (error) {
+                return sendJson(res, 503, { error: "Usage storage is unavailable" });
+            }
         }
 
         if (route === "/provider" && req.method === "PUT") {
@@ -328,6 +349,7 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
 
         if (pathname === "/healthz") return sendJson(res, 200, { ok: true, version });
         if (pathname === "/api/generate") return handleGenerate(req, res);
+        if (pathname === "/api/discuss") return handleDiscuss(req, res);
         if (pathname.startsWith("/admin/api/")) return handleAdminApi(req, res, pathname.slice("/admin/api".length));
         if (pathname === "/admin" || pathname === "/admin/") {
             return send(res, 200, pages.admin, { ...ADMIN_HEADERS, "Content-Type": "text/html; charset=utf-8" });

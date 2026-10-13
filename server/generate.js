@@ -1,14 +1,15 @@
 "use strict";
 
 const { getConfig, estimateCosts, searchAllowance } = require("./config");
-const { checkRateLimit, clientHash } = require("./rate-limit");
+const { checkRateLimit, refundRateLimit, clientHash } = require("./rate-limit");
 const { seenLinks, rememberLinks } = require("./seen-store");
-const { createUsageEvent, storeUsage, dailySpendUsd, addDailySpend } = require("./usage-store");
+const { createUsageEvent, storeUsage, dailySpendUsd, addDailySpend, recordRecent } = require("./usage-store");
 const { buildResearchPrompt, validateRequest, validateResearchResult, applyCatalogue, catalogueChunks, normalizePublicUrl, partitionEligible, RESEARCH_SCHEMA } = require("./research");
 const { collectCandidates } = require("./sources/catalog");
 const { runGeminiResearch } = require("./providers/gemini");
 const { runClaudeResearch } = require("./providers/claude");
 const { dropClosedListings } = require("./listing-check");
+const { runPipeline } = require("./pipeline");
 
 const PROVIDER_LABELS = { claude: "Claude", gemini: "Gemini" };
 
@@ -69,6 +70,8 @@ async function persistRequest(config, fields, usage, grounded) {
     event.estimatedCosts = costs;
     event.spentTodayUsd = await addDailySpend(config, Number(costs.totalUsd));
     await storeUsage(config, event, false);
+    // The admin page lists recent searches with their tokens and estimated cost.
+    await recordRecent(config, event).catch((error) => console.error("Could not record recent usage", error.message));
     return { requestId: event.requestId, usage: event.usage, costs };
 }
 
@@ -78,6 +81,130 @@ async function persistFailure(config, fields, usage, grounded) {
     } catch (error) {
         console.error("Could not persist failed request usage", error.message);
     }
+}
+
+const LOG_STATUS = {
+    ar: { found: "فُحص وله نتائج", no_results: "فُحص دون نتائج", error: "تعذّر فحصه", not_checked: "لم يُفحص" },
+    en: { found: "checked, results found", no_results: "checked, no results", error: "could not be checked", not_checked: "not checked" }
+};
+
+// The summary is written by the server from the actual counts, so it can never
+// disagree with the table, the counters or the review list.
+function buildSummary(language, { opportunities, alternatives, log, notRelevant, pagesRead, candidatesChecked, requestedCount }) {
+    const checked = log.filter((entry) => ["found", "no_results"].includes(entry.status)).length;
+    const missed = log.filter((entry) => !["found", "no_results"].includes(entry.status));
+    const reasons = {};
+    for (const item of alternatives) for (const reason of item.reasons) reasons[reason] = (reasons[reason] || 0) + 1;
+    const ar = language === "ar";
+    const reasonText = {
+        license_restricted: ar ? "ترخيص يمنع التشغيل التجاري" : "licence forbids commercial use",
+        license_unclear: ar ? "ترخيص غير متحقق أو غير واضح" : "licence not verified or unclear",
+        license_not_perpetual: ar ? "اشتراك غير دائم" : "subscription, not perpetual",
+        missing_capability: ar ? "تنقصه خاصية مطلوبة" : "lacks a required capability",
+        capability_unverified: ar ? "خاصية مطلوبة غير متحققة" : "required capability not verified",
+        over_budget: ar ? "أعلى من الميزانية" : "over budget",
+        budget_unverified: ar ? "السعر غير متحقق" : "price not verified"
+    };
+    const breakdown = Object.entries(reasons).map(([key, n]) => `${reasonText[key] || key}: ${n}`).join(ar ? "، " : ", ");
+    const parts = [];
+    parts.push(ar
+        ? `فُحص ${checked} من ${log.length} مصدراً معتمداً، وقُرئت صفحات ${pagesRead} من ${candidatesChecked} منتجاً مرشحاً.`
+        : `${checked} of ${log.length} approved sources were checked, and the pages of ${pagesRead} of ${candidatesChecked} candidate products were read.`);
+    if (missed.length) {
+        parts.push(ar
+            ? `لم يكتمل فحص: ${missed.map((entry) => `${entry.source} (${LOG_STATUS.ar[entry.status]})`).join("، ")}؛ لذلك البحث غير شامل.`
+            : `Not fully checked: ${missed.map((entry) => `${entry.source} (${LOG_STATUS.en[entry.status]})`).join(", ")}; the search is therefore not complete.`);
+    }
+    parts.push(ar
+        ? `اجتازت ${opportunities.length} فرص شروط الترخيص والخصائص المطلوبة والميزانية من أصل ${requestedCount} مطلوبة.`
+        : `${opportunities.length} of the ${requestedCount} requested opportunities passed the licence, required-capability and budget checks.`);
+    if (alternatives.length) {
+        parts.push(ar
+            ? `نُقل ${alternatives.length} منتجاً إلى «للمراجعة» ولا تُحسب ضمن الفرص (${breakdown}).`
+            : `${alternatives.length} products were moved to the review list and are not counted (${breakdown}).`);
+    }
+    if (notRelevant) parts.push(ar ? `واستُبعد ${notRelevant} لعدم ملاءمته لما تبحث عنه.` : `${notRelevant} were left out as not matching your request.`);
+    return parts.join(" ");
+}
+
+// The public log keeps what a reviewer needs: query, time, status, counts and links.
+function publicLog(log) {
+    return log.map((entry) => ({
+        source: entry.source,
+        method: entry.method,
+        query: entry.query,
+        round: entry.round,
+        startedAt: entry.startedAt,
+        ms: entry.ms,
+        status: entry.status,
+        error: entry.error || null,
+        results: entry.results,
+        products: entry.products,
+        links: entry.links,
+        firstAttempt: entry.firstAttempt || null
+    }));
+}
+
+async function runClaudeSearch(config, request, shown, visitor, event) {
+    const startedAt = Date.now();
+    const result = await runPipeline(config, request, { shown });
+    const elapsedMs = Date.now() - startedAt;
+    const baseFields = { kind: "search", requestedCount: request.opportunityCount, language: request.language, elapsedMs };
+    console.log("Claude pipeline finished", result.ok ? "ok" : result.kind, `${elapsedMs}ms`, `${result.log?.length || 0} sources`);
+    if (!result.ok) {
+        // A failed search is not charged to the visitor's daily searches.
+        await refundRateLimit(event, config).catch(() => {});
+        await persistFailure(config, { ...baseFields, outcome: result.kind, coverage: summarizeLog(result.log) }, result.usage, true);
+        if (result.kind === "quota") return jsonResponse(429, { errorCode: "AI_QUOTA_EXCEEDED", error: "Claude usage quota or credit is exhausted." });
+        if (result.kind === "timeout") return jsonResponse(504, { errorCode: "AI_TIMEOUT", error: "The analysis timed out. Try again." });
+        if (result.kind === "network") return jsonResponse(502, { errorCode: "AI_UNAVAILABLE", error: "Claude could not be reached" });
+        return jsonResponse(502, { errorCode: "AI_REQUEST_FAILED", error: "The analysis could not be completed. Try again." });
+    }
+
+    let research = { opportunities: result.opportunities, verifiedCount: result.opportunities.length, excludedCount: 0 };
+    research = await dropClosedListings(research);
+    research.opportunities = research.opportunities.filter((opportunity) => !shown.has(opportunity.directUrl));
+    research = partitionEligible(research, request);
+    await rememberLinks(config, visitor, [...research.opportunities, ...research.alternatives].map((opportunity) => opportunity.directUrl));
+
+    const log = publicLog(result.log);
+    const coverageComplete = log.every((entry) => ["found", "no_results"].includes(entry.status));
+    let accounting;
+    try {
+        accounting = await persistRequest(config, {
+            ...baseFields,
+            verifiedCount: research.verifiedCount,
+            reviewCount: research.alternatives.length,
+            outcome: "success",
+            coverage: summarizeLog(result.log),
+            pagesRead: result.pagesRead
+        }, result.usage, true);
+    } catch (error) {
+        console.error("Usage accounting failed; withholding report", error.message);
+        await refundRateLimit(event, config).catch(() => {});
+        return jsonResponse(503, { errorCode: "USAGE_ACCOUNTING_UNAVAILABLE", error: "Usage tracking is temporarily unavailable. Please retry shortly." });
+    }
+    return jsonResponse(200, {
+        summary: buildSummary(request.language, { ...research, log, notRelevant: result.notRelevant, pagesRead: result.pagesRead, candidatesChecked: result.candidatesChecked, requestedCount: request.opportunityCount }),
+        verificationNote: "",
+        opportunities: research.opportunities,
+        alternatives: research.alternatives,
+        verifiedCount: research.verifiedCount,
+        requestedCount: request.opportunityCount,
+        excludedCount: research.alternatives.length + result.notRelevant,
+        coverage: log,
+        coverageComplete,
+        candidatesChecked: result.candidatesChecked,
+        pagesRead: result.pagesRead,
+        unreadPages: result.unreadPages,
+        provider: config.provider,
+        elapsedMs,
+        requestId: accounting.requestId
+    });
+}
+
+function summarizeLog(log = []) {
+    return log.map((entry) => `${entry.source}:${entry.status}:${entry.products ?? 0}`).join(" ");
 }
 
 exports.handler = async function (event) {
@@ -155,6 +282,7 @@ exports.handler = async function (event) {
     const visitor = clientHash(event, config);
     const previouslySeen = (await seenLinks(config, visitor)).map(normalizePublicUrl).filter(Boolean);
     const shown = new Set([...request.exclude, ...previouslySeen]);
+    if (config.provider === "claude") return runClaudeSearch(config, request, shown, visitor, event);
     const catalogue = config.catalogEnabled
         ? await collectCandidates(request, { envatoToken: config.envatoToken, githubToken: config.githubToken })
         : { candidates: [], coverage: [] };
@@ -244,7 +372,7 @@ exports.handler = async function (event) {
         });
     }
 
-    const usage = result.usage || {};
+    // Tokens and estimated costs are shown on the admin page only.
     return jsonResponse(200, {
         ...research.value,
         requestedCount: request.opportunityCount,
@@ -255,15 +383,6 @@ exports.handler = async function (event) {
         sources: [...new Map(result.sources
             .filter((source) => source?.uri)
             .map((source) => [source.uri, { title: source.title, url: source.uri }])).values()],
-        usage: {
-            promptTokens: usage.promptTokenCount || 0,
-            completionTokens: usage.candidatesTokenCount || 0,
-            thinkingTokens: usage.thoughtsTokenCount || 0,
-            totalTokens: usage.totalTokenCount || 0,
-            webSearches: usage.webSearchRequests || 0
-        },
-        estimatedCosts: accounting.costs,
-        billingNote: `Estimated provider cost only. Actual charges are shown in the ${label} billing console.`,
         requestId: accounting.requestId
     });
 };
