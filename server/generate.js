@@ -133,7 +133,12 @@ exports.handler = async function (event) {
     const prompt = buildResearchPrompt({ ...request, exclude: [...shown].slice(0, 60), candidates: catalogue.candidates, webDomains });
     const startedAt = Date.now();
     const result = config.provider === "claude"
-        ? await runClaudeResearch(config, prompt, { maxSearches: searchAllowance(config, request.opportunityCount), allowedDomains: webDomains, schema: RESEARCH_SCHEMA })
+        ? await runClaudeResearch(config, prompt, {
+            // Repeat searches need extra queries to get past what the visitor already saw.
+            maxSearches: Math.min(config.claudeMaxSearches, searchAllowance(config, request.opportunityCount) + (shown.size ? 4 : 0)),
+            allowedDomains: webDomains,
+            schema: RESEARCH_SCHEMA
+        })
         : await runGeminiResearch(config, prompt);
     const elapsedMs = Date.now() - startedAt;
     const baseFields = { requestedCount: request.opportunityCount, language: request.language, elapsedMs };

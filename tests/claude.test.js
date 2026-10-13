@@ -176,6 +176,7 @@ test("find-more requests skip products the visitor has already seen", async () =
         assert.match(calls[0].params.messages[0].content, /already seen these products/);
         assert.match(calls[0].params.messages[0].content, /codecanyon\.net\/item\/saas-starter\/123/);
         assert.doesNotMatch(calls[0].params.messages[0].content, /javascript:/);
+        assert.equal(calls[0].params.tools[0].max_uses, 10, "find-more gets extra searches");
     });
 });
 
