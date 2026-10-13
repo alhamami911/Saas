@@ -220,6 +220,26 @@
         .commercial-allowed { border-inline-start: 3px solid #1e8e3e; }
         .commercial-restricted { border-inline-start: 3px solid #d93025; }
         .commercial-unclear { border-inline-start: 3px solid #e37400; }
+        .commercial-cell.commercial-conditional { color: #1a56c4; }
+        .commercial-conditional { border-inline-start: 3px solid #1a73e8; }
+        .gaps { margin: 10px 0 0; padding: 10px 14px; border-radius: 10px; background: #fef7e0; color: #5f4b00; font-size: 0.88rem; }
+        @media (prefers-color-scheme: dark) { .gaps { background: #3a3120; color: #f6e3a1; } }
+        .coverage, .alternatives { margin-top: 12px; font-size: 0.88rem; }
+        .coverage summary, .alternatives summary { cursor: pointer; font-weight: 600; color: var(--text-secondary); }
+        .coverage ul, .alternatives ul { margin: 8px 0 0; padding-inline-start: 22px; }
+        .coverage li { margin: 3px 0; }
+        .cov-found { color: #1e8e3e; } .cov-no_results { color: var(--text-secondary); } .cov-error, .cov-not_checked { color: #d93025; }
+        .coverage-warn { margin: 8px 0 0; color: #d93025; font-weight: 600; }
+        .alternatives { padding: 12px 14px; border: 1px dashed var(--border-color); border-radius: 12px; }
+        .alternatives li { margin: 5px 0; }
+        .req-list li { list-style: none; margin-inline-start: -18px; }
+        .req-list li::before { content: '○ '; }
+        .req-verified { color: #1e8e3e; } .req-verified::before { content: '✓ ' !important; }
+        .req-absent { color: #d93025; } .req-absent::before { content: '✕ ' !important; }
+        .chip-mark { margin-inline-start: 6px; padding: 1px 7px; border-radius: 999px; background: var(--primary-soft); color: var(--primary-color); font-size: 0.72rem; }
+        .chip-default { border-color: var(--primary-color); }
+        .progress.done .progress-steps { display: none; }
+        .restored-note { margin: 0 0 10px; }
     </style>
 </head>
 <body>
@@ -418,7 +438,7 @@
                     none: 'بلا شروط إضافية', go: 'ابدأ البحث', edit: 'تعديل الإجابات',
                     searching: 'أبحث في الأسواق وأحلل الفرص…',
                     steps: ['أفحص قواعد بيانات GitHub وGitLab وقائمة Awesome Selfhosted', 'أبحث داخل CodeCanyon وCodester والأسواق الأخرى', 'أتحقق من التراخيص والأسعار وتوفر كل منتج', 'أكتب لك التحليل وأرتب الفرص'],
-                    found: (n) => n ? `وجدت لك ${n} فرص موثّقة. رتّبتها من الأنسب إلى الأقل ملاءمة؛ اضغط على أي فرصة لقراءة تحليلها الكامل.` : 'لم أجد هذه المرة فرصاً تستوفي شروط التحقق. جرّب وصفاً مختلفاً أو خففّ بعض الشروط.',
+                    found: (n) => n ? `وجدت لك ${n} من الفرص المؤهلة: ترخيصها يسمح بتشغيلها تجارياً كـ SaaS (أو يسمح بذلك بشرط موضّح)، ولا تنقصها خاصية مطلوبة. رتّبتها من الأنسب إلى الأقل ملاءمة؛ اضغط على أي فرصة لقراءة تحليلها وما لم يُتحقق منه.` : 'لم أجد هذه المرة فرصاً تجتاز شروط الترخيص والخصائص والميزانية. راجع قائمة المنتجات المستبعدة أسفل التقرير، أو جرّب وصفاً مختلفاً.',
                     followUp: 'هل تريد المزيد؟ اطلب 5 فرص إضافية من أسفل الجدول، أو اكتب لي وصفاً جديداً لأبحث به مباشرة.',
                     failed: 'تعذّر إكمال البحث:', retry: 'حاول مرة أخرى', restart: 'بحث جديد',
                     noted: 'سأبحث بهذا الوصف مع إبقاء إجاباتك السابقة.',
@@ -479,7 +499,7 @@
                     none: 'No extra requirements', go: 'Start the search', edit: 'Change answers',
                     searching: 'Searching marketplaces and analysing opportunities…',
                     steps: ['Checking GitHub, GitLab and Awesome Selfhosted', 'Searching CodeCanyon, Codester and other marketplaces', 'Verifying licenses, prices and availability', 'Writing your analysis and ranking the opportunities'],
-                    found: (n) => n ? `I found ${n} verified opportunities, ranked from best fit down. Click any row to read its full analysis.` : 'This time nothing passed verification. Try a different description or fewer requirements.',
+                    found: (n) => n ? `I found ${n} eligible opportunities: their licence allows running them as a paid SaaS (or allows it on a stated condition) and none lacks a required capability. They are ranked from best fit down; click a row for its analysis and what could not be verified.` : 'This time nothing passed the licence, capability and budget checks. See the excluded products below the report, or try a different description.',
                     followUp: 'Want more? Ask for 5 more below the table, or type a new description and I will search with it right away.',
                     failed: 'The search could not finish:', retry: 'Try again', restart: 'New search',
                     noted: 'I will search with this description and keep your other answers.',
@@ -543,10 +563,48 @@
             settingsText: 'Defaults that prefill Discover Opportunities. They are kept in this browser only; the report follows the interface language.',
             settingsSave: 'Save defaults', settingsReset: 'Clear defaults', settingsSaved: 'Defaults saved and applied to Discover Opportunities.', settingsCleared: 'Defaults cleared.'
         });
+        // Eligibility, evidence and coverage wording (UAT findings F01, F02, F07, F08, F09).
+        Object.assign(translations.ar, {
+            found: 'فرص مؤهلة', commercial_conditional: 'مسموح بشرط',
+            gapsTitle: 'ما لم يُتحقق منه', gapPrice: 'السعر غير متحقق', gapLicense: 'الترخيص غير متحقق', gapAvailability: 'الإتاحة غير مؤكدة',
+            gapRequirement: 'خاصية مطلوبة غير متحققة', gapsNone: 'تحققنا من السعر والترخيص والإتاحة والخصائص المطلوبة في كل الفرص المعروضة.',
+            gapsCount: (n, total, what) => `${what}: ${n} من ${total}`,
+            requirementsTitle: 'مطابقة الخصائص المطلوبة', req_verified: 'متحققة من المصدر', req_unverified: 'غير متحققة', req_absent: 'غير متوفرة أو تحتاج تطويراً',
+            budgetFit: 'الميزانية', budget_within: 'ضمن ميزانيتك (سعر متحقق)', budget_over: 'أعلى من ميزانيتك', budget_unknown: 'لم يُتحقق — سعر الترخيص المطلوب غير معروف', budget_open: 'ميزانية مفتوحة',
+            alternativesTitle: (n) => `منتجات للمراجعة لم تدخل القائمة المؤهلة (${n})`,
+            alternativesHint: 'هذه المنتجات لا تُحسب ضمن الفرص لأنها لم تجتز شروط الترخيص أو الخصائص أو الميزانية. راجعها بنفسك قبل أي قرار.',
+            reason_license_restricted: 'الترخيص يمنع الاستخدام التجاري كخدمة مدفوعة', reason_license_unclear: 'لم يثبت أن الترخيص يسمح بالاستخدام التجاري',
+            reason_missing_capability: 'تنقصه خاصية مطلوبة', reason_over_budget: 'أعلى من الميزانية',
+            coverageTitle: 'سجل تغطية المصادر', cov_found: 'فُحص وله نتائج', cov_no_results: 'فُحص دون نتائج', cov_error: 'تعذّر فحصه', cov_not_checked: 'لم يُفحص في هذا البحث',
+            coverageIncomplete: 'لم تُفحص كل المصادر المعتمدة في هذا البحث، لذلك لا يُعد البحث شاملاً.',
+            viaOfficial: 'بيانات رسمية', viaSearch2: 'بحث داخل الموقع',
+            tokenThinking: 'توكنز الاستدلال', tokenNote: 'الإجمالي = الإدخال + الإخراج + الاستدلال.',
+            searchDone: 'اكتمل البحث.', restoredNote: 'آخر تقرير محفوظ على هذا الجهاز من',
+            defaultMark: 'افتراضي'
+        });
+        Object.assign(translations.en, {
+            found: 'Eligible opportunities', commercial_conditional: 'Allowed with conditions',
+            gapsTitle: 'Not verified', gapPrice: 'Price not verified', gapLicense: 'License not verified', gapAvailability: 'Availability not confirmed',
+            gapRequirement: 'Required capability not verified', gapsNone: 'Price, license, availability and the required capabilities were verified for every opportunity shown.',
+            gapsCount: (n, total, what) => `${what}: ${n} of ${total}`,
+            requirementsTitle: 'Required capabilities', req_verified: 'Verified from a source', req_unverified: 'Not verified', req_absent: 'Missing or needs development',
+            budgetFit: 'Budget', budget_within: 'Within your budget (verified price)', budget_over: 'Over your budget', budget_unknown: 'Not checked: the price of the licence you need is unknown', budget_open: 'Open budget',
+            alternativesTitle: (n) => `Products to review that are not in the eligible list (${n})`,
+            alternativesHint: 'These products are not counted as opportunities because they failed the licence, capability or budget checks. Review them yourself before deciding.',
+            reason_license_restricted: 'The licence forbids paid hosted use', reason_license_unclear: 'No proof the licence allows commercial use',
+            reason_missing_capability: 'Missing a required capability', reason_over_budget: 'Over budget',
+            coverageTitle: 'Source coverage log', cov_found: 'Checked, results found', cov_no_results: 'Checked, no results', cov_error: 'Could not be checked', cov_not_checked: 'Not checked in this search',
+            coverageIncomplete: 'Not every approved source was checked in this search, so it is not a complete search.',
+            viaOfficial: 'official data', viaSearch2: 'site search',
+            tokenThinking: 'Reasoning tokens', tokenNote: 'Total = input + output + reasoning.',
+            searchDone: 'Search complete.', restoredNote: 'Last report saved on this device from',
+            defaultMark: 'default'
+        });
         let currentLang = 'ar';
 
         function setLanguage(language) {
             currentLang = language;
+            writeStore(STORE.lang, language);
             const t = translations[language];
             document.documentElement.lang = language;
             document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
@@ -610,6 +668,7 @@
             const entries = [
                 [t.tokenIn, usage?.promptTokens],
                 [t.tokenOut, usage?.completionTokens],
+                [t.tokenThinking, usage?.thinkingTokens],
                 [t.total, usage?.totalTokens],
                 [t.modelCost, costs ? `$${costs.modelUsd}` : null],
                 [t.searchCost, costs ? `$${costs.searchUsd}` : null],
@@ -625,7 +684,7 @@
             output.appendChild(panel);
             const note = document.createElement('p');
             note.className = 'hint';
-            note.textContent = `${t.billingNote} ${t.actualBilling}.`;
+            note.textContent = `${t.tokenNote} ${t.billingNote} ${t.actualBilling}.`;
             output.appendChild(note);
         }
 
@@ -732,7 +791,34 @@
             if (opportunity.availability) {
                 metaItem(facts, `${t.availability}: ${t[`availability_${opportunity.availability.status}`] || t.unknown}`);
             }
+            if (opportunity.budgetFit) metaItem(facts, `${t.budgetFit}: ${t[`budget_${opportunity.budgetFit}`] || t.unknown}`);
             card.appendChild(facts);
+
+            if (Array.isArray(opportunity.requirements) && opportunity.requirements.length) {
+                const section = document.createElement('div');
+                section.className = 'opportunity-section';
+                const heading = document.createElement('h4');
+                heading.textContent = t.requirementsTitle;
+                const list = document.createElement('ul');
+                list.className = 'req-list';
+                opportunity.requirements.forEach((entry) => {
+                    const item = document.createElement('li');
+                    item.className = `req-${entry.status}`;
+                    item.textContent = `${t.filterOptions[entry.capability] || entry.capability}: ${t[`req_${entry.status}`] || t.unverified}`;
+                    const url = entry.sourceUrl && safeHttpUrl(entry.sourceUrl);
+                    if (url) {
+                        const link = document.createElement('a');
+                        link.href = url.href;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        link.textContent = ' ↗';
+                        item.appendChild(link);
+                    }
+                    list.appendChild(item);
+                });
+                section.append(heading, list);
+                card.appendChild(section);
+            }
 
             if (opportunity.commercialUse) {
                 const use = document.createElement('p');
@@ -802,14 +888,8 @@
                 excluded.textContent = `${t.excluded}: ${data.excludedCount}`;
                 summary.appendChild(excluded);
             }
-            if (Array.isArray(data.coverage) && data.coverage.length) {
-                const coverage = document.createElement('p');
-                coverage.className = 'hint';
-                coverage.textContent = `${t.coverage}: ` + data.coverage.map((entry) => entry.method === 'web_search'
-                    ? `${t.coverageSearch} (${entry.count})`
-                    : `${entry.source} — ${entry.status === 'ok' ? `${t.coverageApi}, ${entry.count}` : t.coverageError}`).join(' · ');
-                summary.appendChild(coverage);
-            }
+            summary.appendChild(renderGaps(data, t));
+            if (Array.isArray(data.coverage) && data.coverage.length) summary.appendChild(renderCoverage(data.coverage, t));
             output.appendChild(summary);
 
             if (!data.opportunities?.length) {
@@ -819,6 +899,7 @@
             } else {
                 output.appendChild(renderResultsTable(data, t));
             }
+            if (Array.isArray(data.alternatives) && data.alternatives.length) output.appendChild(renderAlternatives(data.alternatives, t));
             const more = document.createElement('div');
             more.className = 'more-row';
             const moreButton = document.createElement('button');
@@ -836,12 +917,86 @@
             appendUsage(output, data.usage, data.estimatedCosts, t);
         }
 
+        // Counts, per field, the opportunities whose facts could not be verified, so
+        // "eligible" never reads as "everything verified".
+        function renderGaps(data, t) {
+            const box = document.createElement('div');
+            box.className = 'gaps';
+            const list = data.opportunities || [];
+            const checks = [
+                [t.gapPrice, (o) => o.price?.status !== 'verified'],
+                [t.gapLicense, (o) => o.license?.status !== 'verified'],
+                [t.gapAvailability, (o) => o.availability?.status !== 'available'],
+                [t.gapRequirement, (o) => (o.requirements || []).some((entry) => entry.status !== 'verified')]
+            ].map(([label, test]) => [label, list.filter(test).length]).filter(([, n]) => n > 0);
+            if (!list.length) return box;
+            const heading = document.createElement('strong');
+            heading.textContent = `${t.gapsTitle}: `;
+            box.appendChild(heading);
+            box.append(document.createTextNode(checks.length
+                ? checks.map(([label, n]) => t.gapsCount(n, list.length, label)).join(' · ')
+                : t.gapsNone));
+            return box;
+        }
+
+        function renderCoverage(coverage, t) {
+            const details = document.createElement('details');
+            details.className = 'coverage';
+            const title = document.createElement('summary');
+            const incomplete = coverage.some((entry) => ['not_checked', 'error'].includes(entry.status));
+            title.textContent = t.coverageTitle;
+            details.appendChild(title);
+            if (incomplete) {
+                details.open = true;
+                const warn = document.createElement('p');
+                warn.className = 'coverage-warn';
+                warn.textContent = t.coverageIncomplete;
+                details.appendChild(warn);
+            }
+            const list = document.createElement('ul');
+            coverage.forEach((entry) => {
+                const item = document.createElement('li');
+                item.className = `cov-${entry.status}`;
+                const how = entry.method === 'official_api' ? t.viaOfficial : t.viaSearch2;
+                item.textContent = `${entry.source} (${how}): ${t[`cov_${entry.status}`] || entry.status}${entry.count ? ` — ${entry.count}` : ''}`;
+                list.appendChild(item);
+            });
+            details.appendChild(list);
+            return details;
+        }
+
+        function renderAlternatives(alternatives, t) {
+            const details = document.createElement('details');
+            details.className = 'alternatives';
+            const title = document.createElement('summary');
+            title.textContent = t.alternativesTitle(alternatives.length);
+            const hint = document.createElement('p');
+            hint.className = 'hint';
+            hint.textContent = t.alternativesHint;
+            const list = document.createElement('ul');
+            alternatives.forEach((opportunity) => {
+                const item = document.createElement('li');
+                const url = safeHttpUrl(opportunity.directUrl);
+                const name = document.createElement(url ? 'a' : 'span');
+                name.textContent = opportunity.productName;
+                if (url) {
+                    name.href = url.href;
+                    name.target = '_blank';
+                    name.rel = 'noopener noreferrer';
+                }
+                item.append(name, document.createTextNode(` — ${opportunity.originName}: ${(opportunity.reasons || []).map((reason) => t[`reason_${reason}`] || reason).join('، ')}`));
+                list.appendChild(item);
+            });
+            details.append(title, hint, list);
+            return details;
+        }
+
         // Results table: one row per opportunity, sortable by any column; a click
         // (or Enter) on a row opens its full analysis card underneath.
         let lastReport = null;
         let reportSort = { key: 'rank', dir: 'asc' };
 
-        const LEVELS = { high: 3, medium: 2, low: 1, allowed: 3, unclear: 2, restricted: 1 };
+        const LEVELS = { high: 3, medium: 2, low: 1, allowed: 4, conditional: 3, unclear: 2, restricted: 1 };
 
         function priceValue(price) {
             if (!price || price.status === 'unknown' || !price.amount) return null;
@@ -983,7 +1138,7 @@
             }
         }
 
-        const STORE = { watchlist: 'qlook.watchlist', defaults: 'qlook.defaults', stats: 'qlook.stats' };
+        const STORE = { watchlist: 'qlook.watchlist', defaults: 'qlook.defaults', stats: 'qlook.stats', lastReport: 'qlook.lastReport', lang: 'qlook.lang' };
 
         function showView(name) {
             document.querySelectorAll('.view').forEach((view) => view.classList.toggle('hidden', view.id !== `view-${name}`));
@@ -1178,6 +1333,10 @@
             return data;
         }
 
+        function saveLastReport() {
+            writeStore(STORE.lastReport, { report: lastReport, request: lastRequest, savedAt: new Date().toISOString() });
+        }
+
         function countReport() {
             const stats = readStore(STORE.stats, {});
             writeStore(STORE.stats, { reports: (Number(stats.reports) || 0) + 1, lastRun: new Date().toISOString() });
@@ -1214,8 +1373,10 @@
                     excludedCount: (lastReport.excludedCount || 0) + (data.excludedCount || 0),
                     coverage: data.coverage,
                     usage: sumFields(lastReport.usage, data.usage, ['promptTokens', 'completionTokens', 'thinkingTokens', 'totalTokens', 'webSearches']),
+                    alternatives: [...(lastReport.alternatives || []), ...(data.alternatives || [])].slice(0, 16),
                     estimatedCosts: sumFields(lastReport.estimatedCosts, data.estimatedCosts, ['modelUsd', 'searchUsd', 'totalUsd'], true)
                 };
+                saveLastReport();
                 const output = document.getElementById('reportOutput');
                 output.replaceChildren();
                 renderReport(output, lastReport, t);
@@ -1299,9 +1460,10 @@
 
         function chipRow(items, onPick) {
             const row = el('div', 'chips');
-            items.forEach(({ label, value, className }) => {
+            items.forEach(({ label, value, className, mark }) => {
                 const chip = el('button', `chip ${className || ''}`.trim(), label);
                 chip.type = 'button';
+                if (mark) chip.appendChild(el('span', 'chip-mark', mark));
                 chip.addEventListener('click', () => {
                     row.querySelectorAll('button').forEach((button) => { button.disabled = true; });
                     chip.classList.add('picked');
@@ -1314,6 +1476,20 @@
 
         function optionItems(id) {
             return Array.from(document.getElementById(id).options, (option) => ({ value: option.value, label: option.dataset[currentLang] || option.textContent }));
+        }
+
+        function savedDefault(field) {
+            return readStore(STORE.defaults, null)?.[field] || null;
+        }
+
+        function withDefault(items, field) {
+            const preset = savedDefault(field);
+            if (!preset) return items;
+            const mark = translations[currentLang].defaultMark;
+            const index = items.findIndex((item) => item.value === preset);
+            if (index < 0) return items;
+            const marked = { ...items[index], className: `${items[index].className || ''} chip-default`.trim(), mark };
+            return [marked, ...items.slice(0, index), ...items.slice(index + 1)];
         }
 
         function answer(field, value, label) {
@@ -1337,11 +1513,12 @@
             const c = translations[currentLang].chat;
             chatState.step = 'country';
             const all = optionItems('country');
-            const main = all.filter((item) => MAIN_MARKETS.includes(item.value));
+            const preset = savedDefault('country');
+            const main = withDefault(all.filter((item) => MAIN_MARKETS.includes(item.value) || item.value === preset), 'country');
             const pick = (value, label) => { answer('country', value, label); askNext(); };
             const row = chipRow([...main, { label: c.otherCountries, value: '__more', className: 'chip-soft' }], (value, label) => {
                 if (value !== '__more') return pick(value, label);
-                row.replaceWith(chipRow(all.filter((item) => !MAIN_MARKETS.includes(item.value)), pick));
+                row.replaceWith(chipRow(all.filter((item) => !MAIN_MARKETS.includes(item.value) && item.value !== preset), pick));
                 scrollChat();
             });
             await botSay(c.askCountry, row);
@@ -1349,7 +1526,7 @@
 
         async function askChoice(field, question) {
             chatState.step = field;
-            await botSay(question, chipRow(optionItems(field), (value, label) => { answer(field, value, label); askNext(); }));
+            await botSay(question, chipRow(withDefault(optionItems(field), field), (value, label) => { answer(field, value, label); askNext(); }));
         }
 
         async function askFilters() {
@@ -1358,11 +1535,13 @@
             chatState.step = 'filters';
             const box = el('div', 'chips');
             const inputs = Array.from(document.querySelectorAll('input[name="featureFilter"]'));
+            const presetFilters = readStore(STORE.defaults, null)?.filters || [];
             inputs.forEach((input) => {
-                input.checked = false;
+                input.checked = presetFilters.includes(input.value);
                 const chip = el('button', 'chip chip-toggle', t[FILTER_LABEL_KEYS[input.value]]);
                 chip.type = 'button';
-                chip.setAttribute('aria-pressed', 'false');
+                chip.setAttribute('aria-pressed', String(input.checked));
+                if (input.checked) chip.appendChild(el('span', 'chip-mark', t.defaultMark));
                 chip.addEventListener('click', () => {
                     input.checked = !input.checked;
                     chip.setAttribute('aria-pressed', String(input.checked));
@@ -1452,7 +1631,8 @@
             const card = el('div', 'progress');
             const steps = el('ol', 'progress-steps');
             c.steps.forEach((step, index) => steps.appendChild(el('li', index === 0 ? 'active' : '', step)));
-            card.append(el('p', 'progress-status', c.searching), steps);
+            const status = el('p', 'progress-status', c.searching);
+            card.append(status, steps);
             let current = 0;
             const timer = setInterval(() => {
                 const items = steps.querySelectorAll('li');
@@ -1461,9 +1641,10 @@
                 current += 1;
                 items[current].className = 'active';
             }, 7000);
-            card.stop = () => {
+            card.stop = (failed) => {
                 clearInterval(timer);
                 steps.querySelectorAll('li').forEach((item) => { item.className = 'done'; });
+                status.textContent = failed ? c.failed : translations[currentLang].searchDone;
                 card.classList.add('done');
                 card.closest('.msg')?.querySelector('.msg-avatar')?.classList.remove('thinking');
             };
@@ -1491,6 +1672,7 @@
                 lastReport = data;
                 reportSort = { key: 'rank', dir: 'asc' };
                 countReport();
+                saveLastReport();
                 const output = document.getElementById('reportOutput');
                 output.replaceChildren();
                 renderReport(output, data, t);
@@ -1502,7 +1684,7 @@
                 chatState.step = 'results';
                 await botSay(c.followUp);
             } catch (error) {
-                card.stop();
+                card.stop(true);
                 chatState.step = 'error';
                 await botSay(`${c.failed} ${error.message || t.error}`, chipRow([{ label: c.retry, value: 'retry', className: 'chip-primary' }], () => runSearch()));
             } finally {
@@ -1571,6 +1753,19 @@
             setDrawer(false);
         };
         startChat();
+        if (readStore(STORE.lang, 'ar') === 'en') setLanguage('en');
+        const saved = readStore(STORE.lastReport, null);
+        if (saved?.report && Array.isArray(saved.report.opportunities)) {
+            lastReport = saved.report;
+            lastRequest = saved.request || null;
+            const output = document.getElementById('reportOutput');
+            const t = translations[currentLang];
+            const note = el('p', 'hint restored-note', `${t.restoredNote} ${new Date(saved.savedAt).toLocaleString(currentLang === 'ar' ? 'ar' : 'en')}`);
+            output.replaceChildren(note);
+            renderReport(output, lastReport, t);
+            output.style.display = 'block';
+            document.getElementById('resultsEmpty').classList.add('hidden');
+        }
         composer.focus();
     </script>
 </body>

@@ -22,8 +22,11 @@ function webSearchTool(model, maxUses, allowedDomains) {
     return tool;
 }
 
-function collectSources(content, sources) {
+function collectSources(content, sources, queries) {
     for (const block of content) {
+        if (block.type === "server_tool_use" && block.name === "web_search" && typeof block.input?.query === "string") {
+            queries.push(block.input.query.slice(0, 300));
+        }
         if (block.type === "web_search_tool_result" && Array.isArray(block.content)) {
             for (const result of block.content) {
                 if (result.type === "web_search_result" && result.url) sources.push({ uri: result.url, title: result.title });
@@ -56,6 +59,7 @@ async function runClaudeResearch(config, prompt, { maxSearches = config.claudeMa
     const signal = AbortSignal.timeout(config.requestTimeoutMs);
     const messages = [{ role: "user", content: prompt }];
     const sources = [];
+    const queries = [];
     const texts = [];
     const usage = { promptTokenCount: 0, candidatesTokenCount: 0, thoughtsTokenCount: 0, totalTokenCount: 0, webSearchRequests: 0 };
     let message;
@@ -84,7 +88,7 @@ async function runClaudeResearch(config, prompt, { maxSearches = config.claudeMa
             usage.totalTokenCount += input + output;
             usage.webSearchRequests += message.usage?.server_tool_use?.web_search_requests || 0;
 
-            collectSources(message.content, sources);
+            collectSources(message.content, sources, queries);
             for (const block of message.content) if (block.type === "text") texts.push(block.text);
 
             // A long server-tool turn can pause; send it back unchanged to let it finish.
@@ -92,7 +96,7 @@ async function runClaudeResearch(config, prompt, { maxSearches = config.claudeMa
             messages.push({ role: "assistant", content: message.content });
         }
     } catch (error) {
-        return { ok: false, ...classifyError(error), usage, sources };
+        return { ok: false, ...classifyError(error), usage, sources, queries };
     }
 
     if (message.stop_reason === "refusal") {
@@ -103,6 +107,7 @@ async function runClaudeResearch(config, prompt, { maxSearches = config.claudeMa
         text: texts.join(""),
         truncated: message.stop_reason === "max_tokens" || message.stop_reason === "pause_turn",
         sources,
+        queries,
         grounded: usage.webSearchRequests > 0,
         usage
     };

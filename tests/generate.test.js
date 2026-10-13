@@ -18,7 +18,7 @@ function groundedResults(count) {
             originType: "repository",
             originUrl: url,
             supportingSources: [{ title: `Product ${index + 1}`, url }],
-            license: { name: null, status: "unverified", sourceUrl: null },
+            license: { name: "MIT", status: "verified", sourceUrl: url },
             price: { amount: null, currency: null, period: null, status: "unknown", sourceUrl: null },
             verifiedFacts: [{ claim: "Public product page", sourceUrl: url }],
             estimates: ["Revenue estimate unavailable"]
@@ -217,8 +217,8 @@ test("drops sold or ended listings and classifies commercial SaaS use from evide
     assert.equal(result.excludedCount, 2);
     const byName = Object.fromEntries(result.opportunities.map((o) => [o.productName, o]));
     assert.deepEqual(Object.keys(byName), ["agpl", "mit", "regular", "lgpl", "unsourced"]);
-    assert.equal(byName.agpl.commercialUse.status, "restricted");
-    assert.equal(byName.regular.commercialUse.status, "restricted");
+    assert.equal(byName.agpl.commercialUse.status, "conditional");
+    assert.equal(byName.regular.commercialUse.status, "conditional");
     assert.equal(byName.mit.commercialUse.status, "allowed");
     assert.equal(byName.lgpl.commercialUse.status, "allowed");
     assert.equal(byName.unsourced.commercialUse.status, "unclear");
@@ -269,7 +269,8 @@ test("extracts the JSON object when the model adds text around it", () => {
 test("prompt requests JSON without asking Gemini for schema-enforced tool output", () => {
     const prompt = buildResearchPrompt({ settings: "budget test", opportunityCount: 10, language: "ar", filters: [] });
     assert.match(prompt, /Return ONLY a JSON object in Arabic/);
-    assert.match(prompt, /Produce at most 10 opportunities/);
+    assert.match(prompt, /Produce at most 13 candidates/);
+    assert.match(prompt, /it shows at most 10/);
     assert.match(prompt, /Do not invent opportunities/);
 });
 
@@ -310,7 +311,7 @@ test("mocked handler accepts 5, 10, and 20 results and returns per-opportunity c
             lastPrompt = request.contents[0].parts[0].text;
             assert.equal(request.tools[0].googleSearch !== undefined, true);
             assert.equal(request.generationConfig.maxOutputTokens, getConfig({ QL_PROVIDER: "gemini" }).maxOutputTokens);
-            const count = Number(request.contents[0].parts[0].text.match(/Produce at most (\d+) opportunities/)[1]);
+            const count = Number(request.contents[0].parts[0].text.match(/it shows at most (\d+)/)[1]);
             const fixture = groundedResults(count);
             return mockResponse({
                 candidates: [{
@@ -407,4 +408,41 @@ test("handler converts Gemini timeout into a bounded 504 response", async () => 
             global.fetch = originalFetch;
         }
     });
+});
+test("licence tiers follow each product's own licence", () => {
+    const { commercialUseFor } = require("../server/research");
+    const status = (name) => commercialUseFor({ name, status: "verified", sourceUrl: "https://x.example/" }, {}, new Map()).status;
+    assert.equal(status("MIT"), "allowed");
+    assert.equal(status("GPL-3.0"), "allowed", "hosting GPL software is not distribution");
+    assert.equal(status("AGPL-3.0"), "conditional");
+    assert.equal(status("Regular License"), "conditional");
+    assert.equal(status("Extended License"), "allowed");
+    assert.equal(status("SSPL-1.0"), "restricted");
+    assert.equal(commercialUseFor({ name: null, status: "unverified" }, { commercialUse: { status: "allowed" } }, new Map()).status, "unclear",
+        "the model's word alone never makes a product eligible");
+});
+
+test("eligibility gate keeps only licensed, capable, in-budget products and lists the rest", () => {
+    const { partitionEligible, budgetFitFor } = require("../server/research");
+    const item = (name, extra = {}) => ({
+        productName: name, directUrl: `https://${name}.example/`, commercialUse: { status: "allowed" },
+        license: { name: "MIT", status: "verified" }, price: { status: "unknown" }, requirements: [], ...extra
+    });
+    const research = { opportunities: [
+        item("ok"),
+        item("unclear", { commercialUse: { status: "unclear" } }),
+        item("restricted", { commercialUse: { status: "restricted" } }),
+        item("lacks-api", { requirements: [{ capability: "api_integrations", status: "absent" }] }),
+        item("pricey", { price: { status: "verified", amount: "900", currency: "USD" } }),
+        item("conditional", { commercialUse: { status: "conditional" }, license: { name: "Regular License", status: "verified" }, price: { status: "verified", amount: "49", currency: "USD" } })
+    ] };
+    const result = partitionEligible(research, { opportunityCount: 5, budget: "حتى 500 دولار" });
+    assert.deepEqual(result.opportunities.map((o) => o.productName), ["ok", "conditional"]);
+    assert.equal(result.verifiedCount, 2);
+    assert.deepEqual(result.alternatives.map((o) => [o.productName, o.reasons.join()]), [
+        ["unclear", "license_unclear"], ["restricted", "license_restricted"], ["lacks-api", "missing_capability"], ["pricey", "over_budget"]
+    ]);
+    assert.equal(result.opportunities[1].budgetFit, "unknown", "a Regular License price is not the price of the licence needed");
+    assert.equal(budgetFitFor(item("x", { price: { status: "verified", amount: "$120", currency: "USD" } }), "حتى 500 دولار"), "within");
+    assert.equal(budgetFitFor(item("x"), "مفتوح"), "open");
 });

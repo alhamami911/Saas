@@ -18,7 +18,7 @@ function report() {
             originType: "marketplace",
             originUrl: ORIGIN,
             supportingSources: [{ title: "SaaS Starter", url: PRODUCT }],
-            license: { name: "Regular", status: "verified", sourceUrl: PRODUCT },
+            license: { name: "Regular License", status: "verified", sourceUrl: PRODUCT },
             price: { amount: "49", currency: "USD", period: "one-time", status: "verified", sourceUrl: PRODUCT },
             verifiedFacts: [{ claim: "Multi-tenant", sourceUrl: PRODUCT }],
             estimates: []
@@ -123,7 +123,7 @@ test("Claude research resumes paused turns and verifies real search URLs", async
         assert.equal(first.model, "claude-haiku-5-5");
         assert.equal(first.tools.length, 1);
         assert.equal(first.tools[0].type, "web_search_20250305");
-        assert.equal(first.tools[0].max_uses, 6);
+        assert.equal(first.tools[0].max_uses, 10, "one search per web-only marketplace plus two");
         // Search stays inside marketplaces without an official API; CodeCanyon joins
         // them because no Envato token is set, GitHub never does.
         assert.ok(first.tools[0].allowed_domains.includes("flippa.com"));

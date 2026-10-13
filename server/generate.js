@@ -4,7 +4,7 @@ const { getConfig, estimateCosts, searchAllowance } = require("./config");
 const { checkRateLimit, clientHash } = require("./rate-limit");
 const { seenLinks, rememberLinks } = require("./seen-store");
 const { createUsageEvent, storeUsage, dailySpendUsd, addDailySpend } = require("./usage-store");
-const { buildResearchPrompt, validateRequest, validateResearchResult, applyCatalogue, catalogueChunks, normalizePublicUrl, RESEARCH_SCHEMA } = require("./research");
+const { buildResearchPrompt, validateRequest, validateResearchResult, applyCatalogue, catalogueChunks, normalizePublicUrl, partitionEligible, RESEARCH_SCHEMA } = require("./research");
 const { collectCandidates } = require("./sources/catalog");
 const { runGeminiResearch } = require("./providers/gemini");
 const { runClaudeResearch } = require("./providers/claude");
@@ -15,6 +15,39 @@ const PROVIDER_LABELS = { claude: "Claude", gemini: "Gemini" };
 // Marketplaces without a public search API are reached through web search,
 // limited to their own domains. CodeCanyon joins them when no Envato token is set.
 const WEB_SEARCH_DOMAINS = ["codester.com", "sourceforge.net", "gumroad.com", "appsumo.com", "acquire.com", "flippa.com", "microns.io"];
+
+// Coverage log: what happened on every approved source in this search. A web-only
+// marketplace counts as checked when a query named it or a result came from it.
+function sourceCoverage(catalogueCoverage, webDomains, queries = [], sources = []) {
+    const fromApi = catalogueCoverage.map((entry) => ({
+        source: entry.source,
+        method: "official_api",
+        status: entry.status !== "ok" ? "error" : entry.count ? "found" : "no_results",
+        count: entry.count
+    }));
+    const hostOf = (uri) => {
+        try {
+            return new URL(uri).hostname.replace(/^www\./, "");
+        } catch (error) {
+            return "";
+        }
+    };
+    const fromSearch = webDomains.map((domain) => {
+        const results = new Set(sources.map((source) => source.uri).filter((uri) => {
+            const host = hostOf(uri);
+            return host === domain || host.endsWith(`.${domain}`);
+        }));
+        const name = domain.split(".")[0].toLowerCase();
+        const searched = queries.some((query) => query.toLowerCase().includes(name));
+        return {
+            source: domain,
+            method: "web_search",
+            status: results.size ? "found" : searched ? "no_results" : "not_checked",
+            count: results.size
+        };
+    });
+    return [...fromApi, ...fromSearch];
+}
 
 function jsonResponse(statusCode, payload, extraHeaders = {}) {
     return {
@@ -135,7 +168,8 @@ exports.handler = async function (event) {
     const result = config.provider === "claude"
         ? await runClaudeResearch(config, prompt, {
             // Repeat searches need extra queries to get past what the visitor already saw.
-            maxSearches: Math.min(config.claudeMaxSearches, searchAllowance(config, request.opportunityCount) + (shown.size ? 4 : 0)),
+            // One targeted search per web-only marketplace, plus a couple to dig deeper.
+            maxSearches: Math.min(config.claudeMaxSearches, Math.max(searchAllowance(config, request.opportunityCount), webDomains.length + 2) + (shown.size ? 2 : 0)),
             allowedDomains: webDomains,
             schema: RESEARCH_SCHEMA
         })
@@ -178,7 +212,8 @@ exports.handler = async function (event) {
     }
 
     const groundingChunks = [...result.sources.map((source) => ({ web: source })), ...catalogueChunks(catalogue.candidates)];
-    const research = validateResearchResult(result.text, groundingChunks, request.opportunityCount, new Date(), request.language);
+    // The model proposes a few spare candidates so the eligibility gate can drop some.
+    const research = validateResearchResult(result.text, groundingChunks, request.opportunityCount + 3, new Date(), request.language, request.filters);
     if (research.error) {
         await persistFailure(config, { ...baseFields, outcome: research.errorCode }, result.usage, result.grounded);
         return jsonResponse(502, { errorCode: research.errorCode, error: research.error });
@@ -189,8 +224,9 @@ exports.handler = async function (event) {
         const opportunities = research.value.opportunities.filter((opportunity) => !shown.has(opportunity.directUrl));
         research.value = { ...research.value, opportunities, verifiedCount: opportunities.length, excludedCount: research.value.excludedCount + repeated };
     }
+    research.value = partitionEligible(research.value, request);
 
-    await rememberLinks(config, visitor, research.value.opportunities.map((opportunity) => opportunity.directUrl));
+    await rememberLinks(config, visitor, [...research.value.opportunities, ...research.value.alternatives].map((opportunity) => opportunity.directUrl));
 
     let accounting;
     try {
@@ -215,10 +251,7 @@ exports.handler = async function (event) {
         provider: config.provider,
         model: config.model,
         elapsedMs,
-        coverage: [
-            ...catalogue.coverage,
-            { source: "web_search", method: "web_search", status: "ok", domains: webDomains, count: result.usage?.webSearchRequests || 0 }
-        ],
+        coverage: sourceCoverage(catalogue.coverage, webDomains, result.queries, result.sources),
         sources: [...new Map(result.sources
             .filter((source) => source?.uri)
             .map((source) => [source.uri, { title: source.title, url: source.uri }])).values()],

@@ -117,12 +117,12 @@ test("catalogue facts override the model and label how each opportunity was foun
 
     assert.equal(acme.discoveredVia, "official_api");
     assert.equal(acme.license.name, "AGPL-3.0", "the API license wins over the model's MIT");
-    assert.equal(acme.commercialUse.status, "restricted");
+    assert.equal(acme.commercialUse.status, "conditional", "AGPL allows paid hosting if changes are shared");
     assert.equal(acme.stats.stars, 900);
     assert.equal(acme.confidence, "high");
     assert.equal(perfex.price.amount, "59.00");
     assert.equal(perfex.price.status, "verified");
-    assert.equal(perfex.commercialUse.status, "restricted");
+    assert.equal(perfex.commercialUse.status, "conditional", "a Regular License needs the Extended License for paid SaaS");
     assert.equal(perfex.stats.sales, 25000);
     assert.equal(listing.discoveredVia, "web_search");
 });
