@@ -65,7 +65,7 @@ function getConfig(env = process.env) {
         // Upper bound on web searches per report; the actual allowance scales with
         // the requested count (see searchAllowance) so small reports stay cheap.
         claudeMaxSearches: numericSetting(env, "QL_CLAUDE_MAX_SEARCHES", 10, 1, 20),
-        dailyBudgetUsd: numericSetting(env, "QL_DAILY_BUDGET_USD", 2, 0.1, 1000),
+        dailyBudgetUsd: numericSetting(env, "QL_DAILY_BUDGET_USD", 4, 0.1, 1000),
         redisUrl: env.UPSTASH_REDIS_REST_URL?.replace(/\/$/, ""),
         redisToken: env.UPSTASH_REDIS_REST_TOKEN,
         rateLimitSalt: env.QL_RATE_LIMIT_SALT || env.qlook_key || env.qlook_claude_key,

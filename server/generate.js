@@ -213,6 +213,12 @@ async function runClaudeSearch(config, request, shown, visitor, event) {
     });
 }
 
+// The daily budget renews at midnight UTC.
+function budgetResetsAt(now = Date.now()) {
+    const day = new Date(now).toISOString().slice(0, 10);
+    return new Date(Date.parse(`${day}T00:00:00.000Z`) + 86400000).toISOString();
+}
+
 function summarizeLog(log = []) {
     return log.map((entry) => `${entry.source}:${entry.status}:${entry.products ?? 0}`).join(" ");
 }
@@ -281,6 +287,7 @@ exports.handler = async function (event) {
         console.error("Daily research budget reached", spentToday.toFixed(4), config.dailyBudgetUsd);
         return jsonResponse(429, {
             errorCode: "DAILY_BUDGET_REACHED",
+            resetsAt: budgetResetsAt(),
             error: "Today's research budget has been used. Please try again tomorrow."
         }, { "Retry-After": "3600" });
     }

@@ -132,7 +132,8 @@ exports.handler = async function (event) {
 
     try {
         if (await dailySpendUsd(config) >= config.dailyBudgetUsd) {
-            return json(429, { errorCode: "DAILY_BUDGET_REACHED", error: "Today's research budget has been used.", quota: await quotaFor(config, visitor) });
+            const quota = await quotaFor(config, visitor);
+            return json(429, { errorCode: "DAILY_BUDGET_REACHED", error: "Today's research budget has been used.", resetsAt: quota.resetsAt, quota });
         }
     } catch (error) {
         return json(503, { errorCode: "BUDGET_CHECK_UNAVAILABLE", error: "The discussion is temporarily unavailable. Please retry shortly." });

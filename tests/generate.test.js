@@ -230,7 +230,7 @@ test("search allowance scales with the requested count within the cap", () => {
     const config = getConfig({});
     assert.deepEqual([5, 10, 20].map((count) => searchAllowance(config, count)), [6, 8, 10]);
     assert.equal(searchAllowance(getConfig({ QL_CLAUDE_MAX_SEARCHES: "4" }), 20), 4);
-    assert.equal(config.dailyBudgetUsd, 2);
+    assert.equal(config.dailyBudgetUsd, 4);
 });
 
 test("handler stops before calling the provider once the daily budget is spent", async () => {
@@ -240,7 +240,7 @@ test("handler stops before calling the provider once the daily budget is spent",
         global.fetch = async (url, options) => {
             if (!String(url).startsWith("https://redis.example")) { providerCalls += 1; throw new Error("provider must not be called"); }
             const command = JSON.parse(options.body);
-            if (command[0] === "GET") return mockResponse({ result: "2.150000" });
+            if (command[0] === "GET") return mockResponse({ result: "4.150000" });
             return mockResponse({ result: command[1].includes("local results") ? [1, 1, 1] : 0 });
         };
         try {

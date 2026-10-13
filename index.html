@@ -489,7 +489,7 @@
                 errorCodes: {
                     RATE_LIMITED: 'أجريت عمليات بحث كثيرة خلال وقت قصير. انتظر دقيقة واحدة ثم حاول مرة أخرى.',
                     DAILY_LIMIT_REACHED: 'وصلت إلى الحد اليومي لعمليات البحث (30 بحثاً). يمكنك المحاولة مجدداً غداً.',
-                    DAILY_BUDGET_REACHED: 'استُهلكت ميزانية البحث المخصصة لليوم. يمكنك المحاولة مجدداً غداً.',
+                    DAILY_BUDGET_REACHED: 'استُهلكت ميزانية البحث المخصصة لليوم. انتظر حتى تتجدد، أو تواصل مع مسؤول الموقع لزيادة الرصيد.',
                     AI_QUOTA_EXCEEDED: 'رصيد خدمة الذكاء الاصطناعي غير كافٍ حالياً. يرجى إبلاغ مسؤول الموقع.',
                     AI_TIMEOUT: 'استغرق البحث وقتاً أطول من المسموح. حاول مرة أخرى، أو اطلب عدداً أقل من الفرص.',
                     OUTPUT_LIMIT_REACHED: 'التقرير أطول من الحد المسموح. اطلب عدداً أقل من الفرص.',
@@ -553,7 +553,7 @@
                 errorCodes: {
                     RATE_LIMITED: 'Too many searches in a short time. Wait one minute and try again.',
                     DAILY_LIMIT_REACHED: 'You reached the daily search limit (30 searches). Try again tomorrow.',
-                    DAILY_BUDGET_REACHED: "Today's research budget has been used. Try again tomorrow.",
+                    DAILY_BUDGET_REACHED: "Today's research budget has been used. Wait until it renews, or ask the site administrator to add credit.",
                     AI_QUOTA_EXCEEDED: 'The AI service is out of credit right now. Please tell the site administrator.',
                     AI_TIMEOUT: 'The search took too long. Try again, or request fewer opportunities.',
                     OUTPUT_LIMIT_REACHED: 'The report was too long. Request fewer opportunities.',
@@ -619,6 +619,7 @@
             viaOfficial: 'بيانات رسمية', viaSearch2: 'بحث داخل الموقع',
             searchDone: 'اكتمل البحث.', restoredNote: 'آخر تقرير محفوظ على هذا الجهاز من',
             defaultMark: 'افتراضي',
+            budgetReached: (at) => `استُهلكت ميزانية البحث المخصصة لليوم. تتجدد ${new Date(at).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' })}؛ انتظر حتى ذلك الوقت، أو تواصل مع مسؤول الموقع لزيادة الرصيد. سجل المحادثة والتقارير المحفوظة يبقى متاحاً.`,
             discussBtn: 'ناقش هذه الفرصة مع QLook', discussBack: 'رجوع إلى قائمة المتابعة',
             discussIntro: (name) => `لنناقش «${name}». لدي بيانات الفرصة كما حفظتها: الترخيص والسعر وحالة الخصائص المطلوبة والمصادر. اسألني عن ملاءمتها للسوق، أو التعريب والتطوير المطلوب، أو تشغيلها كـ SaaS، أو المخاطر والبدائل. سأفصل دائماً بين ما تحقق منه QLook وبين تقديراتي.`,
             discussPlaceholder: 'اكتب سؤالك عن هذه الفرصة...',
@@ -648,6 +649,7 @@
             viaOfficial: 'official data', viaSearch2: 'site search',
             searchDone: 'Search complete.', restoredNote: 'Last report saved on this device from',
             defaultMark: 'default',
+            budgetReached: (at) => `Today's research budget has been used. It renews ${new Date(at).toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short' })}; please wait until then, or ask the site administrator to add credit. Your conversation and saved reports stay available.`,
             discussBtn: 'Discuss this opportunity with QLook', discussBack: 'Back to the watchlist',
             discussIntro: (name) => `Let's discuss "${name}". I have the opportunity as you saved it: licence, price, the status of the required capabilities and the sources. Ask about market fit, localisation and development, running it as a SaaS, or risks and alternatives. I will always separate what QLook verified from my own estimates.`,
             discussPlaceholder: 'Ask about this opportunity...',
@@ -1403,7 +1405,10 @@
                 throw new Error(t.errorCodes.NETWORK);
             }
             const data = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(t.errorCodes[data.errorCode] || t.error);
+            if (!response.ok) {
+                const message = data.errorCode === 'DAILY_BUDGET_REACHED' && data.resetsAt ? t.budgetReached(data.resetsAt) : t.errorCodes[data.errorCode] || t.error;
+                throw Object.assign(new Error(message), { code: data.errorCode });
+            }
             if (!Array.isArray(data.opportunities) || !Number.isInteger(data.verifiedCount)) throw new Error(t.invalid);
             return data;
         }
@@ -1769,7 +1774,8 @@
             } catch (error) {
                 card.stop(true);
                 chatState.step = 'error';
-                await botSay(`${c.failed} ${error.message || t.error}`, chipRow([{ label: c.retry, value: 'retry', className: 'chip-primary' }], () => runSearch()));
+                const waitOnly = ['DAILY_BUDGET_REACHED', 'DAILY_LIMIT_REACHED'].includes(error.code);
+                await botSay(`${c.failed} ${error.message || t.error}`, waitOnly ? null : chipRow([{ label: c.retry, value: 'retry', className: 'chip-primary' }], () => runSearch()));
             } finally {
                 chatState.busy = false;
                 setBusy(false);
@@ -1927,14 +1933,18 @@
                 }
                 const data = await response.json().catch(() => ({}));
                 if (data.quota) discussState.quota = data.quota;
-                if (!response.ok || !data.reply) throw new Error(t.errorCodes[data.errorCode] || t.error);
+                if (!response.ok || !data.reply) {
+                    const message = data.errorCode === 'DAILY_BUDGET_REACHED' && data.resetsAt ? t.budgetReached(data.resetsAt) : t.errorCodes[data.errorCode] || t.error;
+                    throw Object.assign(new Error(message), { code: data.errorCode });
+                }
                 pending.textContent = data.reply.replace(/\*\*|__|^#+\s*/gm, '');
                 // Only answered messages are kept, so a retry never duplicates a turn.
                 writeStore(key, [...history, { role: 'user', content: message }, { role: 'assistant', content: data.reply }].slice(-40));
             } catch (error) {
                 const box = el('div');
-                box.appendChild(document.createTextNode(`${t.discussFailed} ${error.message}`));
-                if (!(discussState.quota && discussState.quota.remaining <= 0)) {
+                const waitOnly = ['DAILY_BUDGET_REACHED', 'DISCUSS_LIMIT_REACHED'].includes(error.code);
+                box.appendChild(document.createTextNode(waitOnly ? error.message : `${t.discussFailed} ${error.message}`));
+                if (!waitOnly && !(discussState.quota && discussState.quota.remaining <= 0)) {
                     box.appendChild(chipRow([{ label: t.discussRetry, value: 'retry', className: 'chip-primary' }], () => {
                         pending.closest('.msg').remove();
                         sendDiscussion(message, true);
