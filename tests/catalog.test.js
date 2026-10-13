@@ -155,6 +155,20 @@ test("product links must open the product, not a marketplace search or category 
     assert.equal(result.excludedCount, 1);
 });
 
+test("a marketplace home page is accepted as origin for that marketplace's product page", () => {
+    // Real response shape: product page found by search, origin given as the site root.
+    const product = "https://codecanyon.net/item/slotara-appointment-booking/63704666";
+    const item = (originUrl) => ({
+        productName: "Slotara", directUrl: product, originName: "CodeCanyon", originType: "marketplace", originUrl,
+        supportingSources: [], license: { status: "unverified" }, price: { status: "unknown" }, verifiedFacts: [], estimates: []
+    });
+    const chunks = [{ web: { uri: product, title: "Slotara — Appointment Booking & Scheduling SaaS Platform" } }];
+    const text = (originUrl) => JSON.stringify({ summary: "", verificationNote: "", opportunities: [item(originUrl)] });
+    assert.equal(validateResearchResult(text("https://codecanyon.net/"), chunks, 5).value.verifiedCount, 1);
+    assert.equal(validateResearchResult(text("https://www.codecanyon.net/"), chunks, 5).value.verifiedCount, 1);
+    assert.equal(validateResearchResult(text("https://elsewhere.example/"), chunks, 5).value.verifiedCount, 0, "an unrelated, ungrounded origin is still rejected");
+});
+
 test("prompt carries the catalogue as data and the limited search domains", () => {
     const prompt = buildResearchPrompt({
         settings: "Country: SA", opportunityCount: 5, language: "ar", filters: [],
