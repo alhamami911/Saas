@@ -131,8 +131,8 @@ const CLOSED_LISTING = /\b(sold on|listing ended|auction ended|listing closed|no
 // License families, from most to least restrictive for a paid hosted service.
 const RESTRICTED_LICENSE = /(SSPL|BUSL|\bBSL\b|Business Source|Commons Clause|Elastic License|non-?commercial|CC[- ]?BY[- ]?NC)/i;
 const NETWORK_COPYLEFT = /AGPL|Affero/i;
-const COPYLEFT_LICENSE = /\b(L?GPL|MPL|EPL|EUPL|GNU)\b/i;
-const PERMISSIVE_LICENSE = /\b(MIT|Apache|BSD|ISC|Unlicense|Zlib|0BSD|PostgreSQL)\b/i;
+const COPYLEFT_LICENSE = /\b(L?GPL|MPL|EPL|EUPL|GNU|Mozilla Public|Eclipse Public|European Union Public)\b/i;
+const PERMISSIVE_LICENSE = /\b(MIT|Apache|BSD|ISC|Unlicense|Zlib|0BSD|PostgreSQL|Attribution Assurance|Boost Software)\b/i;
 
 // Decides whether a product may be run as a paid hosted service. Only a licence
 // verified from a source can make a product eligible: "allowed", or "conditional"

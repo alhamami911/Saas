@@ -418,6 +418,9 @@ test("licence tiers follow each product's own licence", () => {
     assert.equal(status("Regular License"), "conditional");
     assert.equal(status("Extended License"), "allowed");
     assert.equal(status("SSPL-1.0"), "restricted");
+    assert.equal(status("Mozilla Public License 2.0"), "allowed");
+    assert.equal(status("Attribution Assurance License"), "allowed");
+    assert.equal(status("Business Source License 1.1"), "restricted");
     assert.equal(commercialUseFor({ name: null, status: "unverified" }, { commercialUse: { status: "allowed" } }, new Map()).status, "unclear",
         "the model's word alone never makes a product eligible");
 });
