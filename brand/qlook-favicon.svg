@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <filter id="f-glow" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="0.78" result="b"/>
+      <feFlood flood-color="#10B981" flood-opacity="0.9"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="f-amber" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.04" result="b"/>
+      <feFlood flood-color="#F59E0B" flood-opacity="1"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter></defs>
+  <rect width="64" height="64" rx="14" fill="#0A0F0D"/>
+  <g>
+    <path d="M32 32L22.22 10.03A24.05 24.05 0 0 1 47.46 13.58Z" fill="#10B981" opacity="0.22499999999999998"/>
+    <path d="M32 32L30.88 7.98A24.05 24.05 0 0 1 47.46 13.58Z" fill="#10B981" opacity="0.4875"/>
+    <path d="M32 32L39.7 9.22A24.05 24.05 0 0 1 47.46 13.58Z" fill="#10B981" opacity="0.85"/>
+    <circle cx="32" cy="32" r="26" fill="none" stroke="#10B981" stroke-width="3.9" opacity="1"/>
+    <path d="M32 32L47.46 13.58" stroke="#10B981" stroke-width="3.9" stroke-linecap="round" filter="url(#f-glow)"/>
+    <circle cx="36.42" cy="18.4" r="5.72" fill="#F59E0B" filter="url(#f-amber)"/>
+  </g>
+</svg>

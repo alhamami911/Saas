@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <defs>
+    <filter id="h-glow" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="b"/>
+      <feFlood flood-color="#10B981" flood-opacity="0.9"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="h-amber" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="20" result="b"/>
+      <feFlood flood-color="#F59E0B" flood-opacity="1"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter></defs>
+  <radialGradient id="h-halo" cx="0.3125" cy="0.5185185185185185" r="0.55" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#10B981" stop-opacity="0.16"/><stop offset="0.45" stop-color="#0E5E4A" stop-opacity="0.07"/><stop offset="1" stop-color="#0A0F0D" stop-opacity="0"/></radialGradient>
+  <rect width="1920" height="1080" fill="#0A0F0D"/>
+  <rect width="1920" height="1080" fill="url(#h-halo)"/>
+  <circle cx="600" cy="560" r="540" fill="none" stroke="#0E5E4A" stroke-opacity="0.35" stroke-width="1.2"/>
+  <circle cx="600" cy="560" r="700" fill="none" stroke="#0E5E4A" stroke-opacity="0.18" stroke-width="1"/>
+  <path d="M674.16 331.75L1010 300" stroke="#10B981" stroke-opacity="0.16" stroke-width="1.5" stroke-dasharray="2 8"/>
+  <path d="M674.16 331.75L935 820" stroke="#10B981" stroke-opacity="0.16" stroke-width="1.5" stroke-dasharray="2 8"/>
+  <path d="M674.16 331.75L250 260" stroke="#10B981" stroke-opacity="0.16" stroke-width="1.5" stroke-dasharray="2 8"/>
+  <path d="M674.16 331.75L180 760" stroke="#10B981" stroke-opacity="0.16" stroke-width="1.5" stroke-dasharray="2 8"/>
+  <path d="M674.16 331.75L1060 560" stroke="#10B981" stroke-opacity="0.16" stroke-width="1.5" stroke-dasharray="2 8"/>
+  <g>
+    <path d="M600 560L440.97 202.8A391 391 0 0 1 851.33 260.48Z" fill="#10B981" opacity="0.0375"/>
+    <path d="M600 560L492.23 184.15A391 391 0 0 1 851.33 260.48Z" fill="#10B981" opacity="0.056249999999999994"/>
+    <path d="M600 560L545.58 172.81A391 391 0 0 1 851.33 260.48Z" fill="#10B981" opacity="0.08125"/>
+    <path d="M600 560L600 169A391 391 0 0 1 851.33 260.48Z" fill="#10B981" opacity="0.11249999999999999"/>
+    <path d="M600 560L654.42 172.81A391 391 0 0 1 851.33 260.48Z" fill="#10B981" opacity="0.15"/>
+    <path d="M600 560L707.77 184.15A391 391 0 0 1 851.33 260.48Z" fill="#10B981" opacity="0.18749999999999997"/>
+    <path d="M600 560L759.03 202.8A391 391 0 0 1 851.33 260.48Z" fill="#10B981" opacity="0.23124999999999998"/>
+    <path d="M600 560L807.2 228.41A391 391 0 0 1 851.33 260.48Z" fill="#10B981" opacity="0.28125"/>
+    <circle cx="600" cy="560" r="136" fill="none" stroke="#0E5E4A" stroke-width="8.8"/>
+    <circle cx="600" cy="560" r="268" fill="none" stroke="#0E5E4A" stroke-width="8.8"/>
+    <path d="M200 560H1000M600 160V960" stroke="#0E5E4A" stroke-width="8.8"/>
+    <path d="M960 560L988 560" stroke="#0E5E4A" stroke-width="8.8" stroke-linecap="round"/>
+    <path d="M911.77 740L936.02 754" stroke="#0E5E4A" stroke-width="8.8" stroke-linecap="round"/>
+    <path d="M780 871.77L794 896.02" stroke="#0E5E4A" stroke-width="8.8" stroke-linecap="round"/>
+    <path d="M600 920L600 948" stroke="#0E5E4A" stroke-width="8.8" stroke-linecap="round"/>
+    <path d="M420 871.77L406 896.02" stroke="#0E5E4A" stroke-width="8.8" stroke-linecap="round"/>
+    <path d="M288.23 740L263.98 754" stroke="#0E5E4A" stroke-width="8.8" stroke-linecap="round"/>
+    <path d="M240 560L212 560" stroke="#0E5E4A" stroke-width="8.8" stroke-linecap="round"/>
+    <path d="M288.23 380L263.98 366" stroke="#0E5E4A" stroke-width="8.8" stroke-linecap="round"/>
+    <path d="M420 248.23L406 223.98" stroke="#0E5E4A" stroke-width="8.8" stroke-linecap="round"/>
+    <path d="M600 200L600 172" stroke="#0E5E4A" stroke-width="8.8" stroke-linecap="round"/>
+    <path d="M780 248.23L794 223.98" stroke="#0E5E4A" stroke-width="8.8" stroke-linecap="round"/>
+    <path d="M911.77 380L936.02 366" stroke="#0E5E4A" stroke-width="8.8" stroke-linecap="round"/>
+    <circle cx="600" cy="560" r="400" fill="none" stroke="#10B981" stroke-width="18" opacity="0.9"/>
+    <path d="M600 560L851.33 260.48" stroke="#10B981" stroke-width="13.5" stroke-linecap="round" filter="url(#h-glow)"/>
+    <circle cx="674.16" cy="331.75" r="69" fill="none" stroke="#F59E0B" stroke-width="9.68" opacity="0.45"/>
+    <circle cx="674.16" cy="331.75" r="30" fill="#F59E0B" filter="url(#h-amber)"/>
+    <circle cx="600" cy="560" r="14" fill="#E7F0EC"/>
+  </g>
+  <circle cx="1010" cy="300" r="18.2" fill="none" stroke="#F59E0B" stroke-opacity="0.22" stroke-width="1.5"/><circle cx="1010" cy="300" r="7" fill="#F59E0B" opacity="0.85" filter="url(#h-amber)"/>
+  <circle cx="935" cy="820" r="15.600000000000001" fill="none" stroke="#F59E0B" stroke-opacity="0.22" stroke-width="1.5"/><circle cx="935" cy="820" r="6" fill="#F59E0B" opacity="0.85" filter="url(#h-amber)"/>
+  <circle cx="250" cy="260" r="13" fill="none" stroke="#F59E0B" stroke-opacity="0.22" stroke-width="1.5"/><circle cx="250" cy="260" r="5" fill="#F59E0B" opacity="0.85" filter="url(#h-amber)"/>
+  <circle cx="180" cy="760" r="15.600000000000001" fill="none" stroke="#F59E0B" stroke-opacity="0.22" stroke-width="1.5"/><circle cx="180" cy="760" r="6" fill="#F59E0B" opacity="0.85" filter="url(#h-amber)"/>
+  <circle cx="1060" cy="560" r="13" fill="none" stroke="#F59E0B" stroke-opacity="0.22" stroke-width="1.5"/><circle cx="1060" cy="560" r="5" fill="#F59E0B" opacity="0.85" filter="url(#h-amber)"/>
+  <circle cx="430" cy="980" r="10.4" fill="none" stroke="#F59E0B" stroke-opacity="0.22" stroke-width="1.5"/><circle cx="430" cy="980" r="4" fill="#F59E0B" opacity="0.85" filter="url(#h-amber)"/>
+  <circle cx="840" cy="160" r="10.4" fill="none" stroke="#F59E0B" stroke-opacity="0.22" stroke-width="1.5"/><circle cx="840" cy="160" r="4" fill="#F59E0B" opacity="0.85" filter="url(#h-amber)"/>
+</svg>

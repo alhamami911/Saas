@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <filter id="m-glow" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="9.9" result="b"/>
+      <feFlood flood-color="#10B981" flood-opacity="0.9"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="m-amber" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="16.5" result="b"/>
+      <feFlood flood-color="#F59E0B" flood-opacity="1"/>
+      <feComposite in2="b" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter></defs>
+  <rect width="1024" height="1024" fill="#0A0F0D"/>
+  <radialGradient id="m-halo" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#10B981" stop-opacity="0.10"/><stop offset="1" stop-color="#10B981" stop-opacity="0"/></radialGradient>
+  <circle cx="512" cy="512" r="470" fill="url(#m-halo)"/>
+  <g>
+    <path d="M512 512L380.8 217.31A322.575 322.575 0 0 1 719.35 264.89Z" fill="#10B981" opacity="0.0375"/>
+    <path d="M512 512L423.09 201.92A322.575 322.575 0 0 1 719.35 264.89Z" fill="#10B981" opacity="0.056249999999999994"/>
+    <path d="M512 512L467.11 192.56A322.575 322.575 0 0 1 719.35 264.89Z" fill="#10B981" opacity="0.08125"/>
+    <path d="M512 512L512 189.43A322.575 322.575 0 0 1 719.35 264.89Z" fill="#10B981" opacity="0.11249999999999999"/>
+    <path d="M512 512L556.89 192.56A322.575 322.575 0 0 1 719.35 264.89Z" fill="#10B981" opacity="0.15"/>
+    <path d="M512 512L600.91 201.92A322.575 322.575 0 0 1 719.35 264.89Z" fill="#10B981" opacity="0.18749999999999997"/>
+    <path d="M512 512L643.2 217.31A322.575 322.575 0 0 1 719.35 264.89Z" fill="#10B981" opacity="0.23124999999999998"/>
+    <path d="M512 512L682.94 238.44A322.575 322.575 0 0 1 719.35 264.89Z" fill="#10B981" opacity="0.28125"/>
+    <circle cx="512" cy="512" r="112.2" fill="none" stroke="#0E5E4A" stroke-width="7.26"/>
+    <circle cx="512" cy="512" r="221.1" fill="none" stroke="#0E5E4A" stroke-width="7.26"/>
+    <path d="M182 512H842M512 182V842" stroke="#0E5E4A" stroke-width="7.26"/>
+    <path d="M809 512L832.1 512" stroke="#0E5E4A" stroke-width="7.26" stroke-linecap="round"/>
+    <path d="M769.21 660.5L789.21 672.05" stroke="#0E5E4A" stroke-width="7.26" stroke-linecap="round"/>
+    <path d="M660.5 769.21L672.05 789.21" stroke="#0E5E4A" stroke-width="7.26" stroke-linecap="round"/>
+    <path d="M512 809L512 832.1" stroke="#0E5E4A" stroke-width="7.26" stroke-linecap="round"/>
+    <path d="M363.5 769.21L351.95 789.21" stroke="#0E5E4A" stroke-width="7.26" stroke-linecap="round"/>
+    <path d="M254.79 660.5L234.79 672.05" stroke="#0E5E4A" stroke-width="7.26" stroke-linecap="round"/>
+    <path d="M215 512L191.9 512" stroke="#0E5E4A" stroke-width="7.26" stroke-linecap="round"/>
+    <path d="M254.79 363.5L234.79 351.95" stroke="#0E5E4A" stroke-width="7.26" stroke-linecap="round"/>
+    <path d="M363.5 254.79L351.95 234.79" stroke="#0E5E4A" stroke-width="7.26" stroke-linecap="round"/>
+    <path d="M512 215L512 191.9" stroke="#0E5E4A" stroke-width="7.26" stroke-linecap="round"/>
+    <path d="M660.5 254.79L672.05 234.79" stroke="#0E5E4A" stroke-width="7.26" stroke-linecap="round"/>
+    <path d="M769.21 363.5L789.21 351.95" stroke="#0E5E4A" stroke-width="7.26" stroke-linecap="round"/>
+    <circle cx="512" cy="512" r="330" fill="none" stroke="#10B981" stroke-width="14.85" opacity="0.9"/>
+    <path d="M512 512L719.35 264.89" stroke="#10B981" stroke-width="11.14" stroke-linecap="round" filter="url(#m-glow)"/>
+    <circle cx="575.22" cy="317.41" r="56.93" fill="none" stroke="#F59E0B" stroke-width="7.99" opacity="0.45"/>
+    <circle cx="575.22" cy="317.41" r="24.75" fill="#F59E0B" filter="url(#m-amber)"/>
+    <circle cx="512" cy="512" r="11.55" fill="#E7F0EC"/>
+  </g>
+</svg>

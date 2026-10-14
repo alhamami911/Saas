@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="1920" height="1080">
+  <radialGradient id="d-v" cx="0.78" cy="0.8" r="0.9"><stop offset="0" stop-color="#0E1713"/><stop offset="1" stop-color="#0A0F0D"/></radialGradient>
+  <rect width="1920" height="1080" fill="url(#d-v)"/>
+  <path d="M0 0V1080M48 0V1080M96 0V1080M144 0V1080M192 0V1080M240 0V1080M288 0V1080M336 0V1080M384 0V1080M432 0V1080M480 0V1080M528 0V1080M576 0V1080M624 0V1080M672 0V1080M720 0V1080M768 0V1080M816 0V1080M864 0V1080M912 0V1080M960 0V1080M1008 0V1080M1056 0V1080M1104 0V1080M1152 0V1080M1200 0V1080M1248 0V1080M1296 0V1080M1344 0V1080M1392 0V1080M1440 0V1080M1488 0V1080M1536 0V1080M1584 0V1080M1632 0V1080M1680 0V1080M1728 0V1080M1776 0V1080M1824 0V1080M1872 0V1080M1920 0V1080M0 0H1920M0 48H1920M0 96H1920M0 144H1920M0 192H1920M0 240H1920M0 288H1920M0 336H1920M0 384H1920M0 432H1920M0 480H1920M0 528H1920M0 576H1920M0 624H1920M0 672H1920M0 720H1920M0 768H1920M0 816H1920M0 864H1920M0 912H1920M0 960H1920M0 1008H1920M0 1056H1920" stroke="#10B981" stroke-opacity="0.028" stroke-width="1"/>
+  <circle cx="1500" cy="860" r="180" fill="none" stroke="#10B981" stroke-opacity="0.06" stroke-width="1.2"/>
+  <circle cx="1500" cy="860" r="360" fill="none" stroke="#10B981" stroke-opacity="0.06" stroke-width="1.2"/>
+  <circle cx="1500" cy="860" r="540" fill="none" stroke="#10B981" stroke-opacity="0.06" stroke-width="1.2"/>
+  <circle cx="1500" cy="860" r="720" fill="none" stroke="#10B981" stroke-opacity="0.06" stroke-width="1.2"/>
+  <circle cx="1500" cy="860" r="900" fill="none" stroke="#10B981" stroke-opacity="0.06" stroke-width="1.2"/>
+  <path d="M1500 0V1080M0 860H1920" stroke="#10B981" stroke-opacity="0.04" stroke-width="1"/>
+</svg>
