@@ -408,3 +408,20 @@ test("earlier-seen products go to the back of the queue instead of disappearing"
     assert.deepEqual(pickCandidates({ candidates: [] }, few, new Set(), 16, seenBefore).map((item) => item.url), ["https://codecanyon.net/item/old/1"], "but a seen product still fills an empty slot");
     assert.deepEqual(pickCandidates({ candidates: [] }, few, new Set(["https://codecanyon.net/item/old/1"]), 16, seenBefore), [], "what is on screen now is never repeated");
 });
+
+test("a listing whose page says it is unlisted or sold is never analysed or shown", async () => {
+    PAGES[PRODUCTS["flippa.com"]] = "This startup has been unlisted. But don't worry, check out the marketplace.";
+    try {
+        await withEnv({}, async ({ calls }) => {
+            const data = JSON.parse((await search()).body);
+            assert.deepEqual(data.closedListings.map((item) => item.url), [PRODUCTS["flippa.com"]]);
+            const shown = [...data.opportunities, ...data.alternatives].map((o) => o.directUrl);
+            assert.ok(!shown.includes(PRODUCTS["flippa.com"]));
+            const analysis = calls.filter((call) => !call.tools).map((call) => call.messages[0].content).join("\n");
+            assert.ok(!analysis.includes(PRODUCTS["flippa.com"]), "the closed listing is not sent to the analysis");
+            assert.match(data.summary, /لم يعد معروضاً/);
+        });
+    } finally {
+        delete PAGES[PRODUCTS["flippa.com"]];
+    }
+});

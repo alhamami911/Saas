@@ -128,7 +128,8 @@ function isProductPage(value) {
 }
 
 // Listings whose own search title says they are gone are never shown as opportunities.
-const CLOSED_LISTING = /\b(sold on|listing ended|auction ended|listing closed|no longer available)\b/i;
+// Words a page or a search title uses when a product or business is gone.
+const CLOSED_LISTING = /\b(sold on|has been sold|been unlisted|is unlisted|listing (has )?ended|auction ended|listing (is |has been )?closed|no longer (available|listed|for sale|on sale)|under offer|(item|listing|startup|product) (has been |was )?removed|this item is no longer|deal (has )?ended|sold out)\b/i;
 // License families, from most to least restrictive for a paid hosted service.
 const RESTRICTED_LICENSE = /(SSPL|BUSL|\bBSL\b|Business Source|Commons Clause|Elastic License|non-?commercial|CC[- ]?BY[- ]?NC)/i;
 const NETWORK_COPYLEFT = /AGPL|Affero/i;

@@ -13,7 +13,7 @@ const { claudeClient, webSearchTool, classifyError } = require("./providers/clau
 const { redisCommand } = require("./usage-store");
 const { collectCandidates } = require("./sources/catalog");
 const { searchTerms } = require("./sources/keywords");
-const { isProductPage, normalizePublicUrl, commercialUseFor, FILTER_DESCRIPTIONS } = require("./research");
+const { isProductPage, normalizePublicUrl, commercialUseFor, FILTER_DESCRIPTIONS, CLOSED_LISTING } = require("./research");
 
 const WEB_SOURCES = Object.freeze([
     { domain: "codecanyon.net", label: "CodeCanyon", suffix: "saas script" },
@@ -78,6 +78,9 @@ function siteQuery(source, request, round) {
 // never blocks research: it simply runs the search again.
 const SEARCH_CACHE_SECONDS = 24 * 60 * 60;
 const PAGE_CACHE_SECONDS = 7 * 24 * 60 * 60;
+const LISTING_CACHE_SECONDS = 3 * 60 * 60;
+const LISTING_HOSTS = ["acquire.com", "flippa.com", "microns.io", "appsumo.com", "indiehackers.com"];
+const isListingHost = (url) => LISTING_HOSTS.some((domain) => onDomain(url, domain));
 const cacheKey = (kind, value) => `ql:cache:${kind}:${createHash("sha256").update(value).digest("hex").slice(0, 40)}`;
 
 async function cacheGet(config, key) {
@@ -244,7 +247,7 @@ async function webFetch(client, config, usage, url, deadline) {
     const cached = await cacheGet(config, key);
     if (cached?.text) return { ...cached, cached: true };
     const page = await webFetchLive(client, config, usage, url, deadline);
-    if (page.text) await cacheSet(config, key, { method: page.method, url: page.url, text: page.text.slice(0, 80000), fetchedAt: new Date().toISOString() }, PAGE_CACHE_SECONDS);
+    if (page.text) await cacheSet(config, key, { method: page.method, url: page.url, text: page.text.slice(0, 80000), fetchedAt: new Date().toISOString() }, isListingHost(url) ? LISTING_CACHE_SECONDS : PAGE_CACHE_SECONDS);
     return page;
 }
 
@@ -527,7 +530,7 @@ function toOpportunity(candidate, entry, request, language, today) {
         offerType: entry.offerType,
         license,
         commercialUse,
-        availability: { status: "unknown", sourceUrl: null },
+        availability: page && candidate.sourceType !== "repository" ? { status: "available", sourceUrl } : { status: "unknown", sourceUrl: null },
         price,
         lastVerifiedDate: today,
         confidence: evidenceComplete && price.status === "verified" ? "high" : license.status === "verified" ? "medium" : "low",
@@ -562,7 +565,11 @@ async function runPipeline(config, request, { shown = new Set(), seenBefore = ne
     const log = [...apiLog(catalogue, startedAt), ...marketLog].map((entry) => (entry.status === "disabled" ? { ...entry, status: "not_checked", error: "disabled" } : entry));
 
     const candidates = pickCandidates(catalogue, marketLog, shown, 16, seenBefore);
-    const withEvidence = await gatherEvidence(client, config, usage, candidates, evidenceBy);
+    const read = await gatherEvidence(client, config, usage, candidates, evidenceBy);
+    // The top of the page decides: a listing that is sold, unlisted or removed
+    // is never analysed or shown.
+    const closed = read.filter((candidate) => candidate.evidence && CLOSED_LISTING.test(candidate.evidence.text.slice(0, 4000)));
+    const withEvidence = read.filter((candidate) => !closed.includes(candidate));
     const analysis = await analyse(client, config, usage, request, withEvidence, analyseBy);
     if (!analysis.ok) return { ok: false, kind: analysis.kind, status: analysis.status, message: analysis.message, usage, log, candidates: withEvidence };
 
@@ -595,8 +602,9 @@ async function runPipeline(config, request, { shown = new Set(), seenBefore = ne
         usage,
         log,
         opportunities,
-        candidatesChecked: withEvidence.length,
-        pagesRead: withEvidence.filter((candidate) => candidate.evidence).length,
+        candidatesChecked: read.length,
+        pagesRead: read.filter((candidate) => candidate.evidence).length,
+        closedListings: closed.map((candidate) => ({ url: candidate.url, source: candidate.source, name: candidate.name })),
         unreadPages: withEvidence.filter((candidate) => !candidate.evidence).map((candidate) => ({ url: candidate.url, source: candidate.source, error: candidate.evidenceError })),
         notRelevant
     };

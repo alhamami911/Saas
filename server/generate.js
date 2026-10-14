@@ -108,7 +108,7 @@ const LOG_STATUS = {
 
 // The summary is written by the server from the actual counts, so it can never
 // disagree with the table, the counters or the review list.
-function buildSummary(language, { opportunities, alternatives, log, notRelevant, pagesRead, candidatesChecked, requestedCount }) {
+function buildSummary(language, { opportunities, alternatives, log, notRelevant, pagesRead, candidatesChecked, requestedCount, closedListings = [] }) {
     const checked = log.filter((entry) => ["found", "no_results"].includes(entry.status)).length;
     const missed = log.filter((entry) => !["found", "no_results"].includes(entry.status));
     const reasons = {};
@@ -140,6 +140,11 @@ function buildSummary(language, { opportunities, alternatives, log, notRelevant,
         parts.push(ar
             ? `نُقل ${alternatives.length} منتجاً إلى «للمراجعة» ولا تُحسب ضمن الفرص (${breakdown}).`
             : `${alternatives.length} products were moved to the review list and are not counted (${breakdown}).`);
+    }
+    if (closedListings.length) {
+        parts.push(ar
+            ? `واستُبعد ${closedListings.length} منتجاً لأن صفحته تقول إنه لم يعد معروضاً (بيع أو سُحب أو أُزيل).`
+            : `${closedListings.length} were left out because their page says they are no longer offered (sold, unlisted or removed).`);
     }
     if (notRelevant) parts.push(ar ? `واستُبعد ${notRelevant} لعدم ملاءمته لما تبحث عنه.` : `${notRelevant} were left out as not matching your request.`);
     return parts.join(" ");
@@ -217,7 +222,8 @@ async function runClaudeSearch(config, request, shown, visitor, event, seenBefor
     const access = await chargeAndStatus(config, event, Number(accounting.costs.totalUsd), true);
     return jsonResponse(200, {
         access,
-        summary: buildSummary(request.language, { ...research, log, notRelevant: result.notRelevant, pagesRead: result.pagesRead, candidatesChecked: result.candidatesChecked, requestedCount: request.opportunityCount }),
+        summary: buildSummary(request.language, { ...research, log, notRelevant: result.notRelevant, pagesRead: result.pagesRead, candidatesChecked: result.candidatesChecked, requestedCount: request.opportunityCount, closedListings: result.closedListings }),
+        closedListings: result.closedListings,
         verificationNote: "",
         opportunities: research.opportunities,
         alternatives: research.alternatives,
