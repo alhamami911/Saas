@@ -43,7 +43,8 @@ function collectSources(content, sources, queries) {
 function classifyError(error) {
     const status = Number(error?.status) || undefined;
     const message = typeof error?.message === "string" ? error.message.slice(0, 500) : "No provider error details";
-    if (error?.name === "APIConnectionTimeoutError" || error?.name === "AbortError" || error?.name === "TimeoutError") {
+    // An aborted request means our own time limit ran out.
+    if (error?.name === "APIConnectionTimeoutError" || error?.name === "AbortError" || error?.name === "TimeoutError" || error?.name === "APIUserAbortError" || /aborted/i.test(String(error?.message))) {
         return { kind: "timeout", status, message: "timeout" };
     }
     if (status === undefined) return { kind: "network", message };

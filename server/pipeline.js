@@ -408,8 +408,23 @@ ${blocks}`;
 }
 
 // A transient failure (bad JSON, overloaded provider) is retried once while time allows.
+// The pages are analysed in two batches at once, which halves the wait; the two
+// rankings are interleaved. One failed batch still returns the other's results.
 async function analyse(client, config, usage, request, candidates, deadline) {
-    if (!candidates.some((candidate) => candidate.evidence)) return { ok: true, entries: [] };
+    const readable = candidates.filter((candidate) => candidate.evidence);
+    if (!readable.length) return { ok: true, entries: [] };
+    const batches = readable.length > 6 ? [readable.filter((_, index) => index % 2 === 0), readable.filter((_, index) => index % 2 === 1)] : [readable];
+    const results = await Promise.all(batches.map((batch) => analyseWithRetry(client, config, usage, request, batch, deadline)));
+    const good = results.filter((result) => result.ok);
+    if (!good.length) return results[0];
+    const entries = [];
+    for (let index = 0; good.some((result) => result.entries[index]); index += 1) {
+        for (const result of good) if (result.entries[index]) entries.push(result.entries[index]);
+    }
+    return { ok: true, entries, partial: good.length < results.length };
+}
+
+async function analyseWithRetry(client, config, usage, request, candidates, deadline) {
     let result = await analyseOnce(client, config, usage, request, candidates, deadline);
     if (!result.ok && result.kind !== "quota") {
         console.error("Analysis attempt failed", result.kind, result.status || "", result.message || "");

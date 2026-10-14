@@ -1113,6 +1113,8 @@
         function renderAlternatives(alternatives, t) {
             const details = document.createElement('details');
             details.className = 'alternatives';
+            // With no eligible opportunity, the closest products are shown open.
+            if (!lastReport?.opportunities?.length) details.open = true;
             const title = document.createElement('summary');
             title.textContent = t.alternativesTitle(alternatives.length);
             const hint = document.createElement('p');
