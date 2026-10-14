@@ -255,6 +255,16 @@
         .setup-time { align-self: center; margin: 0 8px; }
         .report-headline { margin: 0 0 4px; font-size: 1.05rem; }
         .table-block { margin-top: 12px; }
+        .table-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .table-bar .hint { margin: 0; }
+        .table-full-btn { flex: none; padding: 5px 12px; font-size: 0.8rem; }
+        .table-host { display: block !important; position: fixed; inset: 0; z-index: 80; margin: 0; padding: 0; border: 0; box-shadow: none; max-width: none; background: var(--bg-color); }
+        .table-block.fullscreen { position: fixed; inset: 0; z-index: 80; margin: 0; padding: 18px 24px; overflow: auto; background: var(--bg-color); }
+        .table-block.fullscreen .table-wrap { max-width: none; }
+        .table-block.fullscreen .results-table { font-size: 0.92rem; }
+        .table-block.fullscreen .results-table .col-optional, .table-block.fullscreen .results-table .col-source { display: table-cell; }
+        .table-block.fullscreen .result-row td:nth-child(2) { max-width: 420px; }
+        @media (max-width: 560px) { .table-block.fullscreen { padding: 12px; } }
         .detail-panel { margin-top: 12px; }
         .search-details { margin-top: 14px; font-size: 0.88rem; }
         .search-details > summary { cursor: pointer; color: var(--text-secondary); }
@@ -395,12 +405,12 @@
                     <legend id="filtersLegend">خصائص SaaS المطلوبة (اختياري)</legend>
                     <span class="hint" id="filtersHint">اختر خاصية واحدة أو أكثر لتصفية الفرص.</span>
                     <div class="feature-filter-options">
-                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="rtl_support"><span id="filterRtl">دعم العربية والكتابة من اليمين لليسار</span></label>
-                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="multi_tenant"><span id="filterMultiTenant">تعدد المستأجرين: نسخ مستقلة لعدة عملاء من نظام واحد</span></label>
+                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="rtl_support"><span id="filterRtl">دعم RTL للعربية</span></label>
+                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="multi_tenant"><span id="filterMultiTenant">Multi-tenant</span></label>
                         <label class="feature-filter"><input type="checkbox" name="featureFilter" value="arabic_localization"><span id="filterArabic">واجهة معرّبة بالكامل</span></label>
-                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="api_integrations"><span id="filterApi">الربط مع الأنظمة الأخرى عبر API</span></label>
-                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="ai_features"><span id="filterAi">مزايا ذكاء اصطناعي مدمجة</span></label>
-                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="white_label"><span id="filterWhiteLabel">علامة بيضاء: إعادة بيعه باسمك وشعارك</span></label>
+                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="api_integrations"><span id="filterApi">تكامل API</span></label>
+                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="ai_features"><span id="filterAi">مزايا AI مدمجة</span></label>
+                        <label class="feature-filter"><input type="checkbox" name="featureFilter" value="white_label"><span id="filterWhiteLabel">White Label</span></label>
                         <label class="feature-filter"><input type="checkbox" name="featureFilter" value="security_compliance"><span id="filterSecurity">الأمان والامتثال للأنظمة</span></label>
                     </div>
                 </fieldset>
@@ -525,10 +535,10 @@
                 sources: '↗ مصادر وروابط موثقة', usage: '✦ تتبع التكلفة والاستهلاك', country: 'الدولة المستهدفة',
                 budget: 'الميزانية المتاحة', industry: 'القطاع المستهدف', goal: 'الهدف التجاري', opportunityCount: 'عدد الفرص المطلوب الحصول عليها',
                 filtersLegend: 'خصائص SaaS المطلوبة (اختياري)', filtersHint: 'اختر خاصية واحدة أو أكثر لتصفية الفرص.',
-                filterRtl: 'دعم العربية والكتابة من اليمين لليسار', filterMultiTenant: 'تعدد المستأجرين: نسخ مستقلة لعدة عملاء من نظام واحد',
-                filterArabic: 'واجهة معرّبة بالكامل', filterApi: 'الربط مع الأنظمة الأخرى عبر API', filterAi: 'مزايا ذكاء اصطناعي مدمجة',
-                filterWhiteLabel: 'علامة بيضاء: إعادة بيعه باسمك وشعارك', filterSecurity: 'الأمان والامتثال للأنظمة', noFilters: 'لا توجد خصائص محددة',
-                filterOptions: { rtl_support: 'دعم الكتابة من اليمين لليسار', multi_tenant: 'تعدد المستأجرين (نسخ مستقلة لعدة عملاء)', arabic_localization: 'واجهة عربية', api_integrations: 'تكامل API', ai_features: 'مزايا ذكاء اصطناعي', white_label: 'علامة بيضاء', security_compliance: 'أمان وامتثال' },
+                filterRtl: 'دعم RTL للعربية', filterMultiTenant: 'Multi-tenant',
+                filterArabic: 'واجهة معرّبة بالكامل', filterApi: 'تكامل API', filterAi: 'مزايا AI مدمجة',
+                filterWhiteLabel: 'White Label', filterSecurity: 'الأمان والامتثال للأنظمة', noFilters: 'لا توجد خصائص محددة',
+                filterOptions: { rtl_support: 'دعم RTL', multi_tenant: 'Multi-tenant', arabic_localization: 'واجهة عربية', api_integrations: 'تكامل API', ai_features: 'مزايا AI', white_label: 'White Label', security_compliance: 'أمان وامتثال' },
                 hint: 'يعتمد QLook على أسواق موثوقة ومصادر حقيقية، ويعرض 5 فرص في كل مرة. تحقّق من الترخيص قبل الشراء.', prompt: '✦ صف الفرصة التي تبحث عنها', refine: 'تخصيص البحث (اختياري)',
                 placeholder: 'صف الفرصة التي تبحث عنها...', send: 'إرسال', start: 'ابحث بالذكاء الاصطناعي', loading: 'يبحث QLook في الأسواق ويحلل الفرص... قد يستغرق ذلك نحو نصف دقيقة',
                 examples: ['نظام محاسبة وفوترة إلكترونية متوافق مع ZATCA', 'منصة حجوزات للعيادات تدعم العربية', 'متجر إلكتروني متعدد البائعين White Label', 'مشروع SaaS قائم للبيع بأقل من 5,000 دولار'],
@@ -554,7 +564,7 @@
                     capsHint: 'كل خاصية إلزامية تقلّل عدد الفرص المؤهلة، لأنها يجب أن تُذكر صراحةً في صفحة المنتج.',
                     waitHint: 'يستغرق البحث عادةً 30–60 ثانية.',
                     editSettings: 'تعديل الإعدادات',
-                    examples: ['نظام محاسبة وفوترة إلكترونية متوافق مع هيئة الزكاة (ZATCA)', 'منصة حجوزات للعيادات تدعم العربية', 'متجر إلكتروني متعدد البائعين بعلامة بيضاء', 'مشروع SaaS قائم للبيع بأقل من 5,000 دولار']
+                    examples: ['نظام محاسبة وفوترة إلكترونية متوافق مع هيئة الزكاة (ZATCA)', 'منصة حجوزات للعيادات تدعم العربية', 'متجر إلكتروني متعدد البائعين White Label', 'مشروع SaaS قائم للبيع بأقل من 5,000 دولار']
                 },
                 moreBtn: 'ابحث عن 5 فرص إضافية', moreLoading: 'جاري البحث عن فرص إضافية...', moreNone: 'لم نجد فرصاً مؤهلة جديدة لهذا البحث. راجع قائمة «للمراجعة» أو جرّب وصفاً مختلفاً.', moreAdded: 'أُضيفت فرص مؤهلة جديدة إلى الجدول:', moreShort: (n) => `وُجدت ${n} فرص مؤهلة جديدة فقط من 5 مطلوبة؛ لم يجتز الباقي شروط الأهلية.`,
                 sourceTitle: 'المصادر والروابط الموثقة',
@@ -707,7 +717,7 @@
             coverageIncomplete: 'لم تُفحص كل المصادر المعتمدة في هذا البحث، لذلك لا يُعد البحث شاملاً.',
             viaOfficial: 'بيانات رسمية', viaSearch2: 'بحث داخل الموقع',
             searchDone: 'اكتمل البحث.', searchStopped: 'توقف البحث.', restoredNote: 'آخر تقرير محفوظ على هذا الجهاز من',
-            defaultMark: 'افتراضي', seenBefore: 'عُرضت عليك سابقاً',
+            defaultMark: 'افتراضي', seenBefore: 'عُرضت عليك سابقاً', tableFull: 'ملء الشاشة', tableExit: 'إغلاق ملء الشاشة',
             headline: (n) => n === 1 ? 'وجدت لك فرصة واحدة جاهزة للتشغيل التجاري كـ SaaS.' : `وجدت لك ${n} فرص جاهزة للتشغيل التجاري كـ SaaS.`,
             headlineNone: 'لم تجتز أي فرصة كل شروطك هذه المرة.',
             headlineReview: (n) => `وهناك ${n} فرص قريبة لم تكتمل أدلتها؛ تجدها أسفل الجدول مع سبب كل منها.`,
@@ -759,7 +769,7 @@
             coverageIncomplete: 'Not every approved source was checked in this search, so it is not a complete search.',
             viaOfficial: 'official data', viaSearch2: 'site search',
             searchDone: 'Search complete.', searchStopped: 'Search stopped.', restoredNote: 'Last report saved on this device from',
-            defaultMark: 'default', seenBefore: 'shown to you before',
+            defaultMark: 'default', seenBefore: 'shown to you before', tableFull: 'Full screen', tableExit: 'Exit full screen',
             headline: (n) => n === 1 ? 'I found one opportunity ready to run commercially as a SaaS.' : `I found ${n} opportunities ready to run commercially as a SaaS.`,
             headlineNone: 'No opportunity met all your conditions this time.',
             headlineReview: (n) => `${n} close matches lack some evidence; they are below the table with the reason for each.`,
@@ -1223,7 +1233,7 @@
             });
         }
 
-        function renderResultsTable(data, t, { review = false } = {}) {
+        function renderResultsTable(data, t, { review = false, fullscreen = false, placeholder = null } = {}) {
             const columns = [
                 ['rank', t.colRank], ['name', t.colName], ['source', t.colSource], ['price', t.colPrice], ['commercial', t.colCommercial],
                 ...(review ? [['reason', t.colReason]] : [['popularity', t.colPopularity], ['updated', t.colUpdated]])
@@ -1231,6 +1241,7 @@
             // The analysis opens in a panel under the table, so it is never cut off.
             const block = document.createElement('div');
             block.className = 'table-block';
+            let spot = placeholder;
             const panel = document.createElement('div');
             panel.className = 'detail-panel';
             panel.hidden = true;
@@ -1256,7 +1267,7 @@
                     reportSort = reportSort.key === key
                         ? { key, dir: reportSort.dir === 'asc' ? 'desc' : 'asc' }
                         : { key, dir: firstDir };
-                    block.replaceWith(renderResultsTable(data, translations[currentLang], { review }));
+                    block.replaceWith(renderResultsTable(data, translations[currentLang], { review, fullscreen: block.classList.contains('fullscreen'), placeholder: spot }));
                 });
                 th.appendChild(button);
                 if (['popularity', 'updated'].includes(key)) th.className = 'col-optional';
@@ -1314,7 +1325,42 @@
                 });
             });
             wrap.append(table);
-            block.append(hint, wrap, panel);
+            // Full screen: the same table over the whole page, with every column.
+            const bar = document.createElement('div');
+            bar.className = 'table-bar';
+            const expand = document.createElement('button');
+            expand.type = 'button';
+            expand.className = 'btn-secondary table-full-btn';
+            // A message bubble's animation would trap a fixed element inside it, so in
+            // full screen the table moves to the page root and returns afterwards.
+            const mark = (on) => {
+                block.classList.toggle('fullscreen', on);
+                expand.textContent = on ? `✕ ${t.tableExit}` : `⤢ ${t.tableFull}`;
+                expand.setAttribute('aria-pressed', String(on));
+            };
+            const setFull = (on) => {
+                if (on && !spot) {
+                    spot = document.createComment('results-table');
+                    block.before(spot);
+                    // The table keeps the report's styles inside this host.
+                    const host = document.createElement('div');
+                    host.className = 'report-container table-host';
+                    host.appendChild(block);
+                    document.body.appendChild(host);
+                }
+                if (!on && spot) {
+                    const host = block.parentElement?.classList.contains('table-host') ? block.parentElement : null;
+                    spot.replaceWith(block);
+                    host?.remove();
+                    spot = null;
+                }
+                mark(on);
+            };
+            expand.addEventListener('click', () => setFull(!block.classList.contains('fullscreen')));
+            block.exitFullscreen = () => setFull(false);
+            mark(fullscreen);
+            bar.append(hint, expand);
+            block.append(bar, wrap, panel);
             return block;
         }
 
@@ -1986,7 +2032,11 @@
         }
         document.getElementById('menuBtn').addEventListener('click', () => setDrawer(true));
         scrim.addEventListener('click', () => setDrawer(false));
-        document.addEventListener('keydown', (event) => { if (event.key === 'Escape') setDrawer(false); });
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape') return;
+            setDrawer(false);
+            document.querySelectorAll('.table-block.fullscreen').forEach((block) => block.exitFullscreen?.());
+        });
         const newChat = () => { showView('discover'); startChat(); setDrawer(false); composer.focus(); };
         document.getElementById('chatRestart').addEventListener('click', newChat);
         document.getElementById('mobileNewChat').addEventListener('click', newChat);

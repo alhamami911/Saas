@@ -71,7 +71,7 @@ function opportunityContext(opportunity) {
 
 function systemPrompt(context, language) {
     const reply = language === "ar"
-        ? "Reply in clear Modern Standard Arabic, as a business consultant would; keep product and licence names in their original language."
+        ? "Reply in clear Modern Standard Arabic, as a business consultant would; keep product and licence names in their original language. Keep widely used technical terms in English, as people say them: SaaS, Multi-tenant, White Label, API, RTL, AI, CRM, ERP, POS; write مفتوح المصدر for open source."
         : "Reply in English.";
     return `You are QLook's analyst. You are discussing one software product the investor saved, to help them judge whether to run it as a SaaS in the Middle East and North Africa: market fit, Arabic localisation and development needs, hosting and operating it as a SaaS, licence conditions, risks and alternatives. ${reply}
 

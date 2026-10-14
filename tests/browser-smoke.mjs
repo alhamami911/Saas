@@ -76,7 +76,7 @@ export default async function run(page) {
     await page.locator('.setup select[data-field="industry"]').selectOption("الصحة والرعاية الصحية");
     await page.locator('.setup select[data-field="budget"]').selectOption("حتى 500 دولار");
     await page.locator('.setup select[data-field="goal"]').selectOption("إطلاق SaaS جديد");
-    await page.locator(".setup .chip-toggle", { hasText: "مزايا ذكاء اصطناعي" }).click();
+    await page.locator(".setup .chip-toggle", { hasText: "مزايا AI" }).click();
     await page.locator(".setup-go").click();
     await page.waitForSelector(".progress", { state: "attached" });
     await page.locator(".bubble .results-table .result-row").first().waitFor({ state: "visible" });

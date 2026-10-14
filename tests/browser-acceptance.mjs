@@ -68,7 +68,7 @@ export default async function run(page) {
     check(R.guessedIndustry === "المالية والمحاسبة", "industry guessed from the description");
     await page.waitForSelector(".setup");
     await page.locator('.setup select[data-field="budget"]').selectOption("حتى 100 دولار");
-    await page.locator(".setup .chip-toggle", { hasText: "دعم الكتابة من اليمين لليسار" }).click();
+    await page.locator(".setup .chip-toggle", { hasText: "دعم RTL" }).click();
     await page.locator(".setup .chip-toggle", { hasText: "تكامل API" }).click();
     await page.locator(".setup-go").click();
 
