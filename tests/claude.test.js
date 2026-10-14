@@ -14,7 +14,8 @@ const PRODUCTS = {
     "appsumo.com": "https://appsumo.com/products/invoiless",
     "acquire.com": "https://acquire.com/startup/billing-saas",
     "flippa.com": "https://flippa.com/11813737",
-    "microns.io": "https://microns.io/listing/all-in-one"
+    "microns.io": "https://microns.io/listing/all-in-one",
+    "indiehackers.com": "https://www.indiehackers.com/product/invoicely"
 };
 const PAGES = {
     [PRODUCTS["sourceforge.net"]]: "OpenBilling — invoicing for small firms. Licensed under the MIT License. Full RTL support for Arabic. REST API with webhooks.",
@@ -186,10 +187,12 @@ test("the server searches every approved source itself and logs each one", async
         assert.equal(response.statusCode, 200);
         const data = JSON.parse(response.body);
         const bySource = Object.fromEntries(data.coverage.map((entry) => [entry.source, entry]));
-        assert.deepEqual(Object.keys(bySource).sort(), ["Acquire.com", "AppSumo", "Awesome Selfhosted", "CodeCanyon", "Codester", "Flippa", "GitHub", "GitLab", "Gumroad", "Microns.io", "SourceForge"].sort());
+        assert.deepEqual(Object.keys(bySource).sort(), ["Acquire.com", "AppSumo", "Awesome Selfhosted", "CodeCanyon", "Codester", "Flippa", "GitHub", "GitLab", "Gumroad", "Indie Hackers", "Microns.io", "SourceForge"].sort());
         // One site-restricted search per marketplace, with the server's own query.
         const searches = calls.filter((call) => call.tools?.[0]?.name === "web_search");
-        assert.equal(searches.length, 9, "8 marketplaces plus one retry");
+        assert.equal(searches.length, 10, "9 marketplaces plus one retry");
+        assert.equal(bySource["Indie Hackers"].status, "found");
+        assert.equal(bySource["Indie Hackers"].query, "accounting invoicing saas product");
         assert.ok(searches.every((call) => call.tools[0].allowed_domains.length === 1 && call.tools[0].max_uses === 1));
         assert.equal(bySource.CodeCanyon.query, "accounting invoicing saas script");
         assert.equal(bySource.CodeCanyon.status, "found");
@@ -364,7 +367,7 @@ test("a repeated search reuses cached marketplace results and pages, and says so
         const first = JSON.parse((await search()).body);
         const searchesFirst = calls.filter((call) => call.tools?.[0]?.name === "web_search").length;
         const fetchesFirst = calls.filter((call) => call.tools?.[0]?.name === "web_fetch").length;
-        assert.equal(searchesFirst, 8);
+        assert.equal(searchesFirst, 9);
         assert.ok(fetchesFirst > 0);
         const before = calls.length;
         const second = JSON.parse((await search()).body);

@@ -31,7 +31,7 @@ const PROVIDER_LABELS = { claude: "Claude", gemini: "Gemini" };
 
 // Marketplaces without a public search API are reached through web search,
 // limited to their own domains. CodeCanyon joins them when no Envato token is set.
-const WEB_SEARCH_DOMAINS = ["codester.com", "sourceforge.net", "gumroad.com", "appsumo.com", "acquire.com", "flippa.com", "microns.io"];
+const WEB_SEARCH_DOMAINS = ["codester.com", "sourceforge.net", "gumroad.com", "appsumo.com", "acquire.com", "flippa.com", "microns.io", "indiehackers.com"];
 
 // Coverage log: what happened on every approved source in this search. A web-only
 // marketplace counts as checked when a query named it or a result came from it.

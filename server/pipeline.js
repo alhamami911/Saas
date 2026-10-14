@@ -23,7 +23,9 @@ const WEB_SOURCES = Object.freeze([
     { domain: "appsumo.com", label: "AppSumo", suffix: "lifetime deal" },
     { domain: "acquire.com", label: "Acquire.com", suffix: "saas for sale" },
     { domain: "flippa.com", label: "Flippa", suffix: "saas for sale" },
-    { domain: "microns.io", label: "Microns.io", suffix: "saas for sale" }
+    { domain: "microns.io", label: "Microns.io", suffix: "saas for sale" },
+    // Indie Hackers: independent SaaS products with their founders' own numbers.
+    { domain: "indiehackers.com", label: "Indie Hackers", suffix: "saas product" }
 ]);
 const APPROVED_SOURCES = ["GitHub", "GitLab", "Awesome Selfhosted", ...WEB_SOURCES.map((source) => source.label)];
 // Extra words for "find more", so repeat searches reach different listings.
