@@ -96,7 +96,10 @@ async function checkAccess(config, plan, who, kind, now = Date.now()) {
     for (const scope of ["session", "day", "week", "period"]) {
         const window = status.windows[scope];
         if (!window) continue;
-        if (window.used + estimate > window.limit + 1e-9) {
+        // Soft limit: while a window has any balance left, the next request runs and
+        // its real cost is charged afterwards (a cached search costs about a cent).
+        // The plan total above still uses the full estimate, so the credit is safe.
+        if (window.used >= window.limit - 1e-9) {
             return {
                 allowed: false,
                 errorCode: status.kind === "account" ? "ACCOUNT_LIMIT" : "VISITOR_LIMIT",

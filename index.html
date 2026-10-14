@@ -2009,7 +2009,9 @@
             const left = Math.max(0, window.limit - window.used);
             const pct = window.limit > 0 ? Math.min(100, Math.round((window.used / window.limit) * 100)) : 100;
             const head = el('div', 'meter-head');
-            head.append(el('span', '', label), el('span', 'meter-left', t.meterLeft(Math.floor(left / estimates.search + 1e-9), Math.floor(left / estimates.discuss + 1e-9))));
+            // Any balance left allows at least one more search (soft limit).
+            const searches = left > 1e-9 ? Math.max(1, Math.floor(left / estimates.search + 1e-9)) : 0;
+            head.append(el('span', '', label), el('span', 'meter-left', t.meterLeft(searches, Math.floor(left / estimates.discuss + 1e-9))));
             const bar = el('div', 'meter-bar');
             const fill = el('i');
             fill.style.width = `${pct}%`;
@@ -2035,7 +2037,10 @@
             if (!current?.windows) return;
             const scopes = current.kind === 'account' ? ['session', 'day', 'week', 'period'] : ['day'];
             // The tightest window decides what the person can do now.
-            const left = (scope) => Math.max(0, Math.floor((current.windows[scope].limit - current.windows[scope].used) / current.estimates.search + 1e-9));
+            const left = (scope) => {
+                const balance = current.windows[scope].limit - current.windows[scope].used;
+                return balance > 1e-9 ? Math.max(1, Math.floor(balance / current.estimates.search + 1e-9)) : 0;
+            };
             const tightest = scopes.filter((scope) => current.windows[scope]).sort((a, b) => left(a) - left(b))[0];
             const line = el('div', 'meter-now', t.meterNow(left(tightest), left(tightest) === 0 ? current.windows[tightest].resetsAt : null));
             if (current.kind !== 'account') line.prepend(el('span', 'meter-label', `${t.visitorPool}: `));

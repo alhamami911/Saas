@@ -64,20 +64,25 @@ test("an account is stopped by its session, then day, week and trial period", as
         assert.equal(blocked.errorCode, "ACCOUNT_LIMIT");
         assert.equal(blocked.scope, "session");
         assert.equal(blocked.resetsAt, new Date(now + 5 * HOUR).toISOString(), "the session renews 5 hours after it began");
-        // Messages are cheap but still need room in the session window.
+        // A used-up window blocks messages too.
         assert.equal((await checkAccess(config, plan, who, "discuss", now + HOUR)).allowed, false);
+        // A cheap cached search leaves balance, so the session allows another one.
+        const cheap = { id: "acc-cheap", activatedAt: new Date(now - HOUR).toISOString() };
+        await chargeAccess(config, plan, { account: cheap }, 0.0106, {}, now);
+        assert.equal((await checkAccess(config, plan, { account: cheap }, "search", now)).allowed, true);
         // After the session ends the day limit (one search) is also used.
         const later = await checkAccess(config, plan, who, "search", now + 6 * HOUR);
         assert.equal(later.scope, "day");
-        // Next day: a full search no longer fits the week ($0.112), but messages do.
+        // Next day: the week ($0.112) still has balance, so one more search runs
+        // (soft limit) and its real cost is charged; then the week is used up.
         const nextDay = now + 24 * HOUR;
-        const week = await checkAccess(config, plan, who, "search", nextDay);
+        assert.equal((await checkAccess(config, plan, who, "search", nextDay)).allowed, true);
+        await chargeAccess(config, plan, who, 0.05, {}, nextDay);
+        const week = await checkAccess(config, plan, who, "search", nextDay + 6 * HOUR + 24 * HOUR);
         assert.equal(week.scope, "week");
         assert.equal(week.resetsAt, new Date(now - HOUR + 7 * 24 * HOUR).toISOString(), "weeks count from the first sign-in");
-        assert.equal((await checkAccess(config, plan, who, "discuss", nextDay)).allowed, true);
-        await chargeAccess(config, plan, who, 0.03, {}, nextDay);
         const status = await accessStatus(config, plan, who, nextDay);
-        assert.equal(status.windows.period.used.toFixed(2), "0.11");
+        assert.equal(status.windows.period.used.toFixed(2), "0.13");
         assert.equal(status.expiresAt, new Date(now - HOUR + 30 * 24 * HOUR).toISOString());
     });
 });
