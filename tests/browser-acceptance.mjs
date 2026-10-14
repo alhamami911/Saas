@@ -62,15 +62,15 @@ export default async function run(page) {
     };
     await page.locator("#promptOverride").fill("نظام محاسبة يدعم العربية وAPI");
     await page.locator("#promptOverride").press("Enter");
-    await clickChip("السعودية");
-    await clickChip("المالية والمحاسبة");
-    await clickChip("حتى 100 دولار");
-    await clickChip("إطلاق منتج SaaS جديد");
-    await page.waitForFunction(() => document.querySelectorAll(".chip-toggle").length === 7);
-    await page.locator(".chip-toggle").nth(0).click();
-    await page.locator(".chip-toggle", { hasText: "API" }).click();
-    await clickChip("متابعة");
-    await clickChip("ابدأ البحث");
+    // The description names the industry, so the card guesses it.
+    await page.waitForSelector(".setup");
+    R.guessedIndustry = await page.locator('.setup select[data-field="industry"]').inputValue();
+    check(R.guessedIndustry === "المالية والمحاسبة", "industry guessed from the description");
+    await page.waitForSelector(".setup");
+    await page.locator('.setup select[data-field="budget"]').selectOption("حتى 100 دولار");
+    await page.locator(".setup .chip-toggle", { hasText: "دعم الكتابة من اليمين لليسار" }).click();
+    await page.locator(".setup .chip-toggle", { hasText: "تكامل API" }).click();
+    await page.locator(".setup-go").click();
 
     // 1. Provider timeout: clear message, retry offered, no progress left running.
     await page.waitForFunction(() => document.querySelector(".progress.done"));
@@ -88,13 +88,13 @@ export default async function run(page) {
     mode = "zero";
     await page.locator(".chip:not(:disabled)", { hasText: "حاول مرة أخرى" }).last().click();
     await page.waitForSelector("#chatLog .alternatives");
-    R.zero = { count: await page.locator(".report-summary > strong").innerText(), rows: await page.locator("#chatLog .result-row").count() };
-    check(R.zero.rows === 0 && /0 \/ 5/.test(R.zero.count), "zero results shown honestly");
+    R.zero = { headline: await page.locator("#chatLog .report-headline").innerText(), rows: await page.locator("#reportOutput > .table-block .result-row").count(), reviewOpen: await page.locator("#chatLog .alternatives").evaluate((node) => node.open), reviewRows: await page.locator("#chatLog .alternatives .result-row").count() };
+    check(R.zero.rows === 0 && /لم تجتز/.test(R.zero.headline) && R.zero.reviewOpen && R.zero.reviewRows === 1, "zero results shown honestly, close matches open");
     // 4. Success: one report in the conversation, no duplicate.
     mode = "ok";
     await page.locator("#promptOverride").fill("نفس البحث");
     await page.locator("#promptOverride").press("Enter");
-    await page.waitForFunction(() => document.querySelectorAll("#chatLog .result-row").length === 2);
+    await page.waitForFunction(() => document.querySelectorAll("#reportOutput > .table-block .result-row").length === 2);
     await page.waitForTimeout(600);
     R.success = {
         reports: await page.locator("#chatLog #reportOutput").count(),
@@ -110,20 +110,24 @@ export default async function run(page) {
     check(R.success.logEntries === 11 && /accounting invoicing/.test(R.success.logText), "per-source log with queries");
 
     // 5. Price wording is the same in the table and the card.
-    const tablePrice = await page.locator("#chatLog .result-row").first().locator("td").nth(3).innerText();
-    await page.locator("#chatLog .result-row").first().click();
-    const cardPrice = await page.locator("#chatLog .detail-row .opportunity").innerText();
+    const tablePrice = (await page.locator("#reportOutput > .table-block .result-row").first().locator("td").nth(3).innerText()).replace(/\s+/g, " ");
+    await page.locator("#reportOutput > .table-block .result-row").first().click();
+    const cardPrice = await page.locator("#reportOutput > .table-block .detail-panel .opportunity").innerText();
+    R.panelFits = await page.locator("#reportOutput > .table-block .detail-panel .opportunity").evaluate((node) => { const box = node.getBoundingClientRect(); return box.left >= 0 && box.right <= window.innerWidth; });
+    check(R.panelFits, "analysis panel fits the screen");
     R.price = { tablePrice, cardHasSame: cardPrice.includes(tablePrice), cardHasUnknown: cardPrice.includes("غير معروف") };
     check(tablePrice === "تكلفة الترخيص مجانية" && R.price.cardHasSame && !R.price.cardHasUnknown, "consistent price wording");
     // 6. Review list opens the full card.
     await page.locator("#chatLog .alternatives > summary").click();
-    await page.locator("#chatLog .alternatives li details > summary").first().click();
+    await page.locator("#chatLog .alternatives .result-row").first().click();
     await page.waitForTimeout(400);
-    R.reviewCard = await page.locator("#chatLog .alternatives .opportunity").count();
+    R.reviewReason = await page.locator("#chatLog .alternatives .reason-cell").first().innerText();
+    R.reviewCard = await page.locator("#chatLog .alternatives .detail-panel .opportunity").count();
+    check(/لم يُتحقق من الميزانية/.test(R.reviewReason), "close matches show their reason");
     check(R.reviewCard === 1, "review item opens its card");
 
     // 7. Watchlist: save once (no duplicate), then discuss.
-    const save = page.locator("#chatLog .detail-row .card-actions button").first();
+    const save = page.locator("#reportOutput > .table-block .detail-panel .card-actions button").first();
     await save.click();
     R.saveDisabledAfter = await save.isDisabled();
     await page.locator('#appNav button[data-view="watchlist"]').click();
@@ -160,7 +164,7 @@ export default async function run(page) {
     await page.waitForTimeout(800);
     R.afterReload = { lang: await page.evaluate(() => document.documentElement.lang) };
     await page.locator('#appNav button[data-view="results"]').click();
-    R.afterReload.rows = await page.locator("#view-results .result-row").count();
+    R.afterReload.rows = await page.locator("#view-results #reportOutput > .table-block .result-row").count();
     R.afterReload.note = await page.locator(".restored-note").innerText().catch(() => "");
     await page.locator('#appNav button[data-view="watchlist"]').click();
     await page.locator("#watchlistItems .discuss-btn").first().click();

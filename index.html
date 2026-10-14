@@ -240,6 +240,38 @@
         .chip-default { border-color: var(--primary-color); }
         .progress.done .progress-steps { display: none; }
         .restored-note { margin: 0 0 10px; }
+        .setup { display: grid; gap: 14px; margin-top: 12px; padding: 16px; border: 1px solid var(--border-color); border-radius: 16px; }
+        .setup-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+        .setup-field { display: grid; gap: 6px; font-size: 0.82rem; color: var(--text-secondary); }
+        .setup-field select { font-size: 0.92rem; padding: 9px 10px; }
+        .setup-caps-label { font-size: 0.82rem; color: var(--text-secondary); }
+        .setup-caps .chips { margin-top: 6px; }
+        .setup-caps .hint { margin: 6px 0 0; }
+        .setup-go { padding: 10px 22px; font-size: 0.95rem; }
+        .setup-time { align-self: center; margin: 0 8px; }
+        .report-headline { margin: 0 0 4px; font-size: 1.05rem; }
+        .table-block { margin-top: 12px; }
+        .detail-panel { margin-top: 12px; }
+        .search-details { margin-top: 14px; font-size: 0.88rem; }
+        .search-details > summary { cursor: pointer; color: var(--text-secondary); }
+        .reason-cell { white-space: normal !important; min-width: 180px; color: #b06000; }
+        .alternatives .table-block { margin-top: 6px; }
+        .meter-now { font-size: 0.8rem; color: var(--text-primary); }
+        .meter-label { color: var(--text-secondary); }
+        .meter-details > summary { cursor: pointer; font-size: 0.74rem; color: var(--text-secondary); margin-top: 4px; }
+        .meter-details .meter { margin-top: 6px; }
+        .progress-time { margin: 0; }
+        @media (max-width: 700px) {
+            .results-table .col-optional, .results-table .col-source { display: none; }
+            .report-container table.results-table { font-size: 0.8rem; }
+            .report-container .results-table td, .results-table .sort-btn { padding: 8px 5px; }
+            .results-table .result-row td:nth-child(2) { min-width: 84px; max-width: none; overflow-wrap: normal; word-break: normal; }
+            .results-table td.wrap-cell { min-width: 0; }
+            .results-table .reason-cell { min-width: 0; }
+        }
+        /* Price and source wrap so the whole table fits the conversation width. */
+        .results-table td.wrap-cell { white-space: normal; min-width: 72px; max-width: 120px; }
+        .progress.done .progress-time { display: none; }
         .account-box { display: grid; gap: 8px; padding: 10px; border-radius: 14px; background: var(--surface-color); }
         .account-login { width: 100%; }
         .account-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -510,10 +542,15 @@
                     none: 'بلا شروط إضافية', go: 'ابدأ البحث', edit: 'تعديل الإجابات',
                     searching: 'أبحث في الأسواق وأحلل الفرص…',
                     steps: ['أبحث في المصادر المعتمدة الاثني عشر، كل مصدر على حدة', 'أقرأ صفحات المنتجات المرشحة', 'أتحقق من الترخيص والخصائص المطلوبة والسعر من نص الصفحات', 'أطبّق شروط الأهلية وأرتب الفرص'],
-                    found: (n) => n ? `وجدت لك ${n} من الفرص المؤهلة: ترخيصها يسمح بتشغيلها تجارياً كـ SaaS (أو يسمح بذلك بشرط موضّح)، ولا تنقصها خاصية مطلوبة. رتّبتها من الأنسب إلى الأقل ملاءمة؛ اضغط على أي فرصة لقراءة تحليلها وما لم يُتحقق منه.` : 'لم أجد هذه المرة فرصاً تجتاز شروط الترخيص والخصائص والميزانية. راجع قائمة المنتجات المستبعدة أسفل التقرير، أو جرّب وصفاً مختلفاً.',
-                    followUp: 'هل تريد المزيد؟ اطلب 5 فرص إضافية من أسفل الجدول، أو اكتب لي وصفاً جديداً لأبحث به مباشرة.',
+                    found: (n) => n ? 'هذه النتائج مرتبة من الأنسب. اضغط على أي صف لقراءة تحليله الكامل.' : 'إليك أقرب الفرص مع سبب عدم تأهل كل منها؛ يمكنك تخفيف الشروط من «تعديل الإعدادات».',
+                    followUp: 'تريد المزيد؟ اطلب 5 فرص إضافية من أسفل النتائج، أو اكتب وصفاً جديداً، أو عدّل الإعدادات.',
                     failed: 'تعذّر إكمال البحث:', retry: 'حاول مرة أخرى', restart: 'بحث جديد',
-                    noted: 'سأبحث بهذا الوصف مع إبقاء إجاباتك السابقة.',
+                    noted: 'سأبحث بهذا الوصف مع إبقاء إعداداتك الحالية.',
+                    setupIntro: 'فهمت طلبك. جهّزت إعدادات البحث من وصفك ومن إعداداتك المحفوظة؛ عدّل ما تريد ثم اضغط «ابدأ البحث».',
+                    capsLabel: 'خصائص لا بد منها (اختياري)',
+                    capsHint: 'كل خاصية إلزامية تقلّل عدد الفرص المؤهلة، لأنها يجب أن تُذكر صراحةً في صفحة المنتج.',
+                    waitHint: 'يستغرق البحث عادةً 30–60 ثانية.',
+                    editSettings: 'تعديل الإعدادات',
                     examples: ['نظام محاسبة وفوترة إلكترونية متوافق مع هيئة الزكاة (ZATCA)', 'منصة حجوزات للعيادات تدعم العربية', 'متجر إلكتروني متعدد البائعين بعلامة بيضاء', 'مشروع SaaS قائم للبيع بأقل من 5,000 دولار']
                 },
                 moreBtn: 'ابحث عن 5 فرص إضافية', moreLoading: 'جاري البحث عن فرص إضافية...', moreNone: 'لم نجد فرصاً مؤهلة جديدة لهذا البحث. راجع قائمة «للمراجعة» أو جرّب وصفاً مختلفاً.', moreAdded: 'أُضيفت فرص مؤهلة جديدة إلى الجدول:', moreShort: (n) => `وُجدت ${n} فرص مؤهلة جديدة فقط من 5 مطلوبة؛ لم يجتز الباقي شروط الأهلية.`,
@@ -574,10 +611,15 @@
                     none: 'No extra requirements', go: 'Start the search', edit: 'Change answers',
                     searching: 'Searching marketplaces and analysing opportunities…',
                     steps: ['Searching each of the twelve approved sources', 'Reading the candidate product pages', 'Checking licence, required capabilities and price from the page text', 'Applying the eligibility rules and ranking'],
-                    found: (n) => n ? `I found ${n} eligible opportunities: their licence allows running them as a paid SaaS (or allows it on a stated condition) and none lacks a required capability. They are ranked from best fit down; click a row for its analysis and what could not be verified.` : 'This time nothing passed the licence, capability and budget checks. See the excluded products below the report, or try a different description.',
-                    followUp: 'Want more? Ask for 5 more below the table, or type a new description and I will search with it right away.',
+                    found: (n) => n ? 'Here are the results, best fit first. Click a row to read its full analysis.' : 'Here are the closest matches with the reason each one is not eligible; you can relax the conditions with "Change settings".',
+                    followUp: 'Want more? Ask for 5 more below the results, type a new description, or change the settings.',
                     failed: 'The search could not finish:', retry: 'Try again', restart: 'New search',
-                    noted: 'I will search with this description and keep your other answers.',
+                    noted: 'I will search with this description and keep your current settings.',
+                    setupIntro: 'Got it. I prepared the search settings from your description and your saved defaults; change anything, then press "Start the search".',
+                    capsLabel: 'Must-have capabilities (optional)',
+                    capsHint: "Each must-have capability means fewer eligible results, because the product's own page has to state it.",
+                    waitHint: 'A search usually takes 30–60 seconds.',
+                    editSettings: 'Change settings',
                     examples: ['Accounting and ZATCA e-invoicing system', 'Clinic booking platform with Arabic support', 'White-label multi-vendor marketplace', 'Existing SaaS business for sale under $5,000']
                 },
                 moreBtn: 'Find 5 more opportunities', moreLoading: 'Searching for more opportunities...', moreNone: 'No new eligible opportunities for this search. See the review list or try a different description.', moreAdded: 'New eligible opportunities added to the table:', moreShort: (n) => `Only ${n} new eligible opportunities of the 5 requested; the rest failed the eligibility rules.`,
@@ -663,6 +705,13 @@
             viaOfficial: 'بيانات رسمية', viaSearch2: 'بحث داخل الموقع',
             searchDone: 'اكتمل البحث.', searchStopped: 'توقف البحث.', restoredNote: 'آخر تقرير محفوظ على هذا الجهاز من',
             defaultMark: 'افتراضي', seenBefore: 'عُرضت عليك سابقاً',
+            headline: (n) => n === 1 ? 'وجدت لك فرصة واحدة جاهزة للتشغيل التجاري كـ SaaS.' : `وجدت لك ${n} فرص جاهزة للتشغيل التجاري كـ SaaS.`,
+            headlineNone: 'لم تجتز أي فرصة كل شروطك هذه المرة.',
+            headlineReview: (n) => `وهناك ${n} فرص قريبة لم تكتمل أدلتها؛ تجدها أسفل الجدول مع سبب كل منها.`,
+            reviewTitle: (n) => `فرص قريبة تحتاج تحققاً منك (${n})`,
+            colReason: 'سبب عدم التأهل', searchDetails: 'تفاصيل البحث والمصادر',
+            meterNow: (n, at) => `متبقٍ لك: ≈ ${n} عمليات بحث${at ? ` · يتجدد ${new Date(at).toLocaleString('ar', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}` : ''}`,
+            meterDetails: 'تفاصيل الحدود',
             accountLogin: 'تسجيل الدخول بحساب تجريبي', accountLogout: 'خروج', accountLoginTitle: 'الدخول إلى حسابك التجريبي',
             accountLoginHint: 'استخدم اسم المستخدم وكلمة المرور اللذين وصلاك من فريق QLook.', accountUser: 'اسم المستخدم', accountPass: 'كلمة المرور',
             accountSignIn: 'دخول', accountCancel: 'إلغاء', accountLoginFailed: 'اسم المستخدم أو كلمة المرور غير صحيحة.', accountLocked: 'محاولات كثيرة. حاول بعد 15 دقيقة.',
@@ -708,6 +757,13 @@
             viaOfficial: 'official data', viaSearch2: 'site search',
             searchDone: 'Search complete.', searchStopped: 'Search stopped.', restoredNote: 'Last report saved on this device from',
             defaultMark: 'default', seenBefore: 'shown to you before',
+            headline: (n) => n === 1 ? 'I found one opportunity ready to run commercially as a SaaS.' : `I found ${n} opportunities ready to run commercially as a SaaS.`,
+            headlineNone: 'No opportunity met all your conditions this time.',
+            headlineReview: (n) => `${n} close matches lack some evidence; they are below the table with the reason for each.`,
+            reviewTitle: (n) => `Close matches to check yourself (${n})`,
+            colReason: 'Why not eligible', searchDetails: 'Search details and sources',
+            meterNow: (n, at) => `Left now: ≈ ${n} searches${at ? ` · renews ${new Date(at).toLocaleString('en', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}` : ''}`,
+            meterDetails: 'Limit details',
             accountLogin: 'Sign in with a trial account', accountLogout: 'Sign out', accountLoginTitle: 'Sign in to your trial account',
             accountLoginHint: 'Use the username and password the QLook team sent you.', accountUser: 'Username', accountPass: 'Password',
             accountSignIn: 'Sign in', accountCancel: 'Cancel', accountLoginFailed: 'Wrong username or password.', accountLocked: 'Too many attempts. Try again in 15 minutes.',
@@ -980,39 +1036,39 @@
             return card;
         }
 
+        // Plain headline, then the table; the technical details stay one click away.
         function renderReport(output, data, t) {
+            const eligible = data.opportunities?.length || 0;
+            const review = data.alternatives?.length || 0;
             const summary = document.createElement('div');
             summary.className = 'report-summary';
-            const count = document.createElement('strong');
-            count.textContent = `${t.found}: ${data.verifiedCount} / ${data.requestedCount ?? data.verifiedCount}`;
-            summary.appendChild(count);
+            const headline = document.createElement('h3');
+            headline.className = 'report-headline';
+            headline.textContent = eligible ? t.headline(eligible) : t.headlineNone;
+            summary.appendChild(headline);
+            if (review) {
+                const sub = document.createElement('p');
+                sub.className = 'hint';
+                sub.textContent = t.headlineReview(review);
+                summary.appendChild(sub);
+            }
+            output.appendChild(summary);
+            if (eligible) output.appendChild(renderResultsTable(data, t));
+            if (review) output.appendChild(renderAlternatives(data.alternatives, t));
+
+            const details = document.createElement('details');
+            details.className = 'search-details';
+            const label = document.createElement('summary');
+            label.textContent = t.searchDetails;
+            details.appendChild(label);
             if (data.summary) {
                 const paragraph = document.createElement('p');
                 paragraph.textContent = data.summary;
-                summary.appendChild(paragraph);
+                details.appendChild(paragraph);
             }
-            if (data.verificationNote) {
-                const note = document.createElement('p');
-                note.textContent = data.verificationNote;
-                summary.appendChild(note);
-            }
-            if (data.excludedCount) {
-                const excluded = document.createElement('p');
-                excluded.textContent = `${t.excluded}: ${data.excludedCount}`;
-                summary.appendChild(excluded);
-            }
-            summary.appendChild(renderGaps(data, t));
-            if (Array.isArray(data.coverage) && data.coverage.length) summary.appendChild(renderCoverage(data.coverage, t));
-            output.appendChild(summary);
-
-            if (!data.opportunities?.length) {
-                const empty = document.createElement('p');
-                empty.textContent = t.noOpportunities;
-                output.appendChild(empty);
-            } else {
-                output.appendChild(renderResultsTable(data, t));
-            }
-            if (Array.isArray(data.alternatives) && data.alternatives.length) output.appendChild(renderAlternatives(data.alternatives, t));
+            if (eligible) details.appendChild(renderGaps(data, t));
+            if (Array.isArray(data.coverage) && data.coverage.length) details.appendChild(renderCoverage(data.coverage, t));
+            output.appendChild(details);
             const more = document.createElement('div');
             more.className = 'more-row';
             const moreButton = document.createElement('button');
@@ -1111,30 +1167,16 @@
         }
 
         function renderAlternatives(alternatives, t) {
-            const details = document.createElement('details');
-            details.className = 'alternatives';
-            // With no eligible opportunity, the closest products are shown open.
-            if (!lastReport?.opportunities?.length) details.open = true;
+            const section = document.createElement('details');
+            section.className = 'alternatives';
+            section.open = !lastReport?.opportunities?.length;
             const title = document.createElement('summary');
-            title.textContent = t.alternativesTitle(alternatives.length);
+            title.textContent = t.reviewTitle(alternatives.length);
             const hint = document.createElement('p');
             hint.className = 'hint';
             hint.textContent = t.alternativesHint;
-            const list = document.createElement('ul');
-            alternatives.forEach((opportunity) => {
-                const item = document.createElement('li');
-                const box = document.createElement('details');
-                const label = document.createElement('summary');
-                label.textContent = `${opportunity.productName} — ${opportunity.originName}: ${(opportunity.reasons || []).map((reason) => t[`reason_${reason}`] || reason).join(currentLang === 'ar' ? '، ' : ', ')}`;
-                box.appendChild(label);
-                box.addEventListener('toggle', () => {
-                    if (box.open && !box.querySelector('.opportunity')) box.appendChild(renderOpportunity(opportunity, translations[currentLang]));
-                }, { once: false });
-                item.appendChild(box);
-                list.appendChild(item);
-            });
-            details.append(title, hint, list);
-            return details;
+            section.append(title, hint, renderResultsTable({ opportunities: alternatives }, t, { review: true }));
+            return section;
         }
 
         // Results table: one row per opportunity, sortable by any column; a click
@@ -1178,11 +1220,17 @@
             });
         }
 
-        function renderResultsTable(data, t) {
+        function renderResultsTable(data, t, { review = false } = {}) {
             const columns = [
-                ['rank', t.colRank], ['name', t.colName], ['source', t.colSource], ['price', t.colPrice],
-                ['commercial', t.colCommercial], ['popularity', t.colPopularity], ['updated', t.colUpdated], ['confidence', t.colConfidence]
+                ['rank', t.colRank], ['name', t.colName], ['source', t.colSource], ['price', t.colPrice], ['commercial', t.colCommercial],
+                ...(review ? [['reason', t.colReason]] : [['popularity', t.colPopularity], ['updated', t.colUpdated]])
             ];
+            // The analysis opens in a panel under the table, so it is never cut off.
+            const block = document.createElement('div');
+            block.className = 'table-block';
+            const panel = document.createElement('div');
+            panel.className = 'detail-panel';
+            panel.hidden = true;
             const wrap = document.createElement('div');
             wrap.className = 'table-wrap';
             const hint = document.createElement('p');
@@ -1205,9 +1253,11 @@
                     reportSort = reportSort.key === key
                         ? { key, dir: reportSort.dir === 'asc' ? 'desc' : 'asc' }
                         : { key, dir: firstDir };
-                    wrap.replaceWith(renderResultsTable(data, translations[currentLang]));
+                    block.replaceWith(renderResultsTable(data, translations[currentLang], { review }));
                 });
                 th.appendChild(button);
+                if (['popularity', 'updated'].includes(key)) th.className = 'col-optional';
+                if (key === 'source') th.className = 'col-source';
                 head.appendChild(th);
             });
 
@@ -1222,35 +1272,35 @@
                 const commercialStatus = row.opportunity.commercialUse?.status || 'unclear';
                 const cells = [
                     String(row.rank),
-                    row.opportunity.seenBefore ?`${row.name} · ${t.seenBefore}` : row.name,
+                    row.opportunity.seenBefore ? `${row.name} · ${t.seenBefore}` : row.name,
                     row.source || '—',
                     priceText(row.opportunity, t, false),
                     t[`commercial_${commercialStatus}`]?.split(' — ')[0] || '—',
-                    row.popularity === null ? '—' : `${row.opportunity.stats?.stars != null ? '★ ' : ''}${row.popularity.toLocaleString(locale)}`,
-                    row.updated || '—',
-                    t[row.opportunity.confidence] || '—'
+                    ...(review
+                        ? [(row.opportunity.reasons || []).map((reason) => t[`reason_${reason}`] || reason).join(currentLang === 'ar' ? '، ' : ', ')]
+                        : [row.popularity === null ? '—' : `${row.opportunity.stats?.stars != null ? '★ ' : ''}${row.popularity.toLocaleString(locale)}`, row.updated || '—'])
                 ];
                 cells.forEach((text, index) => {
                     const td = tr.insertCell();
                     td.textContent = text;
                     if (index === 4) td.className = `commercial-cell commercial-${commercialStatus}`;
+                    if (index === 2 || index === 3) td.classList.add('wrap-cell');
+                    if (index === 2) td.classList.add('col-source');
+                    if (!review && index >= 5) td.classList.add('col-optional');
+                    if (review && index === 5) td.className = 'reason-cell';
                 });
                 const toggle = () => {
                     const open = tr.getAttribute('aria-expanded') === 'true';
-                    tr.setAttribute('aria-expanded', String(!open));
+                    body.querySelectorAll('.result-row').forEach((other) => other.setAttribute('aria-expanded', 'false'));
                     if (open) {
-                        tr.nextElementSibling?.classList.contains('detail-row') && tr.nextElementSibling.remove();
+                        panel.hidden = true;
+                        panel.replaceChildren();
                         return;
                     }
-                    const detail = document.createElement('tr');
-                    detail.className = 'detail-row';
-                    const td = document.createElement('td');
-                    td.colSpan = columns.length;
-                    const card = renderOpportunity(row.opportunity, translations[currentLang]);
-                    card.style.width = `${Math.max(260, wrap.clientWidth - 26)}px`;
-                    td.appendChild(card);
-                    detail.appendChild(td);
-                    tr.after(detail);
+                    tr.setAttribute('aria-expanded', 'true');
+                    panel.replaceChildren(renderOpportunity(row.opportunity, translations[currentLang]));
+                    panel.hidden = false;
+                    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 };
                 tr.addEventListener('click', toggle);
                 tr.addEventListener('keydown', (event) => {
@@ -1260,8 +1310,9 @@
                     }
                 });
             });
-            wrap.append(hint, table);
-            return wrap;
+            wrap.append(table);
+            block.append(hint, wrap, panel);
+            return block;
         }
 
         // Browser storage holds only per-visitor conveniences (watchlist, defaults,
@@ -1688,98 +1739,107 @@
             });
         }
 
-        async function askCountry() {
-            const c = translations[currentLang].chat;
-            chatState.step = 'country';
-            const all = optionItems('country');
-            const preset = savedDefault('country');
-            const main = withDefault(all.filter((item) => MAIN_MARKETS.includes(item.value) || item.value === preset), 'country');
-            const pick = (value, label) => { answer('country', value, label); askNext(); };
-            const row = chipRow([...main, { label: c.otherCountries, value: '__more', className: 'chip-soft' }], (value, label) => {
-                if (value !== '__more') return pick(value, label);
-                row.replaceWith(chipRow(all.filter((item) => !MAIN_MARKETS.includes(item.value) && item.value !== preset), pick));
-                scrollChat();
-            });
-            await botSay(c.askCountry, row);
+        // ---- One setup card instead of five questions ---------------------------
+        // The description usually names the industry, so it is guessed from it;
+        // the other answers come from saved defaults. Everything stays editable.
+        const INDUSTRY_HINTS = [
+            [/محاسب|فوتر|فاتور|ضريب|زكاة|مالي|رواتب ومحاسب|accounting|invoic|billing|bookkeep|tax/i, 'المالية والمحاسبة'],
+            [/عياد|مستشف|طبي|صح|أسنان|مريض|صيدل|clinic|hospital|health|medical|dental|pharma/i, 'الصحة والرعاية الصحية'],
+            [/متجر|متاجر|تجار|بائع|سلة|دفع|e-?commerce|shop|store|marketplace|payment/i, 'التجارة الإلكترونية والمدفوعات'],
+            [/crm|عملاء|مبيعات|تسويق|حملات|marketing|sales|leads?/i, 'التسويق والمبيعات'],
+            [/تعليم|تدريب|دورات|مدرس|طلاب|lms|e-?learning|course|school/i, 'التعليم والتدريب'],
+            [/موارد بشرية|موظف|رواتب|توظيف|\bhr\b|payroll|recruit/i, 'أنظمة إدارة الموارد البشرية HR'],
+            [/عقار|إيجار|ممتلك|real estate|property|rental/i, 'العقارات وإدارة الممتلكات'],
+            [/مشاريع|مهام|إنتاجية|project|task|productivity/i, 'الإنتاجية وإدارة المشاريع'],
+            [/قانون|محام|قضاي|legal|law firm/i, 'الخدمات القانونية'],
+            [/مخزون|مستودع|شحن|توصيل|لوجست|inventory|warehouse|logistic|delivery|fleet/i, 'سلاسل الإمداد والخدمات اللوجستية'],
+            [/أمن|سيبراني|حماية|security|cyber/i, 'الأمن السيبراني والخصوصية'],
+            [/ذكاء اصطناعي|شات ?بوت|\bai\b|chat ?bot|gpt/i, 'أدوات الذكاء الاصطناعي للشركات']
+        ];
+
+        function guessIndustry(text) {
+            const hit = INDUSTRY_HINTS.find(([pattern]) => pattern.test(text));
+            return hit ? hit[1] : null;
         }
 
-        async function askChoice(field, question) {
-            chatState.step = field;
-            await botSay(question, chipRow(withDefault(optionItems(field), field), (value, label) => { answer(field, value, label); askNext(); }));
+        function guessBudget(text) {
+            const amount = Number((String(text).replace(/,/g, '').match(/(\d{2,6})\s*(\$|دولار|usd)/i) || [])[1]);
+            if (!amount) return null;
+            return amount <= 100 ? 'حتى 100 دولار' : amount <= 500 ? 'حتى 500 دولار' : amount <= 5000 ? 'حتى 5000 دولار' : 'مفتوح';
         }
 
-        async function askFilters() {
+        function guessGoal(text) {
+            if (/شراء مشروع|مشروع قائم|استحواذ|للبيع|acquire|for sale|buy a/i.test(text)) return 'شراء وتطوير مشروع قائم';
+            if (/استنساخ|نسخة من|clone|مثل تطبيق|localize/i.test(text)) return 'استنساخ فكرة ناجحة وإطلاقها محلياً';
+            return null;
+        }
+
+        // Picks the starting value of each field: what the description says, then
+        // the saved default, then whatever the field already holds.
+        function prefillSetup(description) {
+            const choose = (field, guess) => {
+                const select = document.getElementById(field);
+                const value = guess || savedDefault(field);
+                if (value && Array.from(select.options).some((option) => option.value === value)) select.value = value;
+            };
+            choose('country', null);
+            choose('industry', guessIndustry(description));
+            choose('budget', guessBudget(description));
+            choose('goal', guessGoal(description));
+            const presetFilters = readStore(STORE.defaults, null)?.filters || [];
+            document.querySelectorAll('input[name="featureFilter"]').forEach((input) => { input.checked = presetFilters.includes(input.value); });
+        }
+
+        // A visible copy of a hidden form field that writes back to it.
+        function setupSelect(field, label) {
+            const source = document.getElementById(field);
+            const wrap = el('label', 'setup-field');
+            wrap.appendChild(el('span', '', label));
+            const select = source.cloneNode(true);
+            select.removeAttribute('id');
+            select.removeAttribute('name');
+            select.dataset.field = field;
+            select.value = source.value;
+            select.querySelectorAll('option[data-ar][data-en]').forEach((option) => { option.textContent = option.dataset[currentLang]; });
+            select.querySelectorAll('optgroup[data-ar][data-en]').forEach((group) => { group.label = group.dataset[currentLang]; });
+            select.addEventListener('change', () => { source.value = select.value; });
+            wrap.appendChild(select);
+            return wrap;
+        }
+
+        async function showSetup({ keep = false } = {}) {
             const t = translations[currentLang];
             const c = t.chat;
-            chatState.step = 'filters';
-            const box = el('div', 'chips');
-            const inputs = Array.from(document.querySelectorAll('input[name="featureFilter"]'));
-            const presetFilters = readStore(STORE.defaults, null)?.filters || [];
-            inputs.forEach((input) => {
-                input.checked = presetFilters.includes(input.value);
-                const chip = el('button', 'chip chip-toggle', t[FILTER_LABEL_KEYS[input.value]]);
+            chatState.step = 'setup';
+            if (!keep) prefillSetup(chatState.description);
+            const card = el('div', 'setup');
+            const grid = el('div', 'setup-grid');
+            grid.append(setupSelect('country', t.country), setupSelect('industry', t.industry), setupSelect('budget', t.budget), setupSelect('goal', t.goal));
+            const caps = el('div', 'setup-caps');
+            caps.appendChild(el('span', 'setup-caps-label', c.capsLabel));
+            const chips = el('div', 'chips');
+            document.querySelectorAll('input[name="featureFilter"]').forEach((input) => {
+                const chip = el('button', 'chip chip-toggle', t.filterOptions[input.value]);
                 chip.type = 'button';
                 chip.setAttribute('aria-pressed', String(input.checked));
-                if (input.checked) chip.appendChild(el('span', 'chip-mark', t.defaultMark));
                 chip.addEventListener('click', () => {
                     input.checked = !input.checked;
                     chip.setAttribute('aria-pressed', String(input.checked));
                 });
-                box.appendChild(chip);
+                chips.appendChild(chip);
             });
+            caps.append(chips, el('p', 'hint', c.capsHint));
             const actions = el('div', 'chips chips-actions');
-            const done = el('button', 'chip chip-primary', c.continue);
-            done.type = 'button';
-            const skip = el('button', 'chip chip-soft', c.noPreference);
-            skip.type = 'button';
-            const finish = (none) => {
-                if (none) inputs.forEach((input) => { input.checked = false; });
-                [...box.querySelectorAll('button'), done, skip].forEach((button) => { button.disabled = true; });
-                const chosen = inputs.filter((input) => input.checked).map((input) => t.filterOptions[input.value]);
-                addMessage('user', chosen.length ? chosen.join(currentLang === 'ar' ? '، ' : ', ') : c.noPreference);
-                askNext();
-            };
-            done.addEventListener('click', () => finish(false));
-            skip.addEventListener('click', () => finish(true));
-            actions.append(done, skip);
-            const wrap = el('div');
-            wrap.append(box, actions);
-            await botSay(c.askFilters, wrap);
-        }
-
-        async function showSummary() {
-            const t = translations[currentLang];
-            const c = t.chat;
-            chatState.step = 'confirm';
-            const list = el('dl', 'summary-list');
-            const filters = Array.from(document.querySelectorAll('input[name="featureFilter"]:checked'), (input) => t.filterOptions[input.value]);
-            [
-                [c.labels.description, chatState.description],
-                [c.labels.country, selectedLabel('country')],
-                [c.labels.industry, selectedLabel('industry')],
-                [c.labels.budget, selectedLabel('budget')],
-                [c.labels.goal, selectedLabel('goal')],
-                [c.labels.filters, filters.join(currentLang === 'ar' ? '، ' : ', ') || c.none]
-            ].forEach(([label, value]) => list.append(el('dt', '', label), el('dd', '', value)));
-            const actions = chipRow([
-                { label: c.go, value: 'go', className: 'chip-primary' },
-                { label: c.edit, value: 'edit', className: 'chip-soft' }
-            ], (value) => (value === 'go' ? runSearch() : startChat()));
-            const wrap = el('div');
-            wrap.append(list, actions);
-            await botSay(c.summary, wrap);
-        }
-
-        const CHAT_FLOW = ['description', 'country', 'industry', 'budget', 'goal', 'filters', 'confirm'];
-        function askNext() {
-            const c = translations[currentLang].chat;
-            const next = CHAT_FLOW[CHAT_FLOW.indexOf(chatState.step) + 1];
-            if (next === 'country') return askCountry();
-            if (next === 'industry') return askChoice('industry', c.askIndustry);
-            if (next === 'budget') return askChoice('budget', c.askBudget);
-            if (next === 'goal') return askChoice('goal', c.askGoal);
-            if (next === 'filters') return askFilters();
-            return showSummary();
+            const go = el('button', 'chip chip-primary setup-go', c.go);
+            go.type = 'button';
+            go.addEventListener('click', () => {
+                // The card becomes a record of what was searched.
+                card.querySelectorAll('select, button').forEach((control) => { control.disabled = true; });
+                runSearch();
+            });
+            actions.append(go, el('span', 'hint setup-time', c.waitHint));
+            card.append(grid, caps, actions);
+            await botSay(c.setupIntro, card);
         }
 
         // Typed messages: the first one answers "what are you looking for"; after
@@ -1793,7 +1853,7 @@
             addMessage('user', value);
             if (chatState.step === 'description') {
                 chatState.description = value;
-                return askNext();
+                return showSetup();
             }
             if (['results', 'confirm', 'error'].includes(chatState.step)) {
                 chatState.description = value;
@@ -1811,7 +1871,7 @@
             const steps = el('ol', 'progress-steps');
             c.steps.forEach((step, index) => steps.appendChild(el('li', index === 0 ? 'active' : '', step)));
             const status = el('p', 'progress-status', c.searching);
-            card.append(status, steps);
+            card.append(status, el('p', 'hint progress-time', c.waitHint), steps);
             let current = 0;
             const timer = setInterval(() => {
                 const items = steps.querySelectorAll('li');
@@ -1864,7 +1924,7 @@
                 // The report is shown: accept the next message while the follow-up types.
                 chatState.busy = false;
                 setBusy(false);
-                await botSay(c.followUp);
+                await botSay(c.followUp, chipRow([{ label: c.editSettings, value: 'edit', className: 'chip-soft' }], () => showSetup({ keep: true })));
             } catch (error) {
                 card.stop(true);
                 chatState.step = 'error';
@@ -1974,9 +2034,18 @@
             }
             if (!current?.windows) return;
             const scopes = current.kind === 'account' ? ['session', 'day', 'week', 'period'] : ['day'];
+            // The tightest window decides what the person can do now.
+            const left = (scope) => Math.max(0, Math.floor((current.windows[scope].limit - current.windows[scope].used) / current.estimates.search + 1e-9));
+            const tightest = scopes.filter((scope) => current.windows[scope]).sort((a, b) => left(a) - left(b))[0];
+            const line = el('div', 'meter-now', t.meterNow(left(tightest), left(tightest) === 0 ? current.windows[tightest].resetsAt : null));
+            if (current.kind !== 'account') line.prepend(el('span', 'meter-label', `${t.visitorPool}: `));
+            target.appendChild(line);
+            const details = el('details', 'meter-details');
+            details.appendChild(el('summary', '', t.meterDetails));
             scopes.forEach((scope) => {
-                if (current.windows[scope]) target.appendChild(meter(current.kind === 'account' ? t.scope[scope] : t.visitorPool, current.windows[scope], current.estimates, t));
+                if (current.windows[scope]) details.appendChild(meter(current.kind === 'account' ? t.scope[scope] : t.visitorPool, current.windows[scope], current.estimates, t));
             });
+            target.appendChild(details);
         }
 
         async function loadAccount() {

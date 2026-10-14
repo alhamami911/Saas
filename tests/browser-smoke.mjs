@@ -70,15 +70,14 @@ export default async function run(page) {
     if (examples < 4) failures.push("conversation examples");
     await page.locator("#promptOverride").fill("نظام حجوزات للعيادات يدعم ZATCA");
     await page.locator("#promptOverride").press("Enter");
-    await clickChip("السعودية");
-    await clickChip("الصحة والرعاية الصحية");
-    await clickChip("حتى 500 دولار (مشروع ناشئ صغير)");
-    await clickChip("إطلاق منتج SaaS جديد");
-    await page.waitForFunction(() => document.querySelectorAll(".chip-toggle").length === 7);
-    await page.locator(".chip-toggle", { hasText: "مزايا ذكاء اصطناعي مدمجة" }).click();
-    await clickChip("متابعة");
-    await page.waitForSelector(".summary-list");
-    await clickChip("ابدأ البحث");
+    // The setup card: one card with every setting, then one click.
+    await page.waitForSelector(".setup");
+    await page.locator('.setup select[data-field="country"]').selectOption("SA");
+    await page.locator('.setup select[data-field="industry"]').selectOption("الصحة والرعاية الصحية");
+    await page.locator('.setup select[data-field="budget"]').selectOption("حتى 500 دولار");
+    await page.locator('.setup select[data-field="goal"]').selectOption("إطلاق SaaS جديد");
+    await page.locator(".setup .chip-toggle", { hasText: "مزايا ذكاء اصطناعي" }).click();
+    await page.locator(".setup-go").click();
     await page.waitForSelector(".progress", { state: "attached" });
     await page.locator(".bubble .results-table .result-row").first().waitFor({ state: "visible" });
 
@@ -90,7 +89,7 @@ export default async function run(page) {
         progressDone: document.querySelector(".progress")?.classList.contains("done"),
         welcomeHidden: document.getElementById("welcome").classList.contains("hidden")
     }));
-    if (table.headers !== 8 || table.rows !== 1 || table.cardsBeforeClick !== 0 || !table.moreButton || !table.progressDone || !table.welcomeHidden) failures.push("results table in conversation");
+    if (table.headers !== 7 || table.rows !== 1 || table.cardsBeforeClick !== 0 || !table.moreButton || !table.progressDone || !table.welcomeHidden) failures.push("results table in conversation");
     await page.locator(".results-table .result-row").first().click();
     await page.locator(".opportunity").waitFor({ state: "visible" });
 

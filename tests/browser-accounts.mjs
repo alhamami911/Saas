@@ -34,19 +34,19 @@ export default async function run(page) {
     // The page asks for the account on load, so load it again with the mocks in place.
     await page.reload();
     // Visitor: the shared allowance meter and the limit message with a sign-in offer.
-    await page.waitForSelector("#visitorMeters .meter");
+    await page.waitForSelector("#visitorMeters .meter-now");
     R.visitorMeter = await page.locator("#visitorMeters").innerText();
     const clickChip = async (text) => {
         await page.waitForFunction((t) => Array.from(document.querySelectorAll(".chip:not(:disabled)")).some((c) => c.textContent.startsWith(t)), text);
         await page.locator(".chip:not(:disabled)", { hasText: text }).last().click();
     };
     await page.locator("#suggestions .suggestion").first().click();
-    await clickChip("السعودية");
-    await clickChip("المالية والمحاسبة");
-    await clickChip("حتى 100 دولار");
-    await clickChip("إطلاق منتج SaaS جديد");
-    await clickChip("لا يهم");
-    await clickChip("ابدأ البحث");
+    // The setup card: one card with every setting, then one click.
+    await page.waitForSelector(".setup");
+    await page.locator('.setup select[data-field="industry"]').selectOption("المالية والمحاسبة");
+    await page.locator('.setup select[data-field="budget"]').selectOption("حتى 100 دولار");
+
+    await page.locator(".setup-go").click();
     await page.waitForSelector("text=انتهت حصة الزوار");
     R.visitorLimit = await page.locator(".msg-bot .bubble").last().innerText();
     check(/سجّل الدخول/.test(R.visitorLimit) && (await page.locator(".chip", { hasText: "تسجيل الدخول بحساب تجريبي" }).count()) === 1, "visitor limit offers sign-in");
@@ -60,9 +60,10 @@ export default async function run(page) {
     R.wrongLogin = await page.locator("#accountLoginError").innerText();
     await page.locator("#accPass").fill("Good-Pass-123");
     await page.locator("#accountLoginForm button[type=submit]").click();
-    await page.waitForSelector("#accountSignedIn:not([hidden]) .meter");
+    await page.waitForSelector("#accountSignedIn:not([hidden]) .meter-now");
     R.signedIn = { name: await page.locator("#accountName").innerText(), meters: await page.locator("#accountMeters .meter").count(), text: await page.locator("#accountMeters").innerText(), expiry: await page.locator("#accountExpiry").innerText() };
-    check(R.signedIn.name === "trial07" && R.signedIn.meters === 4 && /الأسبوع/.test(R.signedIn.text), "four account meters");
+    R.signedIn.detailMeters = await page.locator("#accountMeters .meter-details .meter").count();
+    check(R.signedIn.name === "trial07" && R.signedIn.detailMeters === 4 && /متبقٍ لك/.test(R.signedIn.text), "one summary line and four detailed meters");
     if (process.env.SHOTS) await page.screenshot({ path: `${process.env.SHOTS}/accounts-signed-in.png` });
 
     // Session limit: clear message with the renewal time, no retry, meters updated.
