@@ -4,20 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%20width%3D%2264%22%20height%3D%2264%22%3E%20%3Cdefs%3E%20%3Cfilter%20id%3D%22f-glow%22%20x%3D%22-50%25%22%20y%3D%22-50%25%22%20width%3D%22200%25%22%20height%3D%22200%25%22%20color-interpolation-filters%3D%22sRGB%22%3E%20%3CfeGaussianBlur%20in%3D%22SourceGraphic%22%20stdDeviation%3D%220.78%22%20result%3D%22b%22%2F%3E%20%3CfeFlood%20flood-color%3D%22%2310B981%22%20flood-opacity%3D%220.9%22%2F%3E%20%3CfeComposite%20in2%3D%22b%22%20operator%3D%22in%22%20result%3D%22g%22%2F%3E%20%3CfeMerge%3E%3CfeMergeNode%20in%3D%22g%22%2F%3E%3CfeMergeNode%20in%3D%22SourceGraphic%22%2F%3E%3C%2FfeMerge%3E%20%3C%2Ffilter%3E%20%3Cfilter%20id%3D%22f-amber%22%20x%3D%22-50%25%22%20y%3D%22-50%25%22%20width%3D%22200%25%22%20height%3D%22200%25%22%20color-interpolation-filters%3D%22sRGB%22%3E%20%3CfeGaussianBlur%20in%3D%22SourceGraphic%22%20stdDeviation%3D%221.04%22%20result%3D%22b%22%2F%3E%20%3CfeFlood%20flood-color%3D%22%23F59E0B%22%20flood-opacity%3D%221%22%2F%3E%20%3CfeComposite%20in2%3D%22b%22%20operator%3D%22in%22%20result%3D%22g%22%2F%3E%20%3CfeMerge%3E%3CfeMergeNode%20in%3D%22g%22%2F%3E%3CfeMergeNode%20in%3D%22SourceGraphic%22%2F%3E%3C%2FfeMerge%3E%20%3C%2Ffilter%3E%3C%2Fdefs%3E%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%230A0F0D%22%2F%3E%20%3Cg%3E%20%3Cpath%20d%3D%22M32%2032L22.22%2010.03A24.05%2024.05%200%200%201%2047.46%2013.58Z%22%20fill%3D%22%2310B981%22%20opacity%3D%220.22499999999999998%22%2F%3E%20%3Cpath%20d%3D%22M32%2032L30.88%207.98A24.05%2024.05%200%200%201%2047.46%2013.58Z%22%20fill%3D%22%2310B981%22%20opacity%3D%220.4875%22%2F%3E%20%3Cpath%20d%3D%22M32%2032L39.7%209.22A24.05%2024.05%200%200%201%2047.46%2013.58Z%22%20fill%3D%22%2310B981%22%20opacity%3D%220.85%22%2F%3E%20%3Ccircle%20cx%3D%2232%22%20cy%3D%2232%22%20r%3D%2226%22%20fill%3D%22none%22%20stroke%3D%22%2310B981%22%20stroke-width%3D%223.9%22%20opacity%3D%221%22%2F%3E%20%3Cpath%20d%3D%22M32%2032L47.46%2013.58%22%20stroke%3D%22%2310B981%22%20stroke-width%3D%223.9%22%20stroke-linecap%3D%22round%22%20filter%3D%22url(%23f-glow)%22%2F%3E%20%3Ccircle%20cx%3D%2236.42%22%20cy%3D%2218.4%22%20r%3D%225.72%22%20fill%3D%22%23F59E0B%22%20filter%3D%22url(%23f-amber)%22%2F%3E%20%3C%2Fg%3E%20%3C%2Fsvg%3E">
+    <meta name="theme-color" content="#0A0F0D">
     <title>QLook Admin</title>
     <style>
         :root {
             --bg-color: #f9fafb; --surface-color: #ffffff; --text-primary: #111827; --text-secondary: #4b5563;
-            --border-color: #e5e7eb; --primary-color: #2563eb; --primary-hover: #1d4ed8;
+            --border-color: #e5e7eb; --primary-color: #0e5e4a; --primary-hover: #0b4a3a;
             --secondary-color: #f3f4f6; --secondary-hover: #e5e7eb; --radius: 8px;
             --ok-bg: #ecfdf5; --ok-fg: #047857; --bad-bg: #fef2f2; --bad-fg: #b91c1c;
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg-color: #111827; --surface-color: #1f2937; --text-primary: #f9fafb; --text-secondary: #d1d5db;
-                --border-color: #374151; --primary-color: #3b82f6; --primary-hover: #2563eb;
-                --secondary-color: #374151; --secondary-hover: #4b5563;
+                --bg-color: #0a0f0d; --surface-color: #111915; --text-primary: #e7f0ec; --text-secondary: #9fb3aa;
+                --border-color: #1f2e28; --primary-color: #10b981; --primary-hover: #34d399;
+                --secondary-color: #15211c; --secondary-hover: #1b2a24;
                 --ok-bg: #064e3b; --ok-fg: #a7f3d0; --bad-bg: #7f1d1d; --bad-fg: #fecaca;
             }
         }

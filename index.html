@@ -3,20 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%20width%3D%2264%22%20height%3D%2264%22%3E%20%3Cdefs%3E%20%3Cfilter%20id%3D%22f-glow%22%20x%3D%22-50%25%22%20y%3D%22-50%25%22%20width%3D%22200%25%22%20height%3D%22200%25%22%20color-interpolation-filters%3D%22sRGB%22%3E%20%3CfeGaussianBlur%20in%3D%22SourceGraphic%22%20stdDeviation%3D%220.78%22%20result%3D%22b%22%2F%3E%20%3CfeFlood%20flood-color%3D%22%2310B981%22%20flood-opacity%3D%220.9%22%2F%3E%20%3CfeComposite%20in2%3D%22b%22%20operator%3D%22in%22%20result%3D%22g%22%2F%3E%20%3CfeMerge%3E%3CfeMergeNode%20in%3D%22g%22%2F%3E%3CfeMergeNode%20in%3D%22SourceGraphic%22%2F%3E%3C%2FfeMerge%3E%20%3C%2Ffilter%3E%20%3Cfilter%20id%3D%22f-amber%22%20x%3D%22-50%25%22%20y%3D%22-50%25%22%20width%3D%22200%25%22%20height%3D%22200%25%22%20color-interpolation-filters%3D%22sRGB%22%3E%20%3CfeGaussianBlur%20in%3D%22SourceGraphic%22%20stdDeviation%3D%221.04%22%20result%3D%22b%22%2F%3E%20%3CfeFlood%20flood-color%3D%22%23F59E0B%22%20flood-opacity%3D%221%22%2F%3E%20%3CfeComposite%20in2%3D%22b%22%20operator%3D%22in%22%20result%3D%22g%22%2F%3E%20%3CfeMerge%3E%3CfeMergeNode%20in%3D%22g%22%2F%3E%3CfeMergeNode%20in%3D%22SourceGraphic%22%2F%3E%3C%2FfeMerge%3E%20%3C%2Ffilter%3E%3C%2Fdefs%3E%20%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%230A0F0D%22%2F%3E%20%3Cg%3E%20%3Cpath%20d%3D%22M32%2032L22.22%2010.03A24.05%2024.05%200%200%201%2047.46%2013.58Z%22%20fill%3D%22%2310B981%22%20opacity%3D%220.22499999999999998%22%2F%3E%20%3Cpath%20d%3D%22M32%2032L30.88%207.98A24.05%2024.05%200%200%201%2047.46%2013.58Z%22%20fill%3D%22%2310B981%22%20opacity%3D%220.4875%22%2F%3E%20%3Cpath%20d%3D%22M32%2032L39.7%209.22A24.05%2024.05%200%200%201%2047.46%2013.58Z%22%20fill%3D%22%2310B981%22%20opacity%3D%220.85%22%2F%3E%20%3Ccircle%20cx%3D%2232%22%20cy%3D%2232%22%20r%3D%2226%22%20fill%3D%22none%22%20stroke%3D%22%2310B981%22%20stroke-width%3D%223.9%22%20opacity%3D%221%22%2F%3E%20%3Cpath%20d%3D%22M32%2032L47.46%2013.58%22%20stroke%3D%22%2310B981%22%20stroke-width%3D%223.9%22%20stroke-linecap%3D%22round%22%20filter%3D%22url(%23f-glow)%22%2F%3E%20%3Ccircle%20cx%3D%2236.42%22%20cy%3D%2218.4%22%20r%3D%225.72%22%20fill%3D%22%23F59E0B%22%20filter%3D%22url(%23f-amber)%22%2F%3E%20%3C%2Fg%3E%20%3C%2Fsvg%3E">
+    <meta name="theme-color" content="#0A0F0D">
     <title>QLook — مساعد فرص SaaS</title>
     <style>
         :root {
-            --bg-color: #ffffff; --surface-color: #ffffff; --sidebar-color: #f0f4f9; --text-primary: #1f1f1f; --text-secondary: #5f6368;
-            --border-color: #e3e3e3; --primary-color: #0b57d0; --primary-hover: #0842a0; --primary-soft: #d3e3fd;
-            --secondary-color: #f0f4f9; --secondary-hover: #e1e8f1; --user-bubble: #e9eef6; --radius: 12px;
-            --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-            --brand-gradient: linear-gradient(74deg, #4285f4 0%, #9b72cb 45%, #d96570 85%);
+            --bg-color: #fbfdfc; --surface-color: #ffffff; --sidebar-color: #eef4f1; --text-primary: #0b1a14; --text-secondary: #4b5f57;
+            --border-color: #dce7e2; --primary-color: #0e5e4a; --primary-hover: #0b4a3a; --primary-soft: #d7f0e6;
+            --secondary-color: #eef4f1; --secondary-hover: #e0ebe6; --user-bubble: #e3efe9; --radius: 12px;
+            --shadow: 0 1px 3px rgba(10, 15, 13, 0.08);
+            --accent: #f59e0b;
+            --brand-gradient: linear-gradient(74deg, #0e5e4a 0%, #10b981 75%);
         }
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg-color: #131314; --surface-color: #1e1f20; --sidebar-color: #1e1f20; --text-primary: #e3e3e3; --text-secondary: #a8abb0;
-                --border-color: #3c4043; --primary-color: #a8c7fa; --primary-hover: #c2d7fb; --primary-soft: #28324a;
-                --secondary-color: #282a2c; --secondary-hover: #333537; --user-bubble: #282a2c;
+                --bg-color: #0a0f0d; --surface-color: #111915; --sidebar-color: #0e1512; --text-primary: #e7f0ec; --text-secondary: #9fb3aa;
+                --border-color: #1f2e28; --primary-color: #10b981; --primary-hover: #34d399; --primary-soft: #0e2a22;
+                --secondary-color: #15211c; --secondary-hover: #1b2a24; --user-bubble: #15211c;
+                --brand-gradient: linear-gradient(74deg, #10b981 0%, #6ee7b7 80%);
             }
         }
         * { box-sizing: border-box; }
@@ -30,7 +34,6 @@
         .side-brand { display: flex; align-items: center; gap: 10px; padding: 6px 10px 14px; font-size: 1.15rem; }
         .brand-mark { width: 28px; height: 28px; display: grid; place-items: center; }
         .brand-mark svg, .msg-avatar svg { width: 100%; height: 100%; }
-        .brand-mark path, .msg-avatar path { fill: url(#sparkGrad); }
         .new-chat { display: inline-flex; align-items: center; gap: 10px; align-self: flex-start; padding: 11px 18px; margin-bottom: 14px; border: 0; border-radius: 999px; background: var(--surface-color); color: var(--text-primary); font: inherit; font-size: 0.9rem; cursor: pointer; box-shadow: var(--shadow); }
         .new-chat:hover { background: var(--secondary-hover); }
         .new-chat svg { width: 18px; height: 18px; }
@@ -211,14 +214,15 @@
         .commercial-cell.commercial-restricted { color: #d93025; }
         .commercial-cell.commercial-unclear { color: #e37400; }
         .via-official_api { background: #e6f4ea; color: #137333; }
-        .via-web_search { background: #e8f0fe; color: #1a56c4; }
+        .via-web_search { background: var(--primary-soft); color: var(--primary-color); }
         .fit-note { margin: 8px 0 0; font-size: 0.88rem; }
         .commercial-use { margin: 10px 0 0; padding: 8px 10px; border-radius: 8px; font-size: 0.85rem; background: var(--secondary-color); }
         .commercial-allowed { border-inline-start: 3px solid #1e8e3e; }
         .commercial-restricted { border-inline-start: 3px solid #d93025; }
         .commercial-unclear { border-inline-start: 3px solid #e37400; }
-        .commercial-cell.commercial-conditional { color: #1a56c4; }
-        .commercial-conditional { border-inline-start: 3px solid #1a73e8; }
+        .commercial-cell.commercial-conditional { color: var(--primary-color); }
+        @media (prefers-color-scheme: dark) { .commercial-cell.commercial-allowed, .cov-found, .req-verified { color: #34d399; } .status-msg { color: #34d399; } }
+        .commercial-conditional { border-inline-start: 3px solid var(--primary-color); }
         .gaps { margin: 10px 0 0; padding: 10px 14px; border-radius: 10px; background: #fef7e0; color: #5f4b00; font-size: 0.88rem; }
         @media (prefers-color-scheme: dark) { .gaps { background: #3a3120; color: #f6e3a1; } }
         .coverage, .alternatives { margin-top: 12px; font-size: 0.88rem; }
@@ -301,11 +305,10 @@
     </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="sparkGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4285f4"/><stop offset="0.5" stop-color="#9b72cb"/><stop offset="1" stop-color="#d96570"/></linearGradient></defs></svg>
 <div class="app" id="app">
     <aside class="sidebar" id="sidebar">
         <div class="side-brand">
-            <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2c.6 4.9 2.6 7.9 7.6 9.4.4.1.4.7 0 .8-5 1.5-7 4.5-7.6 9.4-.1.5-.8.5-.9 0-.6-4.9-2.6-7.9-7.6-9.4-.4-.1-.4-.7 0-.8 5-1.5 7-4.5 7.6-9.4.1-.5.8-.5.9 0Z"/></svg></span>
+            <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 12L7.93 2.86A10 10 0 0 1 18.43 4.34Z" fill="#10B981" opacity="0.32"/><circle cx="12" cy="12" r="10" fill="none" stroke="#10B981" stroke-width="2"/><path d="M12 12L18.43 4.34" stroke="#10B981" stroke-width="2" stroke-linecap="round"/><circle cx="13.7" cy="6.77" r="2.3" fill="#F59E0B"/></svg></span>
             <strong>QLook</strong>
         </div>
         <button type="button" class="new-chat" id="chatRestart">
@@ -1633,7 +1636,7 @@
             api_integrations: 'filterApi', ai_features: 'filterAi', white_label: 'filterWhiteLabel', security_compliance: 'filterSecurity'
         };
         const SUGGESTION_ICONS = ['🧾', '🩺', '🛍️', '💼'];
-        const SPARK_PATH = 'M12 2c.6 4.9 2.6 7.9 7.6 9.4.4.1.4.7 0 .8-5 1.5-7 4.5-7.6 9.4-.1.5-.8.5-.9 0-.6-4.9-2.6-7.9-7.6-9.4-.4-.1-.4-.7 0-.8 5-1.5 7-4.5 7.6-9.4.1-.5.8-.5.9 0Z';
+        const RADAR_MARK = '<path d="M12 12L7.93 2.86A10 10 0 0 1 18.43 4.34Z" fill="#10B981" opacity="0.32"/><circle cx="12" cy="12" r="10" fill="none" stroke="#10B981" stroke-width="2"/><path d="M12 12L18.43 4.34" stroke="#10B981" stroke-width="2" stroke-linecap="round"/><circle cx="13.7" cy="6.77" r="2.3" fill="#F59E0B"/>';
 
         const el = (tag, className, text) => {
             const node = document.createElement(tag);
@@ -1648,9 +1651,7 @@
             const svg = document.createElementNS(ns, 'svg');
             svg.setAttribute('viewBox', '0 0 24 24');
             svg.setAttribute('aria-hidden', 'true');
-            const path = document.createElementNS(ns, 'path');
-            path.setAttribute('d', SPARK_PATH);
-            svg.appendChild(path);
+            svg.innerHTML = RADAR_MARK;
             avatar.appendChild(svg);
             return avatar;
         }
