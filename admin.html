@@ -56,6 +56,9 @@
         .usage-table th, .usage-table td { padding: 6px 8px; border-bottom: 1px solid var(--border-color); text-align: left; white-space: nowrap; }
         .usage-table td.cov { white-space: normal; max-width: 260px; color: var(--text-secondary); }
         .usage-scroll { overflow-x: auto; }
+        .pw-wrap { position: relative; }
+        .pw-wrap input { padding-right: 72px; }
+        .pw-toggle { position: absolute; top: 50%; right: 6px; transform: translateY(-50%); padding: 4px 10px; font-size: 0.8rem; font-weight: 600; background: var(--secondary-color); color: var(--text-primary); border: 1px solid var(--border-color); }
         .plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0 12px; }
         .limits-table td:first-child { color: var(--text-secondary); }
         .credentials { margin-top: 12px; padding: 12px; border-radius: var(--radius); background: var(--ok-bg); color: var(--ok-fg); font-size: 0.85rem; }
@@ -249,6 +252,38 @@
                 + 'Your browser may have filled in a saved password - clear the field and paste the key.', false);
             return false;
         }
+
+        // A Show/Hide button on every password field, so a typo can be spotted.
+        ['password', 'currentPassword', 'newPassword'].forEach((id) => {
+            const input = $(id);
+            if (!input) return;
+            const wrap = document.createElement('div');
+            wrap.className = 'pw-wrap';
+            input.parentNode.insertBefore(wrap, input);
+            wrap.appendChild(input);
+            const toggle = document.createElement('button');
+            toggle.type = 'button';
+            toggle.className = 'pw-toggle';
+            toggle.textContent = 'Show';
+            toggle.setAttribute('aria-label', 'Show password');
+            toggle.addEventListener('click', () => {
+                const hidden = input.type === 'password';
+                input.type = hidden ? 'text' : 'password';
+                toggle.textContent = hidden ? 'Hide' : 'Show';
+                toggle.setAttribute('aria-label', hidden ? 'Hide password' : 'Show password');
+                input.focus();
+            });
+            wrap.appendChild(toggle);
+        });
+        // Passwords are hidden again after signing in.
+        const hidePasswords = () => ['password', 'currentPassword', 'newPassword'].forEach((id) => {
+            const input = $(id);
+            if (input && input.type === 'text') {
+                input.type = 'password';
+                const toggle = input.parentNode.querySelector('.pw-toggle');
+                if (toggle) toggle.textContent = 'Show';
+            }
+        });
 
         async function busy(button, run) {
             button.disabled = true;
@@ -527,6 +562,7 @@
                 const { ok, data } = await api('/login', { method: 'POST', body: JSON.stringify({ password: $('password').value }) });
                 if (!ok) return showMsg('loginMsg', data.error || 'Sign in failed', false);
                 $('password').value = '';
+                hidePasswords();
                 await loadSettings();
             });
         });
