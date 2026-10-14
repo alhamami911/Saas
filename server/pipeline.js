@@ -178,23 +178,27 @@ function apiLog(catalogue, startedAt) {
 
 // Picks the candidates whose pages are read: the strongest few from every source
 // that returned something, so no single source crowds out the rest.
-function pickCandidates(catalogue, marketLog, shown, limit) {
+// `shown` (on screen now, from "find more") is never repeated. `seenBefore`
+// (shown to this person in earlier searches) only goes to the back of each
+// source's queue, so a search prefers new products but never runs dry.
+function pickCandidates(catalogue, marketLog, shown, limit, seenBefore = new Set()) {
     const perSource = { GitHub: 3, GitLab: 1, "Awesome Selfhosted": 2, CodeCanyon: 2 };
     const pools = [];
-    const seen = new Set(shown);
+    const used = new Set(shown);
     const take = (item) => {
         const key = normalizePublicUrl(item.url);
-        if (!key || seen.has(key)) return false;
-        seen.add(key);
+        if (!key || used.has(key)) return false;
+        used.add(key);
         return true;
     };
+    const newFirst = (items) => [...items.filter((item) => !seenBefore.has(normalizePublicUrl(item.url))), ...items.filter((item) => seenBefore.has(normalizePublicUrl(item.url)))];
     for (const source of ["GitHub", "GitLab", "Awesome Selfhosted", "CodeCanyon"]) {
-        const items = catalogue.candidates.filter((item) => item.source === source && take(item)).slice(0, perSource[source]);
+        const items = newFirst(catalogue.candidates.filter((item) => item.source === source)).filter(take).slice(0, perSource[source]);
         pools.push(items.map((item) => ({ ...item, url: normalizePublicUrl(item.url), via: "official_api" })));
     }
     for (const entry of marketLog) {
         const source = WEB_SOURCES.find((item) => item.label === entry.source);
-        pools.push(entry.links.filter(take).slice(0, 2).map((link) => ({
+        pools.push(newFirst(entry.links).filter(take).slice(0, 2).map((link) => ({
             source: entry.source,
             sourceType: source?.repository ? "repository" : "marketplace",
             name: link.title || link.url,
@@ -524,7 +528,7 @@ function toOpportunity(candidate, entry, request, language, today) {
     };
 }
 
-async function runPipeline(config, request, { shown = new Set(), now = () => Date.now() } = {}) {
+async function runPipeline(config, request, { shown = new Set(), seenBefore = new Set(), now = () => Date.now() } = {}) {
     const startedAt = now();
     const usage = emptyUsage();
     const client = claudeClient(config);
@@ -542,7 +546,7 @@ async function runPipeline(config, request, { shown = new Set(), now = () => Dat
     ]);
     const log = [...apiLog(catalogue, startedAt), ...marketLog].map((entry) => (entry.status === "disabled" ? { ...entry, status: "not_checked", error: "disabled" } : entry));
 
-    const candidates = pickCandidates(catalogue, marketLog, shown, 16);
+    const candidates = pickCandidates(catalogue, marketLog, shown, 16, seenBefore);
     const withEvidence = await gatherEvidence(client, config, usage, candidates, evidenceBy);
     const analysis = await analyse(client, config, usage, request, withEvidence, analyseBy);
     if (!analysis.ok) return { ok: false, kind: analysis.kind, status: analysis.status, message: analysis.message, usage, log, candidates: withEvidence };
@@ -563,7 +567,10 @@ async function runPipeline(config, request, { shown = new Set(), now = () => Dat
         }
         const opportunity = toOpportunity(candidate, entry, request, request.language, today);
         // The same product often appears twice, e.g. a GitHub repo and its GitLab mirror.
-        const nameKey = opportunity.productName.toLowerCase().replace(/\(.*?\)/g, "").replace(/[^a-z0-9؀-ۿ]+/g, " ").trim();
+        const nameKey = opportunity.productName.toLowerCase().replace(/\(.*?\)/g, "")
+            .replace(/\b(download|mirror|open[- ]source|self[- ]hosted|source code|script|app)\b/g, " ")
+            .replace(/[^a-z0-9\u0600-\u06ff]+/g, " ").trim().split(" ").slice(0, 3).join(" ");
+        opportunity.seenBefore = seenBefore.has(opportunity.directUrl);
         if (names.has(nameKey)) continue;
         names.add(nameKey);
         opportunities.push(opportunity);

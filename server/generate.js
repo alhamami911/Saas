@@ -165,9 +165,9 @@ function publicLog(log) {
     }));
 }
 
-async function runClaudeSearch(config, request, shown, visitor, event) {
+async function runClaudeSearch(config, request, shown, visitor, event, seenBefore = new Set()) {
     const startedAt = Date.now();
-    const result = await runPipeline(config, request, { shown });
+    const result = await runPipeline(config, request, { shown, seenBefore });
     const elapsedMs = Date.now() - startedAt;
     const baseFields = { kind: "search", requestedCount: request.opportunityCount, language: request.language, elapsedMs };
     console.log("Claude pipeline finished", result.ok ? "ok" : result.kind, `${elapsedMs}ms`, `${result.log?.length || 0} sources`);
@@ -331,10 +331,11 @@ exports.handler = async function (event) {
     const request = validation.value;
     // Never show a visitor the same product twice: links from "find more" plus
     // everything this IP was shown in the last 14 days.
-    const visitor = clientHash(event, config);
+    // A signed-in trial account is one person on every device; visitors are counted by IP.
+    const visitor = event.account ? `account-${event.account.id}` : clientHash(event, config);
     const previouslySeen = (await seenLinks(config, visitor)).map(normalizePublicUrl).filter(Boolean);
+    if (config.provider === "claude") return runClaudeSearch(config, request, new Set(request.exclude), visitor, event, new Set(previouslySeen));
     const shown = new Set([...request.exclude, ...previouslySeen]);
-    if (config.provider === "claude") return runClaudeSearch(config, request, shown, visitor, event);
     const catalogue = config.catalogEnabled
         ? await collectCandidates(request, { envatoToken: config.envatoToken, githubToken: config.githubToken })
         : { candidates: [], coverage: [] };

@@ -662,7 +662,7 @@
             coverageIncomplete: 'لم تُفحص كل المصادر المعتمدة في هذا البحث، لذلك لا يُعد البحث شاملاً.',
             viaOfficial: 'بيانات رسمية', viaSearch2: 'بحث داخل الموقع',
             searchDone: 'اكتمل البحث.', searchStopped: 'توقف البحث.', restoredNote: 'آخر تقرير محفوظ على هذا الجهاز من',
-            defaultMark: 'افتراضي',
+            defaultMark: 'افتراضي', seenBefore: 'عُرضت عليك سابقاً',
             accountLogin: 'تسجيل الدخول بحساب تجريبي', accountLogout: 'خروج', accountLoginTitle: 'الدخول إلى حسابك التجريبي',
             accountLoginHint: 'استخدم اسم المستخدم وكلمة المرور اللذين وصلاك من فريق QLook.', accountUser: 'اسم المستخدم', accountPass: 'كلمة المرور',
             accountSignIn: 'دخول', accountCancel: 'إلغاء', accountLoginFailed: 'اسم المستخدم أو كلمة المرور غير صحيحة.', accountLocked: 'محاولات كثيرة. حاول بعد 15 دقيقة.',
@@ -707,7 +707,7 @@
             coverageIncomplete: 'Not every approved source was checked in this search, so it is not a complete search.',
             viaOfficial: 'official data', viaSearch2: 'site search',
             searchDone: 'Search complete.', searchStopped: 'Search stopped.', restoredNote: 'Last report saved on this device from',
-            defaultMark: 'default',
+            defaultMark: 'default', seenBefore: 'shown to you before',
             accountLogin: 'Sign in with a trial account', accountLogout: 'Sign out', accountLoginTitle: 'Sign in to your trial account',
             accountLoginHint: 'Use the username and password the QLook team sent you.', accountUser: 'Username', accountPass: 'Password',
             accountSignIn: 'Sign in', accountCancel: 'Cancel', accountLoginFailed: 'Wrong username or password.', accountLocked: 'Too many attempts. Try again in 15 minutes.',
@@ -877,6 +877,7 @@
                 originItem.appendChild(originLink);
             }
             metaItem(meta, `${t.confidence}: ${t[opportunity.confidence] || t.low}`);
+            if (opportunity.seenBefore) metaItem(meta, t.seenBefore).className = 'status-label';
             metaItem(meta, `${t.lastVerified}: ${opportunity.lastVerifiedDate}`);
             card.appendChild(meta);
 
@@ -1219,7 +1220,7 @@
                 const commercialStatus = row.opportunity.commercialUse?.status || 'unclear';
                 const cells = [
                     String(row.rank),
-                    row.name,
+                    row.opportunity.seenBefore ?`${row.name} · ${t.seenBefore}` : row.name,
                     row.source || '—',
                     priceText(row.opportunity, t, false),
                     t[`commercial_${commercialStatus}`]?.split(' — ')[0] || '—',

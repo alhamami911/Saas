@@ -398,3 +398,13 @@ test("the server finds capability and licence evidence in the page when the anal
     assert.equal(market.price.amount, "499", "the Extended License price is the SaaS price");
     assert.equal(excerpt("a\ud83d b").includes("\ud83d"), false, "half emoji are removed before the API sees them");
 });
+
+test("earlier-seen products go to the back of the queue instead of disappearing", () => {
+    const log = [{ source: "CodeCanyon", links: [{ url: "https://codecanyon.net/item/old/1", title: "old" }, { url: "https://codecanyon.net/item/new/2", title: "new" }, { url: "https://codecanyon.net/item/third/3", title: "third" }] }];
+    const seenBefore = new Set(["https://codecanyon.net/item/old/1"]);
+    const picked = pickCandidates({ candidates: [] }, log, new Set(), 16, seenBefore);
+    assert.deepEqual(picked.map((item) => item.url), ["https://codecanyon.net/item/new/2", "https://codecanyon.net/item/third/3"], "new products first");
+    const few = [{ source: "CodeCanyon", links: [{ url: "https://codecanyon.net/item/old/1", title: "old" }] }];
+    assert.deepEqual(pickCandidates({ candidates: [] }, few, new Set(), 16, seenBefore).map((item) => item.url), ["https://codecanyon.net/item/old/1"], "but a seen product still fills an empty slot");
+    assert.deepEqual(pickCandidates({ candidates: [] }, few, new Set(["https://codecanyon.net/item/old/1"]), 16, seenBefore), [], "what is on screen now is never repeated");
+});
