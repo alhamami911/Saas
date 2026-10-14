@@ -277,8 +277,45 @@ async function gatherEvidence(client, config, usage, candidates, deadline) {
 const EVIDENCE_HINTS = /(rtl|right[- ]to[- ]left|arabic|العربية|\bapi\b|rest|webhook|multi[- ]?tenan|white[- ]?label|licen[cs]e|regular|extended|lifetime|commercial|resell|saas|price|\$\s?\d|usd|\bai\b|openai|gpt|zatca|e-?invoic)/ig;
 
 // The model sees the start of each page plus the passages around useful words.
+// Cutting text at a fixed length can split an emoji in two; a lone half makes
+// the API reject the whole request, so it is removed before sending.
+function cleanText(value) {
+    return String(value || "").replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "");
+}
+
+// Phrases that prove a capability on a product's own page. Used when the
+// analysis did not quote one: the server looks for them in the page itself.
+const CAPABILITY_EVIDENCE = {
+    rtl_support: /\b(RTL|right[- ]to[- ]left)\b/i,
+    arabic_localization: /\bArabic\b|العربية/i,
+    api_integrations: /\b(REST(ful)?[- ]?API|GraphQL[- ]API|public API|open API|API[- ](access|docs|documentation|endpoints?|first|centric|keys?)|webhooks?)\b/i,
+    multi_tenant: /\bmulti[- ]?tenan(t|cy)\b/i,
+    white_label: /\bwhite[- ]?label(ed|ing)?\b/i,
+    ai_features: /\b(AI[- ](powered|assistant|features?|chat(bot)?)|artificial intelligence|OpenAI|ChatGPT|GPT-\d|LLMs?)\b/i,
+    security_compliance: /\b(GDPR|SOC ?2|ISO ?27001|HIPAA|two[- ]factor|2FA|end[- ]to[- ]end encryption)\b/i
+};
+
+// The sentence around the first match, as the evidence quote.
+function evidenceSentence(text, pattern) {
+    const match = pattern.exec(text);
+    if (!match) return null;
+    const start = Math.max(0, text.lastIndexOf("\n", match.index) + 1, match.index - 140);
+    const nextBreak = text.indexOf("\n", match.index);
+    const end = Math.min(text.length, nextBreak < 0 ? match.index + 160 : Math.min(nextBreak, match.index + 160));
+    return cleanText(text.slice(start, end)).replace(/[\s*_#>|`\[\]]+/g, " ").trim().slice(0, 300) || null;
+}
+
+// Marketplace pages name their licences; the Extended License is the one that
+// allows a paid end product, so its price is the price that matters for SaaS.
+function marketplaceLicence(text) {
+    const extended = /Extended License[^$\n]{0,80}\$\s?(\d[\d,]*(?:\.\d+)?)/i.exec(text);
+    if (extended) return { name: "Extended License", price: extended[1].replace(/,/g, ""), quote: evidenceSentence(text, /Extended License/i) };
+    if (/Regular License/i.test(text)) return { name: "Regular License", price: null, quote: evidenceSentence(text, /Regular License/i) };
+    return null;
+}
+
 function excerpt(text, max = EVIDENCE_CHARS) {
-    const clean = text.replace(/\r/g, "").replace(/\n{3,}/g, "\n\n");
+    const clean = cleanText(text).replace(/\r/g, "").replace(/\n{3,}/g, "\n\n");
     if (clean.length <= max) return clean;
     const parts = [clean.slice(0, 2500)];
     let used = 2500;
@@ -384,7 +421,7 @@ async function analyseOnce(client, config, usage, request, candidates, deadline)
             model: config.model,
             max_tokens: 12000,
             output_config: { effort: config.claudeEffort, format: { type: "json_schema", schema: ANALYSIS_SCHEMA } },
-            messages: [{ role: "user", content: analysisPrompt(request, candidates) }]
+            messages: [{ role: "user", content: cleanText(analysisPrompt(request, candidates)) }]
         }, { signal: AbortSignal.timeout(Math.max(5000, remaining)) });
         const message = await stream.finalMessage();
         addUsage(usage, message);
@@ -418,6 +455,11 @@ function toOpportunity(candidate, entry, request, language, today) {
         license = { name: bounded(entry.licenseName, 120), status: "verified", sourceUrl, quote: proven(entry.licenseQuote), basis: "page_quote" };
         facts.push({ claim: `«${license.quote}»`, url: sourceUrl, title: candidate.name });
     }
+    const market = !candidate.license && /(codecanyon\.net|codester\.com)$/.test(hostOf(sourceUrl)) ? marketplaceLicence(text) : null;
+    if (market && (license.status !== "verified" || /regular license/i.test(license.name || ""))) {
+        license = { name: market.name, status: "verified", sourceUrl, quote: market.quote, basis: "page_text" };
+        if (market.quote) facts.push({ claim: `«${market.quote}»`, url: sourceUrl, title: candidate.name });
+    }
 
     let commercialUse = commercialUseFor(license, {}, new Map(), language);
     const useQuote = relevantQuote(proven(entry.commercialUse?.quote), "rights") ? proven(entry.commercialUse?.quote) : null;
@@ -434,6 +476,8 @@ function toOpportunity(candidate, entry, request, language, today) {
         const quote = proven(claim?.quote);
         if (claim?.status === "verified" && quote && relevantQuote(quote, capability)) return { capability, status: "verified", sourceUrl, quote };
         if (claim?.status === "absent") return { capability, status: "absent", sourceUrl: quote ? sourceUrl : null, quote };
+        const found = page && CAPABILITY_EVIDENCE[capability] ? evidenceSentence(text, CAPABILITY_EVIDENCE[capability]) : null;
+        if (found) return { capability, status: "verified", sourceUrl, quote: found, basis: "page_text" };
         return { capability, status: "unverified", sourceUrl: null, quote: null };
     });
     requirements.filter((item) => item.status === "verified").forEach((item) => facts.push({ claim: `${FILTER_DESCRIPTIONS[item.capability]}: «${item.quote}»`, url: sourceUrl, title: candidate.name }));
@@ -441,6 +485,8 @@ function toOpportunity(candidate, entry, request, language, today) {
     let price = { amount: null, currency: null, period: null, status: "unknown", sourceUrl: null, label: null };
     if (candidate.price) {
         price = { amount: candidate.price.amount, currency: candidate.price.currency, period: "one-time", status: "verified", sourceUrl, label: candidate.license || null };
+    } else if (market?.price && license.name === "Extended License") {
+        price = { amount: market.price, currency: "USD", period: "one-time", status: "verified", sourceUrl, label: "Extended License", quote: market.quote };
     } else {
         const priceQuote = proven(entry.price?.quote);
         const amount = bounded(entry.price?.amount, 40);

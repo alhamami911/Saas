@@ -180,7 +180,7 @@ async function runClaudeSearch(config, request, shown, visitor, event) {
         if (result.kind === "network") return jsonResponse(502, { errorCode: "AI_UNAVAILABLE", error: "Claude could not be reached" });
         console.error("Claude pipeline failed", result.kind, result.status || "", result.message || "");
         // The failure kind (never provider text) helps a reviewer report what went wrong.
-        return jsonResponse(502, { errorCode: "AI_REQUEST_FAILED", reason: result.kind, error: "The analysis could not be completed. Try again." });
+        return jsonResponse(502, { errorCode: "AI_REQUEST_FAILED", reason: `${result.kind}${result.status ? `:${result.status}` : ""}`, error: "The analysis could not be completed. Try again." });
     }
 
     // Out of AI credit: every marketplace search failed for that reason. Say so

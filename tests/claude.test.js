@@ -381,3 +381,20 @@ test("a repeated search reuses cached marketplace results and pages, and says so
         assert.deepEqual(second.opportunities.map((o) => o.productName), first.opportunities.map((o) => o.productName));
     });
 });
+
+test("the server finds capability and licence evidence in the page when the analysis missed it", () => {
+    const { toOpportunity, excerpt } = require("../server/pipeline");
+    const candidate = (url, text, extra = {}) => ({ id: "c1", url, name: "X", source: "S", sourceType: "repository", evidence: { method: "readme", url, text }, ...extra });
+    const entry = { relevant: true, productName: "Corteza", offerType: "open_source", requirements: [], commercialUse: {}, price: {} };
+    const corteza = toOpportunity(candidate("https://github.com/cortezaproject/corteza", "Low-code platform.\n* [using the REST API](https://docs.example) for integrations", { license: "Apache-2.0" }),
+        entry, { filters: ["api_integrations", "rtl_support"], budget: "حتى 100 دولار" }, "ar", "2026-10-14");
+    assert.equal(corteza.requirements[0].status, "verified");
+    assert.match(corteza.requirements[0].quote, /REST API/);
+    assert.equal(corteza.requirements[1].status, "unverified", "no RTL phrase on the page, so it stays unverified");
+    const market = toOpportunity(candidate("https://codecanyon.net/item/nazmart/1", "Nazmart. Regular License $69 Extended License $499", { sourceType: "marketplace" }),
+        { ...entry, productName: "Nazmart" }, { filters: [], budget: "حتى 5000 دولار" }, "ar", "2026-10-14");
+    assert.equal(market.license.name, "Extended License");
+    assert.equal(market.commercialUse.status, "allowed");
+    assert.equal(market.price.amount, "499", "the Extended License price is the SaaS price");
+    assert.equal(excerpt("a\ud83d b").includes("\ud83d"), false, "half emoji are removed before the API sees them");
+});
