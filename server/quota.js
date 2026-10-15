@@ -1,12 +1,13 @@
 "use strict";
 
-// Trial usage limits. The plan's credit budget (minus a reserve) is split into a
-// small shared visitor pool and equal shares for the trial accounts. Each
-// account's share is spent across four windows, like Claude's own limits:
+// Trial usage limits. Every account — self-signed-up or admin-issued — gets the
+// same flat free-credit budget (plan.perAccountBudgetUsd), spent across four
+// windows, like Claude's own limits:
 //   session - a 5-hour window that starts with the first use,
 //   day     - the UTC day,
 //   week    - 7-day windows counted from the account's first sign-in,
 //   period  - the whole trial (periodDays from the first sign-in).
+// Visitors without an account share one small daily allowance instead.
 // Limits are in estimated US dollars; the interface converts them into an
 // approximate number of searches and messages.
 
@@ -18,17 +19,13 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const SHARES = { session: 0.06, day: 0.12, week: 0.35 };
 
 function planLimits(plan, estimates) {
-    const usable = plan.totalBudgetUsd * (1 - plan.reservePct / 100);
-    const visitorPool = plan.totalBudgetUsd * plan.visitorSharePct / 100;
-    const accountPool = Math.max(0, usable - visitorPool);
-    const period = accountPool / plan.accounts;
+    const period = plan.perAccountBudgetUsd;
     // Every window allows at least one search, as long as the period has room.
     const floor = estimates.search;
     const session = Math.min(period, Math.max(period * SHARES.session, floor));
     const day = Math.min(period, Math.max(period * SHARES.day, session));
     const week = Math.min(period, Math.max(period * SHARES.week, day));
-    const visitorDay = Math.min(visitorPool, Math.max(visitorPool / plan.periodDays, floor));
-    return { usable, visitorPool, accountPool, perAccount: { session, day, week, period }, visitorDay };
+    return { perAccount: { session, day, week, period }, visitorDay: Math.max(plan.visitorDailyUsd, 0) };
 }
 
 function keysFor(plan, who, now) {
@@ -40,7 +37,9 @@ function keysFor(plan, who, now) {
         const a = `${base}:a:${who.account.id}`;
         return { kind: "account", start, week, total: `${base}:total`, sessionStart: `${a}:sess:start`, session: `${a}:sess:spent`, day: `${a}:day:${day}`, weekKey: `${a}:week:${week}`, period: `${a}:period` };
     }
-    return { kind: "visitor", total: `${base}:total`, day: `${base}:v:day:${day}`, period: `${base}:v:period` };
+    // All anonymous visitors share one bucket: individual visitors are not
+    // tracked, which is also why this allowance stays small.
+    return { kind: "visitor", total: `${base}:total`, day: `${base}:v:day:${day}` };
 }
 
 const money = (value) => Math.round((Number(value) || 0) * 1e6) / 1e6;
@@ -52,27 +51,22 @@ async function accessStatus(config, plan, who, now = Date.now()) {
     const keys = keysFor(plan, who, now);
     const tomorrow = Date.parse(`${utcDayInfo(now).day}T00:00:00.000Z`) + DAY_MS;
     if (keys.kind === "visitor") {
-        const [total, day, period] = await redisCommand(config, ["MGET", keys.total, keys.day, keys.period]);
+        const [day] = await redisCommand(config, ["MGET", keys.day]);
         return {
             kind: "visitor",
             estimates,
-            planUsed: money(total),
-            planUsable: money(limits.usable),
             windows: {
-                day: { used: money(day), limit: money(limits.visitorDay), resetsAt: new Date(tomorrow).toISOString() },
-                period: { used: money(period), limit: money(limits.visitorPool), resetsAt: null }
+                day: { used: money(day), limit: money(limits.visitorDay), resetsAt: new Date(tomorrow).toISOString() }
             }
         };
     }
-    const [total, sessionStart, session, day, week, period] = await redisCommand(config, ["MGET", keys.total, keys.sessionStart, keys.session, keys.day, keys.weekKey, keys.period]);
+    const [sessionStart, session, day, week, period] = await redisCommand(config, ["MGET", keys.sessionStart, keys.session, keys.day, keys.weekKey, keys.period]);
     const periodEnds = keys.start + plan.periodDays * DAY_MS;
     // A session lasts 5 hours from its first use, whether or not its keys expired yet.
     const sessionOpen = Number(sessionStart) > 0 && now < Number(sessionStart) + SESSION_MS;
     return {
         kind: "account",
         estimates,
-        planUsed: money(total),
-        planUsable: money(limits.usable),
         activatedAt: who.account.activatedAt,
         expiresAt: new Date(periodEnds).toISOString(),
         expired: now >= periodEnds,
@@ -90,7 +84,6 @@ async function accessStatus(config, plan, who, now = Date.now()) {
 async function checkAccess(config, plan, who, kind, now = Date.now()) {
     const status = await accessStatus(config, plan, who, now);
     const estimate = status.estimates[kind] || status.estimates.search;
-    if (status.planUsed + estimate > status.planUsable) return { allowed: false, errorCode: "PLAN_BUDGET_EXHAUSTED", status };
     if (status.disabled) return { allowed: false, errorCode: "ACCOUNT_DISABLED", status };
     if (status.expired) return { allowed: false, errorCode: "ACCOUNT_EXPIRED", status };
     for (const scope of ["session", "day", "week", "period"]) {
@@ -98,7 +91,6 @@ async function checkAccess(config, plan, who, kind, now = Date.now()) {
         if (!window) continue;
         // Soft limit: while a window has any balance left, the next request runs and
         // its real cost is charged afterwards (a cached search costs about a cent).
-        // The plan total above still uses the full estimate, so the credit is safe.
         if (window.used >= window.limit - 1e-9) {
             return {
                 allowed: false,
@@ -128,8 +120,9 @@ end
 return redis.call('GET', KEYS[1])
 `;
 
-// Adds a request's estimated cost. The plan total always counts what was spent;
-// the person's own windows count only requests that succeeded.
+// Adds a request's estimated cost. The total key always counts what was spent
+// (for the admin dashboard); the person's own windows count only requests that
+// succeeded.
 async function chargeAccess(config, plan, who, usd, { personal = true } = {}, now = Date.now()) {
     const amount = Number(usd);
     if (!(amount > 0)) return;
@@ -137,7 +130,7 @@ async function chargeAccess(config, plan, who, usd, { personal = true } = {}, no
     const { secondsUntilTomorrow } = utcDayInfo(now);
     const longTtl = Math.ceil((plan.periodDays + 30) * 86400);
     const charge = [[keys.total, longTtl]];
-    if (personal && keys.kind === "visitor") charge.push([keys.day, secondsUntilTomorrow], [keys.period, longTtl]);
+    if (personal && keys.kind === "visitor") charge.push([keys.day, secondsUntilTomorrow]);
     if (personal && keys.kind === "account") {
         const sessionStart = Number(await redisCommand(config, ["EVAL", OPEN_SESSION, 2, keys.sessionStart, keys.session, String(now), String(SESSION_MS)]));
         const sessionTtl = Math.max(1, Math.ceil((sessionStart + SESSION_MS - now) / 1000));

@@ -90,6 +90,11 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
     const trustProxy = env.TRUST_PROXY === "1";
     const version = env.GIT_SHA || "dev";
     const loginFailures = new Map();
+    // Signup attempts per IP (not failures — every attempt counts), a simple
+    // defence against scripted account creation.
+    const signupAttempts = new Map();
+    const SIGNUP_MAX_PER_HOUR = 8;
+    const SIGNUP_WINDOW_MS = 60 * 60 * 1000;
     const pages = {
         index: fs.readFileSync(path.join(rootDir, "index.html")),
         admin: fs.readFileSync(path.join(rootDir, "admin.html"))
@@ -146,16 +151,42 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         }
     }
 
+    // What the public page may know about the free-trial plan before signing in:
+    // the credit amount, trial length and whether new sign-ups are open.
+    function publicPlan(plan) {
+        return { perAccountBudgetUsd: plan.perAccountBudgetUsd, periodDays: plan.periodDays, signupsOpen: plan.signupsOpen };
+    }
+
     async function handleAccount(req, res, route) {
         if (req.method !== "GET" && !publicOrigin(req)) return sendJson(res, 403, { error: "Cross-site request rejected" });
         const config = getConfig();
+        const plan = settings.plan();
         const status = async (account) => {
             try {
-                return await accessStatus(config, settings.plan(), account ? { account } : { visitor: true });
+                return await accessStatus(config, plan, account ? { account } : { visitor: true });
             } catch (error) {
                 return null;
             }
         };
+        if (route === "/signup" && req.method === "POST") {
+            const ip = `signup:${clientIp(req)}`;
+            const now = Date.now();
+            const record = signupAttempts.get(ip);
+            if (record && record.count >= SIGNUP_MAX_PER_HOUR && record.resetAt > now) {
+                return sendJson(res, 429, { errorCode: "SIGNUP_RATE_LIMITED", error: "Too many sign-ups from this network. Try again later." });
+            }
+            if (signupAttempts.size > 10000) signupAttempts.clear();
+            signupAttempts.set(ip, { count: (record && record.resetAt > now ? record.count : 0) + 1, resetAt: record && record.resetAt > now ? record.resetAt : now + SIGNUP_WINDOW_MS });
+            if (!plan.signupsOpen) return sendJson(res, 403, { errorCode: "SIGNUPS_CLOSED", error: "Free sign-ups are paused right now." });
+            const body = await readJson(req);
+            // A filled honeypot field means a bot filled in every input on the form.
+            if (body.website !== undefined && (typeof body.website !== "string" || body.website.trim())) {
+                return sendJson(res, 400, { errorCode: "AUTOMATED_REQUEST_REJECTED", error: "Request could not be verified" });
+            }
+            const result = settings.signUpAccount(body.email, body.password);
+            if (result.error) return sendJson(res, 400, { errorCode: `SIGNUP_${(result.code || "failed").toUpperCase()}`, error: result.error });
+            return sendJson(res, 200, { signedIn: true, username: result.account.username, access: await status(result.account), plan: publicPlan(plan) }, { "Set-Cookie": accountCookie(req, result.account.id) });
+        }
         if (route === "/login" && req.method === "POST") {
             const ip = `account:${clientIp(req)}`;
             const record = loginFailures.get(ip);
@@ -169,14 +200,14 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
                 return sendJson(res, 401, { errorCode: "LOGIN_FAILED", error: "Wrong username or password" });
             }
             loginFailures.delete(ip);
-            return sendJson(res, 200, { signedIn: true, username: account.username, access: await status(account) }, { "Set-Cookie": accountCookie(req, account.id) });
+            return sendJson(res, 200, { signedIn: true, username: account.username, access: await status(account), plan: publicPlan(plan) }, { "Set-Cookie": accountCookie(req, account.id) });
         }
         if (route === "/logout" && req.method === "POST") {
-            return sendJson(res, 200, { signedIn: false }, { "Set-Cookie": `${ACCOUNT_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0` });
+            return sendJson(res, 200, { signedIn: false, plan: publicPlan(plan) }, { "Set-Cookie": `${ACCOUNT_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0` });
         }
         if (route === "" && req.method === "GET") {
             const account = currentAccount(req);
-            return sendJson(res, 200, { signedIn: Boolean(account), username: account?.username || null, access: await status(account) });
+            return sendJson(res, 200, { signedIn: Boolean(account), username: account?.username || null, access: await status(account), plan: publicPlan(plan) });
         }
         return sendJson(res, 404, { error: "Not found" });
     }
@@ -343,14 +374,16 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         if (route === "/plan" && req.method === "GET") {
             const config = getConfig();
             const plan = settings.plan();
-            let used = 0;
+            // Total ever charged under this plan id, across every account and visitor —
+            // informational only; each account's own $ cap is enforced independently.
+            let spentTotal = 0;
             try {
-                used = Number(await redisCommand(config, ["GET", `ql:q:${plan.id}:total`])) || 0;
+                spentTotal = Number(await redisCommand(config, ["GET", `ql:q:${plan.id}:total`])) || 0;
             } catch (error) {
-                used = null;
+                spentTotal = null;
             }
             const estimates = { search: config.searchEstimateUsd, discuss: config.discussEstimateUsd };
-            return sendJson(res, 200, { plan, limits: planLimits(plan, estimates), estimates, usedUsd: used });
+            return sendJson(res, 200, { plan, limits: planLimits(plan, estimates), estimates, spentTotalUsd: spentTotal });
         }
         if (route === "/plan" && req.method === "PUT") {
             const result = settings.setPlan(await readJson(req));

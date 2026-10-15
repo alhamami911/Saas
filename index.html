@@ -315,6 +315,7 @@
         .login-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
         .login-dialog h2 { margin: 0 0 6px; font-size: 1.1rem; }
         .login-dialog label { display: block; margin: 12px 0 6px; font-size: 0.85rem; font-weight: 600; }
+        .dialog-switch { margin: 14px 0 0; text-align: center; font-size: 0.85rem; }
         .login-dialog input { width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-color); color: var(--text-primary); font: inherit; }
         .login-error { min-height: 1.2em; margin: 10px 0 0; color: #d93025; font-size: 0.85rem; }
         .discuss-head { width: 100%; max-width: 860px; margin: 0 auto; padding: 16px 24px 0; display: flex; gap: 14px; align-items: center; }
@@ -348,7 +349,7 @@
         <div class="side-foot">
             <div class="account-box" id="accountBox">
                 <div id="accountSignedOut">
-                    <button type="button" class="btn-secondary account-login" id="accountLoginBtn" data-i18n="accountLogin">تسجيل الدخول بحساب تجريبي</button>
+                    <button type="button" class="btn-secondary account-login" id="accountLoginBtn">ابدأ تجربة مجانية</button>
                     <div class="meters" id="visitorMeters"></div>
                 </div>
                 <div id="accountSignedIn" hidden>
@@ -363,10 +364,27 @@
     </aside>
     <div class="scrim" id="scrim" hidden></div>
     <dialog class="login-dialog" id="loginDialog">
-        <form id="accountLoginForm">
-            <h2 data-i18n="accountLoginTitle">الدخول إلى حسابك التجريبي</h2>
-            <p class="hint" data-i18n="accountLoginHint">استخدم اسم المستخدم وكلمة المرور اللذين وصلاك من فريق QLook.</p>
-            <label for="accUser" data-i18n="accountUser">اسم المستخدم</label>
+        <form id="accountSignupForm">
+            <h2 data-i18n="accountSignupTitle">أنشئ حسابك التجريبي المجاني</h2>
+            <p class="hint" id="accountSignupHint" data-i18n="accountSignupHintFallback">احصل على رصيد مجاني فور التسجيل. لا حاجة لبطاقة ائتمان.</p>
+            <label for="suEmail" data-i18n="accountEmail">البريد الإلكتروني</label>
+            <input id="suEmail" type="text" inputmode="email" autocomplete="email" spellcheck="false" required>
+            <label for="suPass" data-i18n="accountNewPass">كلمة المرور</label>
+            <input id="suPass" type="password" autocomplete="new-password" required>
+            <label for="suPassConfirm" data-i18n="accountConfirmPass">تأكيد كلمة المرور</label>
+            <input id="suPassConfirm" type="password" autocomplete="new-password" required>
+            <div class="bot-trap"><label for="suCompany">Company</label><input id="suCompany" tabindex="-1" autocomplete="off"></div>
+            <p class="login-error" id="accountSignupError" role="alert"></p>
+            <div class="button-row">
+                <button type="submit" class="btn-primary" id="accountSignupSubmit" data-i18n="accountCreate">إنشاء الحساب</button>
+                <button type="button" class="btn-secondary" id="accountSignupCancel" data-i18n="accountCancel">إلغاء</button>
+            </div>
+            <p class="dialog-switch"><button type="button" class="link-btn" id="goToLogin" data-i18n="accountGoLogin">لديك حساب؟ سجّل الدخول</button></p>
+        </form>
+        <form id="accountLoginForm" hidden>
+            <h2 data-i18n="accountLoginTitle">الدخول إلى حسابك</h2>
+            <p class="hint" data-i18n="accountLoginHint">أدخل البريد الإلكتروني أو اسم المستخدم وكلمة المرور.</p>
+            <label for="accUser" data-i18n="accountUser">البريد الإلكتروني أو اسم المستخدم</label>
             <input id="accUser" autocomplete="username" spellcheck="false" required>
             <label for="accPass" data-i18n="accountPass">كلمة المرور</label>
             <input id="accPass" type="password" autocomplete="current-password" required>
@@ -375,6 +393,7 @@
                 <button type="submit" class="btn-primary" data-i18n="accountSignIn">دخول</button>
                 <button type="button" class="btn-secondary" id="accountLoginCancel" data-i18n="accountCancel">إلغاء</button>
             </div>
+            <p class="dialog-switch"><button type="button" class="link-btn" id="goToSignup" data-i18n="accountGoSignup">ليس لديك حساب؟ ابدأ تجربة مجانية</button></p>
         </form>
     </dialog>
 
@@ -640,7 +659,11 @@
                     AI_REQUEST_FAILED: 'تعذّر إكمال التحليل. حاول مرة أخرى؛ المحاولة الفاشلة لا تُحتسب.',
                     RATE_LIMIT_UNAVAILABLE: 'الخدمة غير متاحة مؤقتاً. حاول بعد قليل.',
                     DISCUSS_LIMIT_REACHED: 'استُهلكت رسائل المناقشة لهذا اليوم.',
-                    NETWORK: 'انقطع الاتصال بالخادم. تحقق من الإنترنت ثم أعد المحاولة.'
+                    NETWORK: 'انقطع الاتصال بالخادم. تحقق من الإنترنت ثم أعد المحاولة.',
+                    SIGNUP_INVALID_EMAIL: 'أدخل بريداً إلكترونياً صحيحاً.', SIGNUP_WEAK_PASSWORD: 'كلمة المرور 8 أحرف على الأقل.',
+                    SIGNUP_EMAIL_TAKEN: 'يوجد حساب بهذا البريد الإلكتروني مسبقاً. سجّل الدخول بدلاً من ذلك.',
+                    SIGNUP_RATE_LIMITED: 'محاولات تسجيل كثيرة من شبكتك. حاول لاحقاً.', SIGNUPS_CLOSED: 'التسجيل المجاني متوقف مؤقتاً. تواصل مع فريق QLook.',
+                    SIGNUP_FAILED: 'تعذّر إنشاء الحساب.', AUTOMATED_REQUEST_REJECTED: 'تعذّر التحقق من الطلب.'
                 },
                 commercialUse: 'الاستخدام التجاري كـ SaaS', commercial_allowed: 'مسموح', commercial_restricted: 'مقيَّد', commercial_unclear: 'غير واضح — راجع الترخيص قبل الشراء',
             },
@@ -709,7 +732,11 @@
                     AI_REQUEST_FAILED: 'The analysis could not finish. Try again; a failed attempt is not counted.',
                     RATE_LIMIT_UNAVAILABLE: 'The service is temporarily unavailable. Try again shortly.',
                     DISCUSS_LIMIT_REACHED: "Today's discussion messages are used up.",
-                    NETWORK: 'The connection to the server was lost. Check your internet and try again.'
+                    NETWORK: 'The connection to the server was lost. Check your internet and try again.',
+                    SIGNUP_INVALID_EMAIL: 'Enter a valid email address.', SIGNUP_WEAK_PASSWORD: 'Password must be at least 8 characters.',
+                    SIGNUP_EMAIL_TAKEN: 'An account with this email already exists. Sign in instead.',
+                    SIGNUP_RATE_LIMITED: 'Too many sign-ups from your network. Try again later.', SIGNUPS_CLOSED: 'Free sign-ups are paused right now. Contact the QLook team.',
+                    SIGNUP_FAILED: 'Could not create the account.', AUTOMATED_REQUEST_REJECTED: 'The request could not be verified.'
                 },
                 commercialUse: 'Commercial SaaS use', commercial_allowed: 'Allowed', commercial_restricted: 'Restricted', commercial_unclear: 'Unclear — check the license before buying',
             }
@@ -771,9 +798,15 @@
             colReason: 'سبب عدم التأهل', searchDetails: 'تفاصيل البحث والمصادر',
             meterNow: (n, at) => `متبقٍ لك: ≈ ${n} عمليات بحث${at ? ` · يتجدد ${new Date(at).toLocaleString('ar', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}` : ''}`,
             meterDetails: 'تفاصيل الحدود',
-            accountLogin: 'تسجيل الدخول بحساب تجريبي', accountLogout: 'خروج', accountLoginTitle: 'الدخول إلى حسابك التجريبي',
-            accountLoginHint: 'استخدم اسم المستخدم وكلمة المرور اللذين وصلاك من فريق QLook.', accountUser: 'اسم المستخدم', accountPass: 'كلمة المرور',
-            accountSignIn: 'دخول', accountCancel: 'إلغاء', accountLoginFailed: 'اسم المستخدم أو كلمة المرور غير صحيحة.', accountLocked: 'محاولات كثيرة. حاول بعد 15 دقيقة.',
+            accountLogin: 'ابدأ تجربة مجانية', accountStartTrial: (n) => `ابدأ تجربة مجانية بقيمة $${n}`, accountLogout: 'خروج',
+            accountLoginTitle: 'الدخول إلى حسابك', accountLoginHint: 'أدخل البريد الإلكتروني أو اسم المستخدم وكلمة المرور.',
+            accountUser: 'البريد الإلكتروني أو اسم المستخدم', accountPass: 'كلمة المرور',
+            accountSignIn: 'دخول', accountCancel: 'إلغاء', accountLoginFailed: 'بيانات الدخول غير صحيحة.', accountLocked: 'محاولات كثيرة. حاول بعد 15 دقيقة.',
+            accountSignupTitle: 'أنشئ حسابك التجريبي المجاني', accountSignupHintFallback: 'احصل على رصيد مجاني فور التسجيل. لا حاجة لبطاقة ائتمان.',
+            accountSignupHint: (n) => `احصل على $${n} رصيد مجاني فور التسجيل، صالح 30 يوماً. لا حاجة لبطاقة ائتمان.`,
+            accountEmail: 'البريد الإلكتروني', accountNewPass: 'كلمة المرور', accountConfirmPass: 'تأكيد كلمة المرور', accountCreate: 'إنشاء الحساب',
+            accountGoSignup: 'ليس لديك حساب؟ ابدأ تجربة مجانية', accountGoLogin: 'لديك حساب؟ سجّل الدخول',
+            accountInvalidEmail: 'أدخل بريداً إلكترونياً صحيحاً.', accountPassTooShort: 'كلمة المرور 8 أحرف على الأقل.', accountPassMismatch: 'كلمتا المرور غير متطابقتين.',
             scope: { session: 'الجلسة (5 ساعات)', day: 'اليوم', week: 'الأسبوع', period: 'الفترة التجريبية' },
             meterLeft: (searches, messages) => `≈ ${searches} بحث أو ${messages} رسالة`,
             meterReset: (at) => `يتجدد ${new Date(at).toLocaleString('ar', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}`,
@@ -784,7 +817,6 @@
             accountExpired: (at) => `انتهت فترتك التجريبية${at ? ` في ${new Date(at).toLocaleDateString('ar', { dateStyle: 'medium' })}` : ''}. تواصل مع فريق QLook لتمديدها.`,
             accountDisabled: 'هذا الحساب التجريبي موقوف. تواصل مع فريق QLook.',
             visitorLimit: (at) => `انتهت حصة الزوار المشتركة لهذا اليوم${at ? `، وتتجدد ${new Date(at).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' })}` : ''}. سجّل الدخول بحسابك التجريبي لتستخدم حصتك الخاصة.`,
-            planExhausted: 'انتهى الرصيد المخصص للتجربة. تواصل مع مسؤول الموقع لزيادة الرصيد.',
             logCached: (at) => `من نتيجة بحث محفوظة نُفّذت ${new Date(at).toLocaleString('ar', { dateStyle: 'short', timeStyle: 'short' })}`,
             budgetReached: (at) => `استُهلكت ميزانية البحث المخصصة لليوم. تتجدد ${new Date(at).toLocaleString('ar', { dateStyle: 'medium', timeStyle: 'short' })}؛ انتظر حتى ذلك الوقت، أو تواصل مع مسؤول الموقع لزيادة الرصيد. سجل المحادثة والتقارير المحفوظة يبقى متاحاً.`,
             discussBtn: 'ناقش هذه الفرصة مع QLook', discussBack: 'رجوع إلى قائمة المتابعة',
@@ -823,9 +855,15 @@
             colReason: 'Why not eligible', searchDetails: 'Search details and sources',
             meterNow: (n, at) => `Left now: ≈ ${n} searches${at ? ` · renews ${new Date(at).toLocaleString('en', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}` : ''}`,
             meterDetails: 'Limit details',
-            accountLogin: 'Sign in with a trial account', accountLogout: 'Sign out', accountLoginTitle: 'Sign in to your trial account',
-            accountLoginHint: 'Use the username and password the QLook team sent you.', accountUser: 'Username', accountPass: 'Password',
-            accountSignIn: 'Sign in', accountCancel: 'Cancel', accountLoginFailed: 'Wrong username or password.', accountLocked: 'Too many attempts. Try again in 15 minutes.',
+            accountLogin: 'Start a free trial', accountStartTrial: (n) => `Start a free $${n} trial`, accountLogout: 'Sign out',
+            accountLoginTitle: 'Sign in to your account', accountLoginHint: 'Enter your email or username and password.',
+            accountUser: 'Email or username', accountPass: 'Password',
+            accountSignIn: 'Sign in', accountCancel: 'Cancel', accountLoginFailed: 'Wrong sign-in details.', accountLocked: 'Too many attempts. Try again in 15 minutes.',
+            accountSignupTitle: 'Create your free trial account', accountSignupHintFallback: 'Get free credit the moment you sign up. No credit card needed.',
+            accountSignupHint: (n) => `Get $${n} in free credit the moment you sign up, valid for 30 days. No credit card needed.`,
+            accountEmail: 'Email', accountNewPass: 'Password', accountConfirmPass: 'Confirm password', accountCreate: 'Create account',
+            accountGoSignup: "Don't have an account? Start a free trial", accountGoLogin: 'Already have an account? Sign in',
+            accountInvalidEmail: 'Enter a valid email address.', accountPassTooShort: 'Password must be at least 8 characters.', accountPassMismatch: "Passwords don't match.",
             scope: { session: 'session (5 hours)', day: 'day', week: 'week', period: 'trial period' },
             meterLeft: (searches, messages) => `≈ ${searches} searches or ${messages} messages`,
             meterReset: (at) => `renews ${new Date(at).toLocaleString('en', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}`,
@@ -836,7 +874,6 @@
             accountExpired: (at) => `Your trial ended${at ? ` on ${new Date(at).toLocaleDateString('en', { dateStyle: 'medium' })}` : ''}. Contact the QLook team to extend it.`,
             accountDisabled: 'This trial account is paused. Contact the QLook team.',
             visitorLimit: (at) => `Today's shared visitor allowance is used up${at ? `; it renews ${new Date(at).toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short' })}` : ''}. Sign in with your trial account to use your own allowance.`,
-            planExhausted: 'The credit set aside for the trial is used up. Ask the site administrator to add credit.',
             logCached: (at) => `from a saved search that ran ${new Date(at).toLocaleString('en', { dateStyle: 'short', timeStyle: 'short' })}`,
             budgetReached: (at) => `Today's research budget has been used. It renews ${new Date(at).toLocaleString('en', { dateStyle: 'medium', timeStyle: 'short' })}; please wait until then, or ask the site administrator to add credit. Your conversation and saved reports stay available.`,
             discussBtn: 'Discuss this opportunity with QLook', discussBack: 'Back to the watchlist',
@@ -890,7 +927,7 @@
             });
             renderOverview();
             renderWatchlist();
-            try { renderAccess(null); } catch (error) { /* account box not ready yet */ }
+            try { renderCta(); renderAccess(null); } catch (error) { /* account box not ready yet */ }
             // Table headings and labels follow the new language; the report text
             // keeps the language it was written in.
             if (lastReport) {
@@ -1618,7 +1655,7 @@
             };
         }
 
-        const WAIT_ONLY = ['DAILY_BUDGET_REACHED', 'DAILY_LIMIT_REACHED', 'DISCUSS_LIMIT_REACHED', 'ACCOUNT_LIMIT', 'ACCOUNT_EXPIRED', 'ACCOUNT_DISABLED', 'VISITOR_LIMIT', 'PLAN_BUDGET_EXHAUSTED'];
+        const WAIT_ONLY = ['DAILY_BUDGET_REACHED', 'DAILY_LIMIT_REACHED', 'DISCUSS_LIMIT_REACHED', 'ACCOUNT_LIMIT', 'ACCOUNT_EXPIRED', 'ACCOUNT_DISABLED', 'VISITOR_LIMIT'];
 
         function limitError(data, t) {
             if (data.access) renderAccess(data.access);
@@ -1628,7 +1665,6 @@
                 case 'ACCOUNT_EXPIRED': return t.accountExpired(data.access?.expiresAt);
                 case 'ACCOUNT_DISABLED': return t.accountDisabled;
                 case 'VISITOR_LIMIT': return t.visitorLimit(data.resetsAt);
-                case 'PLAN_BUDGET_EXHAUSTED': return t.planExhausted;
                 default: return t.errorCodes[data.errorCode] || t.error;
             }
         }
@@ -2111,7 +2147,18 @@
         };
         // ---- Trial account ------------------------------------------------------
         // The server keeps the account and its limits; the page only shows them.
-        const accountState = { signedIn: false, username: null, access: null };
+        const accountState = { signedIn: false, username: null, access: null, plan: null };
+
+        // The sidebar button promotes the trial's real $ amount once the plan loads.
+        function renderCta() {
+            const t = translations[currentLang];
+            const btn = document.getElementById('accountLoginBtn');
+            const plan = accountState.plan;
+            const open = !plan || plan.signupsOpen !== false;
+            accountState.signupsOpen = open;
+            btn.textContent = !open ? t.accountSignIn
+                : (plan && typeof plan.perAccountBudgetUsd === 'number' ? t.accountStartTrial(plan.perAccountBudgetUsd) : t.accountLogin);
+        }
 
         function meter(label, window, estimates, t) {
             const box = el('div', 'meter');
@@ -2167,6 +2214,8 @@
                 const data = await (await fetch('/api/account')).json();
                 accountState.signedIn = Boolean(data.signedIn);
                 accountState.username = data.username;
+                if (data.plan) accountState.plan = data.plan;
+                renderCta();
                 renderAccess(data.access || null);
             } catch (error) {
                 renderAccess(null);
@@ -2174,15 +2223,39 @@
         }
 
         const loginDialog = document.getElementById('loginDialog');
-        function openLogin() {
+        function setDialogMode(mode) {
+            document.getElementById('accountLoginForm').hidden = mode !== 'login';
+            document.getElementById('accountSignupForm').hidden = mode !== 'signup';
             document.getElementById('accountLoginError').textContent = '';
+            document.getElementById('accountSignupError').textContent = '';
+            const plan = accountState.plan;
+            document.getElementById('accountSignupHint').textContent = plan && typeof plan.perAccountBudgetUsd === 'number'
+                ? translations[currentLang].accountSignupHint(plan.perAccountBudgetUsd)
+                : translations[currentLang].accountSignupHintFallback;
+        }
+        function openLogin(mode) {
+            setDialogMode(mode || (accountState.signupsOpen === false ? 'login' : 'signup'));
             setDrawer(false);
             if (typeof loginDialog.showModal === 'function') loginDialog.showModal();
             else loginDialog.setAttribute('open', '');
-            document.getElementById('accUser').focus();
+            document.getElementById(mode === 'login' ? 'accUser' : 'suEmail').focus();
         }
-        document.getElementById('accountLoginBtn').addEventListener('click', openLogin);
+        document.getElementById('accountLoginBtn').addEventListener('click', () => openLogin());
+        document.getElementById('goToSignup').addEventListener('click', () => openLogin('signup'));
+        document.getElementById('goToLogin').addEventListener('click', () => openLogin('login'));
         document.getElementById('accountLoginCancel').addEventListener('click', () => loginDialog.close());
+        document.getElementById('accountSignupCancel').addEventListener('click', () => loginDialog.close());
+
+        // Shared by sign-in and sign-up: both return the same { signedIn, username, access, plan } shape.
+        function onSignedIn(data) {
+            loginDialog.close();
+            accountState.signedIn = true;
+            accountState.username = data.username;
+            if (data.plan) { accountState.plan = data.plan; renderCta(); }
+            renderAccess(data.access || null);
+            if (!data.access) loadAccount();
+        }
+
         document.getElementById('accountLoginForm').addEventListener('submit', async (event) => {
             event.preventDefault();
             const t = translations[currentLang];
@@ -2200,15 +2273,46 @@
                     return;
                 }
                 document.getElementById('accPass').value = '';
-                loginDialog.close();
-                accountState.signedIn = true;
-                accountState.username = data.username;
-                renderAccess(data.access || null);
-                if (!data.access) loadAccount();
+                onSignedIn(data);
             } catch (failure) {
                 error.textContent = t.errorCodes.NETWORK;
             }
         });
+
+        document.getElementById('accountSignupForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const t = translations[currentLang];
+            const error = document.getElementById('accountSignupError');
+            error.textContent = '';
+            const email = document.getElementById('suEmail').value.trim();
+            const password = document.getElementById('suPass').value;
+            const confirm = document.getElementById('suPassConfirm').value;
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { error.textContent = t.accountInvalidEmail; return; }
+            if (password.length < 8) { error.textContent = t.accountPassTooShort; return; }
+            if (password !== confirm) { error.textContent = t.accountPassMismatch; return; }
+            const submitBtn = document.getElementById('accountSignupSubmit');
+            submitBtn.disabled = true;
+            try {
+                const response = await fetch('/api/account/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, website: document.getElementById('suCompany').value })
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    error.textContent = t.errorCodes[data.errorCode] || data.error || t.errorCodes.SIGNUP_FAILED;
+                    return;
+                }
+                document.getElementById('suPass').value = '';
+                document.getElementById('suPassConfirm').value = '';
+                onSignedIn(data);
+            } catch (failure) {
+                error.textContent = t.errorCodes.NETWORK;
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+
         document.getElementById('accountLogout').addEventListener('click', async () => {
             await fetch('/api/account/logout', { method: 'POST' }).catch(() => {});
             accountState.signedIn = false;

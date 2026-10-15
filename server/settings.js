@@ -180,10 +180,14 @@ function createSettingsStore({ dataDir, env = process.env }) {
     }
 
     // ---- Trial plan and accounts ------------------------------------------
-    // The plan divides a credit budget between trial accounts and a small shared
-    // visitor pool; each account has its own username and a scrypt password hash.
-    const DEFAULT_PLAN = { totalBudgetUsd: 20, accounts: 50, periodDays: 30, visitorSharePct: 10, reservePct: 10 };
-    const USERNAME_PATTERN = /^[a-z0-9][a-z0-9_.-]{2,31}$/;
+    // Every account — self-signed-up or admin-issued — gets the same free credit,
+    // spent across a 5-hour session, the day, the week and the whole trial.
+    // Visitors without an account share one small daily allowance.
+    const DEFAULT_PLAN = { perAccountBudgetUsd: 20, periodDays: 30, visitorDailyUsd: 0.08, signupsOpen: true };
+    // A login name is either an admin-issued username or a self-signup email.
+    const USERNAME_PATTERN = /^[a-z0-9][a-z0-9_.@+-]{2,63}$/;
+    const EMAIL_PATTERN = /^[^\s@]{1,80}@[^\s@]{1,80}\.[^\s@]{2,24}$/;
+    const ACCOUNT_PASSWORD_MIN_LENGTH = 8;
 
     function plan() {
         return { ...DEFAULT_PLAN, ...(state.plan || {}), id: state.plan?.id || "default", startedAt: state.plan?.startedAt || null };
@@ -195,19 +199,35 @@ function createSettingsStore({ dataDir, env = process.env }) {
             return Number.isFinite(parsed) && parsed >= min && parsed <= max ? parsed : null;
         };
         const next = {
-            totalBudgetUsd: number(input.totalBudgetUsd, 1, 100000),
-            accounts: number(input.accounts, 1, 10000),
+            perAccountBudgetUsd: number(input.perAccountBudgetUsd, 0.5, 100000),
             periodDays: number(input.periodDays, 1, 366),
-            visitorSharePct: number(input.visitorSharePct, 0, 90),
-            reservePct: number(input.reservePct, 0, 50)
+            visitorDailyUsd: number(input.visitorDailyUsd, 0, 1000),
+            signupsOpen: Boolean(input.signupsOpen)
         };
-        if (Object.values(next).some((value) => value === null)) return { error: "Check the plan values" };
-        if (next.visitorSharePct + next.reservePct >= 100) return { error: "Visitor share and reserve must leave room for accounts" };
+        if (next.perAccountBudgetUsd === null || next.periodDays === null || next.visitorDailyUsd === null) return { error: "Check the plan values" };
         // A new budget starts a new period: spend counters are kept per plan id.
         const restart = Boolean(input.restart) || !state.plan?.id;
         state.plan = { ...next, id: restart ? randomUUID() : state.plan.id, startedAt: restart ? new Date().toISOString() : state.plan.startedAt };
         save();
         return { ok: true, plan: plan() };
+    }
+
+    // Self-service sign-up: the trial starts immediately, same as a first login.
+    function signUpAccount(email, password) {
+        const name = String(email || "").trim().toLowerCase();
+        if (!EMAIL_PATTERN.test(name)) return { error: "Enter a valid email address", code: "invalid_email" };
+        if (typeof password !== "string" || password.length < ACCOUNT_PASSWORD_MIN_LENGTH) {
+            return { error: `Password must be at least ${ACCOUNT_PASSWORD_MIN_LENGTH} characters`, code: "weak_password" };
+        }
+        state.accounts = state.accounts || [];
+        if (state.accounts.some((account) => account.username === name)) {
+            return { error: "An account with this email already exists", code: "email_taken" };
+        }
+        const now = new Date().toISOString();
+        const account = { id: randomUUID(), username: name, email: name, passwordHash: hashPassword(password), source: "signup", createdAt: now, activatedAt: now, disabled: false };
+        state.accounts.push(account);
+        save();
+        return { ok: true, account: publicAccount(account) };
     }
 
     function publicAccount(account) {
@@ -242,7 +262,7 @@ function createSettingsStore({ dataDir, env = process.env }) {
             const username = `${prefix}${String(index).padStart(2, "0")}`;
             if (taken.has(username)) continue;
             const password = randomPassword();
-            const account = { id: randomUUID(), username, passwordHash: hashPassword(password), createdAt: new Date().toISOString(), activatedAt: null, disabled: false };
+            const account = { id: randomUUID(), username, passwordHash: hashPassword(password), source: "admin", createdAt: new Date().toISOString(), activatedAt: null, disabled: false };
             state.accounts.push(account);
             taken.add(username);
             created.push({ id: account.id, username, password });
@@ -318,6 +338,7 @@ function createSettingsStore({ dataDir, env = process.env }) {
         credentialFingerprint,
         plan,
         setPlan,
+        signUpAccount,
         accounts,
         findAccount: (id) => publicAccount(findAccount(id)),
         generateAccounts,

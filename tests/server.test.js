@@ -302,17 +302,66 @@ test("trial accounts: admin creates them, users sign in, resets end old sessions
     });
 });
 
-test("the trial plan is validated and its limits are shown to the admin", async () => {
+test("the free-trial plan is validated and its limits are shown to the admin", async () => {
     await withServer(async ({ call, login }) => {
         const admin = await login();
         const plan = await call("/admin/api/plan", { cookie: admin });
-        assert.equal(plan.data.plan.totalBudgetUsd, 20);
-        assert.equal(plan.data.limits.perAccount.period.toFixed(2), "0.32");
-        const bad = await call("/admin/api/plan", { method: "PUT", cookie: admin, body: { totalBudgetUsd: 20, accounts: 50, periodDays: 30, visitorSharePct: 60, reservePct: 40 } });
+        assert.equal(plan.data.plan.perAccountBudgetUsd, 20, "every account gets the same flat credit");
+        assert.equal(plan.data.plan.signupsOpen, true, "public sign-ups are open by default");
+        assert.equal(plan.data.limits.perAccount.period, 20, "not split across any number of accounts");
+        const bad = await call("/admin/api/plan", { method: "PUT", cookie: admin, body: { perAccountBudgetUsd: -5, periodDays: 30, visitorDailyUsd: 0.08 } });
         assert.equal(bad.status, 400);
-        const good = await call("/admin/api/plan", { method: "PUT", cookie: admin, body: { totalBudgetUsd: 40, accounts: 50, periodDays: 30, visitorSharePct: 10, reservePct: 10, restart: true } });
+        const good = await call("/admin/api/plan", { method: "PUT", cookie: admin, body: { perAccountBudgetUsd: 40, periodDays: 14, visitorDailyUsd: 0.2, signupsOpen: false, restart: true } });
         assert.equal(good.status, 200);
-        assert.equal(good.data.plan.totalBudgetUsd, 40);
+        assert.equal(good.data.plan.perAccountBudgetUsd, 40);
+        assert.equal(good.data.plan.signupsOpen, false);
         assert.ok(good.data.plan.startedAt);
+    });
+});
+
+test("anyone can sign up for a free trial; each account gets its own credit", async () => {
+    await withServer(async ({ call, login }) => {
+        // The public page can read the trial's $ amount and whether sign-ups are open.
+        const pub = await call("/api/account");
+        assert.equal(pub.data.signedIn, false);
+        assert.equal(pub.data.plan.perAccountBudgetUsd, 20);
+        assert.equal(pub.data.plan.signupsOpen, true);
+
+        const bad = [
+            [{ email: "not-an-email", password: "longenough1" }, "SIGNUP_INVALID_EMAIL"],
+            [{ email: "person@example.com", password: "short" }, "SIGNUP_WEAK_PASSWORD"],
+            [{ email: "person@example.com", password: "longenough1", website: "https://bot.example" }, "AUTOMATED_REQUEST_REJECTED"]
+        ];
+        for (const [body, code] of bad) {
+            const result = await call("/api/account/signup", { method: "POST", csrf: false, body });
+            assert.equal(result.status, 400, code);
+            assert.equal(result.data.errorCode, code);
+        }
+        const crossSite = await call("/api/account/signup", { method: "POST", csrf: false, headers: { Origin: "https://evil.example" }, body: { email: "person@example.com", password: "longenough1" } });
+        assert.equal(crossSite.status, 403);
+
+        const signedUp = await call("/api/account/signup", { method: "POST", csrf: false, body: { email: "Person@Example.com", password: "longenough1" } });
+        assert.equal(signedUp.status, 200);
+        assert.equal(signedUp.data.username, "person@example.com", "the email is normalised to lowercase");
+        assert.ok("access" in signedUp.data, "the sign-up response logs the person straight in, same shape as login");
+        assert.match(signedUp.cookie, /^ql_user=/);
+
+        const dupe = await call("/api/account/signup", { method: "POST", csrf: false, body: { email: "person@example.com", password: "anotherpass1" } });
+        assert.equal(dupe.data.errorCode, "SIGNUP_EMAIL_TAKEN");
+
+        // The new account shows up in the admin dashboard, tagged as a sign-up.
+        const admin = await login();
+        const accounts = (await call("/admin/api/accounts", { cookie: admin })).data.accounts;
+        const theirs = accounts.find((account) => account.username === "person@example.com");
+        assert.equal(theirs.source, "signup");
+        assert.ok(theirs.activatedAt, "the trial starts immediately, same as a first login");
+
+        // Closing sign-ups blocks new accounts without touching the one just made.
+        await call("/admin/api/plan", { method: "PUT", cookie: admin, body: { perAccountBudgetUsd: 20, periodDays: 30, visitorDailyUsd: 0.08, signupsOpen: false } });
+        const closed = await call("/api/account/signup", { method: "POST", csrf: false, body: { email: "another@example.com", password: "longenough1" } });
+        assert.equal(closed.status, 403);
+        assert.equal(closed.data.errorCode, "SIGNUPS_CLOSED");
+        const stillWorks = await call("/api/account/login", { method: "POST", csrf: false, body: { username: "person@example.com", password: "longenough1" } });
+        assert.equal(stillWorks.status, 200, "existing sign-ups keep working while new ones are paused");
     });
 });

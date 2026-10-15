@@ -1,5 +1,6 @@
-// Browser test for trial accounts with mocked APIs: sign-in, usage meters and
-// the messages shown when a limit is reached.
+// Browser test for trial accounts with mocked APIs: the free-trial CTA,
+// sign-in/sign-up mode switching, usage meters and the messages shown when a
+// limit is reached.
 export default async function run(page) {
     const failures = [];
     const errors = [];
@@ -8,9 +9,12 @@ export default async function run(page) {
     const check = (ok, label) => { if (!ok) failures.push(label); };
     await page.setViewportSize({ width: 1280, height: 900 });
     const estimates = { search: 0.08, discuss: 0.002 };
-    const visitorAccess = { kind: "visitor", estimates, planUsed: 1, planUsable: 18, windows: { day: { used: 0.08, limit: 0.08, resetsAt: "2026-10-15T00:00:00.000Z" }, period: { used: 0.5, limit: 2, resetsAt: null } } };
+    const planInfo = { perAccountBudgetUsd: 20, periodDays: 30, signupsOpen: true };
+    // Every account gets the same flat budget; this one is deliberately tiny so
+    // the UI's limit messages are easy to trigger.
+    const visitorAccess = { kind: "visitor", estimates, windows: { day: { used: 0.08, limit: 0.08, resetsAt: "2026-10-15T00:00:00.000Z" } } };
     const accountAccess = (sessionUsed) => ({
-        kind: "account", estimates, planUsed: 1, planUsable: 18, activatedAt: "2026-10-14T08:00:00.000Z", expiresAt: "2026-11-13T08:00:00.000Z", expired: false, disabled: false,
+        kind: "account", estimates, activatedAt: "2026-10-14T08:00:00.000Z", expiresAt: "2026-11-13T08:00:00.000Z", expired: false, disabled: false,
         windows: {
             session: { used: sessionUsed, limit: 0.08, resetsAt: sessionUsed ? "2026-10-14T13:00:00.000Z" : null },
             day: { used: sessionUsed, limit: 0.08, resetsAt: "2026-10-15T00:00:00.000Z" },
@@ -19,12 +23,25 @@ export default async function run(page) {
         }
     });
     let signedIn = false;
-    await page.route("**/api/account", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(signedIn ? { signedIn: true, username: "trial07", access: accountAccess(0) } : { signedIn: false, username: null, access: visitorAccess }) }));
+    let signedUpEmail = null;
+    await page.route("**/api/account", (route) => {
+        if (route.request().method() !== "GET") return route.continue();
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(signedIn
+            ? { signedIn: true, username: signedUpEmail || "trial07", access: accountAccess(0), plan: planInfo }
+            : { signedIn: false, username: null, access: visitorAccess, plan: planInfo }) });
+    });
     await page.route("**/api/account/login", async (route) => {
         const body = JSON.parse(route.request().postData());
         if (body.password !== "Good-Pass-123") return route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ errorCode: "LOGIN_FAILED" }) });
         signedIn = true;
-        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ signedIn: true, username: "trial07", access: accountAccess(0) }) });
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ signedIn: true, username: "trial07", access: accountAccess(0), plan: planInfo }) });
+    });
+    await page.route("**/api/account/signup", async (route) => {
+        const body = JSON.parse(route.request().postData());
+        if (body.website) return route.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ errorCode: "AUTOMATED_REQUEST_REJECTED" }) });
+        signedIn = true;
+        signedUpEmail = body.email;
+        return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ signedIn: true, username: body.email, access: accountAccess(0), plan: planInfo }) });
     });
     await page.route("**/api/account/logout", (route) => { signedIn = false; return route.fulfill({ status: 200, contentType: "application/json", body: "{}" }); });
     await page.route("**/api/generate", (route) => route.fulfill({ status: 429, contentType: "application/json", body: JSON.stringify(signedIn
@@ -33,30 +50,52 @@ export default async function run(page) {
 
     // The page asks for the account on load, so load it again with the mocks in place.
     await page.reload();
-    // Visitor: the shared allowance meter and the limit message with a sign-in offer.
+    // The sidebar button promotes the real $ amount once the plan loads.
+    await page.waitForFunction(() => document.getElementById("accountLoginBtn").textContent.includes("20"));
+    R.ctaText = await page.locator("#accountLoginBtn").innerText();
+    check(/\$?20/.test(R.ctaText), "CTA shows the free-trial amount");
+
+    // Sign-up happens inline: it validates, rejects a honeypot hit, and logs in.
+    await page.locator("#accountLoginBtn").click();
+    R.signupIsDefault = await page.locator("#accountSignupForm").isVisible();
+    await page.locator("#suEmail").fill("new person@bad");
+    await page.locator("#suPass").fill("longenough1");
+    await page.locator("#suPassConfirm").fill("longenough1");
+    await page.locator("#accountSignupForm button[type=submit]").click();
+    R.invalidEmailMsg = await page.locator("#accountSignupError").innerText();
+    await page.locator("#suEmail").fill("");
+    await page.locator("#suEmail").fill("newcomer@example.com");
+    await page.locator("#accountSignupForm button[type=submit]").click();
+    await page.waitForSelector("#accountSignedIn:not([hidden])");
+    R.signedUpName = await page.locator("#accountName").innerText();
+    check(R.signupIsDefault && R.invalidEmailMsg && R.signedUpName === "newcomer@example.com", "sign-up validates then logs the new account in");
+    await page.locator("#accountLogout").click();
+    await page.waitForSelector("#accountSignedOut:not([hidden])");
+
+    // Visitor: the shared allowance meter and the limit message with a sign-up offer.
     await page.waitForSelector("#visitorMeters .meter-now");
     R.visitorMeter = await page.locator("#visitorMeters").innerText();
-    const clickChip = async (text) => {
-        await page.waitForFunction((t) => Array.from(document.querySelectorAll(".chip:not(:disabled)")).some((c) => c.textContent.startsWith(t)), text);
-        await page.locator(".chip:not(:disabled)", { hasText: text }).last().click();
-    };
     await page.locator("#suggestions .suggestion").first().click();
     // The setup card: one card with every setting, then one click.
     await page.waitForSelector(".setup");
     await page.locator('.setup select[data-field="industry"]').selectOption("المالية والمحاسبة");
     await page.locator('.setup select[data-field="budget"]').selectOption("حتى 100 دولار");
-
     await page.locator(".setup-go").click();
     await page.waitForSelector("text=انتهت حصة الزوار");
     R.visitorLimit = await page.locator(".msg-bot .bubble").last().innerText();
-    check(/سجّل الدخول/.test(R.visitorLimit) && (await page.locator(".chip", { hasText: "تسجيل الدخول بحساب تجريبي" }).count()) === 1, "visitor limit offers sign-in");
+    check(/ابدأ تجربة مجانية|سجّل الدخول/.test(R.visitorLimit), "visitor limit message");
+    const ctaChip = page.locator(".msg-bot .bubble").last().locator(".chip");
+    check((await ctaChip.count()) === 1, "visitor limit offers one CTA chip");
 
-    // Wrong password, then the right one, from the chip in the conversation.
-    await page.locator(".chip", { hasText: "تسجيل الدخول بحساب تجريبي" }).click();
+    // The chip opens the dialog in sign-up mode; switch to sign-in for an
+    // existing account, with the wrong password first.
+    await ctaChip.click();
+    check(await page.locator("#accountSignupForm").isVisible(), "the limit CTA opens sign-up by default");
+    await page.locator("#goToLogin").click();
     await page.locator("#accUser").fill("trial07");
     await page.locator("#accPass").fill("wrong");
     await page.locator("#accountLoginForm button[type=submit]").click();
-    await page.waitForSelector("#accountLoginError:has-text('غير صحيحة')");
+    await page.waitForSelector("#accountLoginError:has-text('صحيحة')");
     R.wrongLogin = await page.locator("#accountLoginError").innerText();
     await page.locator("#accPass").fill("Good-Pass-123");
     await page.locator("#accountLoginForm button[type=submit]").click();
@@ -81,8 +120,9 @@ export default async function run(page) {
     R.signedOut = await page.locator("#accountSignedIn").isHidden();
     // English labels follow the language switch.
     await page.locator("#langToggle").click();
+    await page.waitForTimeout(150);
     R.english = await page.locator("#accountLoginBtn").innerText();
-    check(R.signedOut && /Sign in/.test(R.english), "sign out and English");
+    check(R.signedOut && /free/i.test(R.english), "sign out and English");
     R.errors = errors;
     if (errors.length) failures.push(`page errors: ${errors.join(" | ")}`);
     R.failures = failures;

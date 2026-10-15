@@ -87,16 +87,15 @@
         </div>
 
         <section class="card wide">
-            <h1>Trial plan</h1>
-            <p class="sub">Splits a credit budget between trial accounts and a small shared pool for visitors without an account. Each account's share is spent across a 5-hour session, the day, the week and the whole trial; every window allows at least one search while the trial has room. Saving with "start a new period" resets everyone's counters.</p>
+            <h1>Free trial plan</h1>
+            <p class="sub">Every account — whether someone signs up on the site or you create it here — gets the same free credit, spent across a 5-hour session, the day, the week and the whole trial; every window allows at least one search while the trial has room. Visitors without an account share one small daily allowance. Saving with "start a new period" resets everyone's counters.</p>
             <form id="planForm">
                 <div class="plan-grid">
-                    <div><label for="planBudget">Credit budget (USD)</label><input id="planBudget" type="number" min="1" step="0.01" required></div>
-                    <div><label for="planAccounts">Accounts</label><input id="planAccounts" type="number" min="1" step="1" required></div>
+                    <div><label for="planBudget">Free credit per account (USD)</label><input id="planBudget" type="number" min="0.5" step="0.5" required></div>
                     <div><label for="planDays">Trial days</label><input id="planDays" type="number" min="1" step="1" required></div>
-                    <div><label for="planVisitors">Visitor share %</label><input id="planVisitors" type="number" min="0" max="90" step="1" required></div>
-                    <div><label for="planReserve">Reserve %</label><input id="planReserve" type="number" min="0" max="50" step="1" required></div>
+                    <div><label for="planVisitorDay">Visitor daily allowance (USD, shared)</label><input id="planVisitorDay" type="number" min="0" step="0.01" required></div>
                 </div>
+                <label><input id="planSignupsOpen" type="checkbox" style="width:auto"> Accept new free sign-ups on the public site</label>
                 <label><input id="planRestart" type="checkbox" style="width:auto"> Start a new period (reset all trial counters)</label>
                 <div class="row"><button class="primary" type="submit">Save plan</button></div>
                 <div class="msg" id="planMsg"></div>
@@ -106,7 +105,7 @@
 
         <section class="card wide">
             <h1>Trial accounts</h1>
-            <p class="sub">Passwords are shown only once, right after they are created or reset. Download them and send each person their own username and password. The trial starts at the person's first sign-in.</p>
+            <p class="sub">Accounts people create themselves on the site appear here automatically. Passwords for accounts you create below are shown only once — download them and send each person their own username and password. The trial starts at the person's first sign-in.</p>
             <div class="row">
                 <input id="newAccounts" type="number" min="1" max="500" value="50" style="max-width:110px">
                 <button class="primary" type="button" id="createAccounts">Create accounts</button>
@@ -115,7 +114,7 @@
             <div class="credentials" id="newCredentials" hidden></div>
             <div class="msg" id="accountsMsg"></div>
             <div class="usage-scroll"><table class="usage-table" id="accountsTable"><thead><tr>
-                <th>Username</th><th>Status</th><th>First sign-in</th><th>Trial ends</th><th>Spent (USD)</th><th>Actions</th>
+                <th>Username / email</th><th>Source</th><th>Status</th><th>First sign-in</th><th>Trial ends</th><th>Spent (USD)</th><th>Actions</th>
             </tr></thead><tbody></tbody></table></div>
         </section>
 
@@ -371,17 +370,16 @@
         async function loadPlan() {
             const { ok, data } = await api('/plan');
             if (!ok) return showMsg('planMsg', data.error || 'Could not load the plan', false);
-            const { plan, limits, estimates, usedUsd } = data;
-            $('planBudget').value = plan.totalBudgetUsd;
-            $('planAccounts').value = plan.accounts;
+            const { plan, limits, estimates, spentTotalUsd } = data;
+            $('planBudget').value = plan.perAccountBudgetUsd;
             $('planDays').value = plan.periodDays;
-            $('planVisitors').value = plan.visitorSharePct;
-            $('planReserve').value = plan.reservePct;
+            $('planVisitorDay').value = plan.visitorDailyUsd;
+            $('planSignupsOpen').checked = plan.signupsOpen;
             $('planRestart').checked = false;
             const searches = (value) => Math.floor(value / estimates.search + 1e-9);
             const rows = [
-                ['Spent in this period', `${usedUsd === null ? 'unavailable' : usd(usedUsd)} of ${usd(limits.usable)} usable (period started ${plan.startedAt ? new Date(plan.startedAt).toLocaleDateString() : 'not yet'})`],
-                ['Visitor pool (whole period)', `${usd(limits.visitorPool)}; up to ${usd(limits.visitorDay)} a day ≈ ${searches(limits.visitorDay)} search(es)`],
+                ['Spent in this period (all accounts + visitors)', `${spentTotalUsd === null ? 'unavailable' : usd(spentTotalUsd)} (period started ${plan.startedAt ? new Date(plan.startedAt).toLocaleDateString() : 'not yet'})`],
+                ['Visitor allowance (shared, per day)', `${usd(limits.visitorDay)} ≈ ${searches(limits.visitorDay)} search(es)`],
                 ['Per account: whole trial', `${usd(limits.perAccount.period)} ≈ ${searches(limits.perAccount.period)} searches`],
                 ['Per account: week', `${usd(limits.perAccount.week)} ≈ ${searches(limits.perAccount.week)} searches`],
                 ['Per account: day', `${usd(limits.perAccount.day)} ≈ ${searches(limits.perAccount.day)} searches`],
@@ -401,8 +399,8 @@
             event.preventDefault();
             busy(event.submitter, async () => {
                 const { ok, data } = await api('/plan', { method: 'PUT', body: JSON.stringify({
-                    totalBudgetUsd: Number($('planBudget').value), accounts: Number($('planAccounts').value), periodDays: Number($('planDays').value),
-                    visitorSharePct: Number($('planVisitors').value), reservePct: Number($('planReserve').value), restart: $('planRestart').checked
+                    perAccountBudgetUsd: Number($('planBudget').value), periodDays: Number($('planDays').value),
+                    visitorDailyUsd: Number($('planVisitorDay').value), signupsOpen: $('planSignupsOpen').checked, restart: $('planRestart').checked
                 }) });
                 if (!ok) return showMsg('planMsg', data.error || 'Could not save the plan', false);
                 showMsg('planMsg', 'Plan saved.', true);
@@ -435,7 +433,7 @@
                 const tr = body.insertRow();
                 const expired = account.expiresAt && Date.parse(account.expiresAt) < Date.now();
                 const status = account.disabled ? 'paused' : !account.activatedAt ? 'not used yet' : expired ? 'ended' : 'active';
-                [account.username, status, account.activatedAt ? new Date(account.activatedAt).toLocaleString() : '—',
+                [account.username, account.source === 'signup' ? 'Sign-up' : 'Admin', status, account.activatedAt ? new Date(account.activatedAt).toLocaleString() : '—',
                     account.expiresAt ? new Date(account.expiresAt).toLocaleDateString() : '—', usd(account.spentUsd)].forEach((value) => { tr.insertCell().textContent = value; });
                 const actions = tr.insertCell();
                 actions.className = 'row-actions';
