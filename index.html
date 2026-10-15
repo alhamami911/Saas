@@ -21,6 +21,7 @@
                 --border-color: #1f2e28; --primary-color: #10b981; --primary-hover: #34d399; --primary-soft: #0e2a22;
                 --secondary-color: #15211c; --secondary-hover: #1b2a24; --user-bubble: #15211c;
                 --brand-gradient: linear-gradient(74deg, #10b981 0%, #6ee7b7 80%);
+                --accent: #fbbf4a;
             }
         }
         * { box-sizing: border-box; }
@@ -62,7 +63,14 @@
         .chat-page { flex: 1; min-height: 0; display: flex; flex-direction: column; }
         .chat-scroll { flex: 1; min-height: 0; overflow-y: auto; scroll-behavior: smooth; }
         .welcome, .chat, .composer-wrap { width: 100%; max-width: 860px; margin: 0 auto; padding-inline: 24px; }
-        .welcome { padding-top: 12vh; padding-bottom: 24px; }
+        .welcome { padding-top: 10vh; padding-bottom: 24px; }
+        .welcome-radar { width: 84px; height: 84px; margin-bottom: 18px; }
+        .welcome-radar svg { width: 100%; height: 100%; display: block; }
+        .welcome-radar-sweep { transform-origin: 100px 100px; animation: welcome-sweep 7s linear infinite; }
+        html[dir="rtl"] .welcome-radar-sweep { animation-name: welcome-sweep-rtl; }
+        @keyframes welcome-sweep { to { transform: rotate(360deg); } }
+        @keyframes welcome-sweep-rtl { to { transform: rotate(-360deg); } }
+        @media (prefers-reduced-motion: reduce) { .welcome-radar-sweep { animation: none; } }
         .welcome-title { margin: 0 0 10px; font-size: clamp(1.9rem, 4.2vw, 2.8rem); font-weight: 600; line-height: 1.3; }
         .grad-text { background: var(--brand-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .welcome-sub { margin: 0 0 28px; font-size: 1.05rem; color: var(--text-secondary); line-height: 1.7; max-width: 640px; }
@@ -127,6 +135,7 @@
         @media (max-width: 560px) {
             .welcome, .chat, .composer-wrap { padding-inline: 14px; }
             .welcome { padding-top: 6vh; }
+            .welcome-radar { width: 64px; height: 64px; margin-bottom: 14px; }
             .suggestions { grid-template-columns: 1fr 1fr; }
             .suggestion { min-height: 96px; font-size: 0.85rem; }
             .msg { gap: 10px; }
@@ -379,6 +388,39 @@
         <main class="chat-page view" id="view-discover">
             <div class="chat-scroll" id="chatScroll">
                 <div class="welcome" id="welcome">
+                    <div class="welcome-radar" aria-hidden="true">
+                        <svg viewBox="0 0 200 200">
+                            <defs>
+                                <filter id="wr-glow" x="-60%" y="-60%" width="220%" height="220%">
+                                    <feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="b"/>
+                                    <feFlood flood-color="#10B981" flood-opacity="0.85"/>
+                                    <feComposite in2="b" operator="in" result="g"/>
+                                    <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+                                </filter>
+                                <filter id="wr-amber" x="-80%" y="-80%" width="260%" height="260%">
+                                    <feGaussianBlur in="SourceGraphic" stdDeviation="3.4" result="b"/>
+                                    <feFlood flood-color="#F59E0B" flood-opacity="1"/>
+                                    <feComposite in2="b" operator="in" result="g"/>
+                                    <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+                                </filter>
+                                <radialGradient id="wr-halo" cx="0.5" cy="0.5" r="0.5">
+                                    <stop offset="0" stop-color="#10B981" stop-opacity="0.16"/>
+                                    <stop offset="1" stop-color="#10B981" stop-opacity="0"/>
+                                </radialGradient>
+                            </defs>
+                            <circle cx="100" cy="100" r="96" fill="url(#wr-halo)"/>
+                            <circle cx="100" cy="100" r="22" fill="none" stroke="#0E5E4A" stroke-width="1.6"/>
+                            <circle cx="100" cy="100" r="43" fill="none" stroke="#0E5E4A" stroke-width="1.6"/>
+                            <path d="M20 100H180M100 20V180" stroke="#0E5E4A" stroke-width="1.6"/>
+                            <circle cx="100" cy="100" r="64" fill="none" stroke="#10B981" stroke-width="2.9" opacity="0.9"/>
+                            <g class="welcome-radar-sweep">
+                                <path d="M100 100L100 36 A64 64 0 0 1 145.25 55.75Z" fill="#10B981" opacity="0.22"/>
+                                <path d="M100 100L145.25 55.75" stroke="#10B981" stroke-width="2.2" stroke-linecap="round" filter="url(#wr-glow)"/>
+                            </g>
+                            <circle cx="125.5" cy="62" r="5" fill="#F59E0B" filter="url(#wr-amber)"/>
+                            <circle cx="100" cy="100" r="2.3" fill="#E7F0EC"/>
+                        </svg>
+                    </div>
                     <h1 class="welcome-title"><span class="grad-text" id="titleText">مرحباً، ما الفرصة التي تبحث عنها؟</span></h1>
                     <p class="welcome-sub" id="subText">صف فكرة منتج SaaS تريد إطلاقه أو شراءه، وسأبحث لك في أسواق البرمجيات الموثوقة وأحلل أفضل الفرص.</p>
                     <div class="suggestions" id="suggestions"></div>
