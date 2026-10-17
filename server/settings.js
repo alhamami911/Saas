@@ -180,14 +180,46 @@ function createSettingsStore({ dataDir, env = process.env }) {
     }
 
     // ---- Trial plan and accounts ------------------------------------------
-    // Every account — self-signed-up or admin-issued — gets the same free credit,
-    // spent across a 5-hour session, the day, the week and the whole trial.
-    // Visitors without an account share one small daily allowance.
-    const DEFAULT_PLAN = { perAccountBudgetUsd: 20, periodDays: 30, visitorDailyUsd: 0.08, signupsOpen: true };
+    // The product is free for now: an account's day limit is a flat, moderate
+    // allowance (accountDailyUsd) rather than a slice of a pool that runs out.
+    // perAccountBudgetUsd/periodDays stay as a generous backstop against abuse,
+    // not as the everyday constraint. Visitors without an account share one
+    // small daily allowance.
+    const DEFAULT_PLAN = { perAccountBudgetUsd: 300, periodDays: 365, accountDailyUsd: 2.4, visitorDailyUsd: 0.08, referralBonusUsd: 1.6, signupsOpen: true };
     // A login name is either an admin-issued username or a self-signup email.
     const USERNAME_PATTERN = /^[a-z0-9][a-z0-9_.@+-]{2,63}$/;
     const EMAIL_PATTERN = /^[^\s@]{1,80}@[^\s@]{1,80}\.[^\s@]{2,24}$/;
     const ACCOUNT_PASSWORD_MIN_LENGTH = 8;
+    const REFERRAL_BONUS_DAYS = 7;
+    const RECOVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
+
+    function randomCode(length) {
+        const bytes = randomBytes(length);
+        return Array.from(bytes, (byte) => RECOVERY_ALPHABET[byte % RECOVERY_ALPHABET.length]).join("");
+    }
+
+    // A readable backup code shown once, used later instead of an email link
+    // (the server sends no email) to reset a forgotten password.
+    function formatRecoveryCode() {
+        const raw = randomCode(12);
+        return `${raw.slice(0, 4)}-${raw.slice(4, 8)}-${raw.slice(8, 12)}`;
+    }
+
+    function normalizeCode(code) {
+        return String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    }
+
+    function uniqueReferralCode() {
+        let code;
+        do { code = randomCode(7); } while ((state.accounts || []).some((account) => account.referralCode === code));
+        return code;
+    }
+
+    function findByReferralCode(code) {
+        const normalized = String(code || "").trim().toUpperCase();
+        if (!normalized) return null;
+        return (state.accounts || []).find((account) => account.referralCode === normalized) || null;
+    }
 
     function plan() {
         return { ...DEFAULT_PLAN, ...(state.plan || {}), id: state.plan?.id || "default", startedAt: state.plan?.startedAt || null };
@@ -200,11 +232,14 @@ function createSettingsStore({ dataDir, env = process.env }) {
         };
         const next = {
             perAccountBudgetUsd: number(input.perAccountBudgetUsd, 0.5, 100000),
-            periodDays: number(input.periodDays, 1, 366),
+            periodDays: number(input.periodDays, 1, 3650),
+            accountDailyUsd: number(input.accountDailyUsd, 0.01, 1000),
             visitorDailyUsd: number(input.visitorDailyUsd, 0, 1000),
+            referralBonusUsd: number(input.referralBonusUsd, 0, 1000),
             signupsOpen: Boolean(input.signupsOpen)
         };
-        if (next.perAccountBudgetUsd === null || next.periodDays === null || next.visitorDailyUsd === null) return { error: "Check the plan values" };
+        const numericFields = ["perAccountBudgetUsd", "periodDays", "accountDailyUsd", "visitorDailyUsd", "referralBonusUsd"];
+        if (numericFields.some((field) => next[field] === null)) return { error: "Check the plan values" };
         // A new budget starts a new period: spend counters are kept per plan id.
         const restart = Boolean(input.restart) || !state.plan?.id;
         state.plan = { ...next, id: restart ? randomUUID() : state.plan.id, startedAt: restart ? new Date().toISOString() : state.plan.startedAt };
@@ -213,7 +248,9 @@ function createSettingsStore({ dataDir, env = process.env }) {
     }
 
     // Self-service sign-up: the trial starts immediately, same as a first login.
-    function signUpAccount(email, password) {
+    // referredByCode is optional: a friend's referral code grants both accounts
+    // a temporary daily-limit bonus (no cash, just more headroom for a week).
+    function signUpAccount(email, password, referredByCode) {
         const name = String(email || "").trim().toLowerCase();
         if (!EMAIL_PATTERN.test(name)) return { error: "Enter a valid email address", code: "invalid_email" };
         if (typeof password !== "string" || password.length < ACCOUNT_PASSWORD_MIN_LENGTH) {
@@ -224,15 +261,49 @@ function createSettingsStore({ dataDir, env = process.env }) {
             return { error: "An account with this email already exists", code: "email_taken" };
         }
         const now = new Date().toISOString();
-        const account = { id: randomUUID(), username: name, email: name, passwordHash: hashPassword(password), source: "signup", createdAt: now, activatedAt: now, disabled: false };
+        const recoveryCode = formatRecoveryCode();
+        const referrer = findByReferralCode(referredByCode);
+        const account = {
+            id: randomUUID(), username: name, email: name, passwordHash: hashPassword(password),
+            source: "signup", createdAt: now, activatedAt: now, disabled: false,
+            referralCode: uniqueReferralCode(), referredBy: referrer ? referrer.id : null,
+            recoveryCodeHash: hashPassword(normalizeCode(recoveryCode))
+        };
+        const bonus = plan().referralBonusUsd;
+        if (referrer && bonus > 0) {
+            const until = new Date(Date.now() + REFERRAL_BONUS_DAYS * 86400000).toISOString();
+            account.bonusDayUsd = bonus;
+            account.bonusUntil = until;
+            referrer.bonusDayUsd = bonus;
+            referrer.bonusUntil = until;
+        }
         state.accounts.push(account);
         save();
-        return { ok: true, account: publicAccount(account) };
+        return { ok: true, account: publicAccount(account), recoveryCode };
+    }
+
+    // No email is sent; the backup code shown once at sign-up is the only proof.
+    // A successful reset rotates the code so the old (now-used) one stops working.
+    function resetPasswordWithRecoveryCode(email, recoveryCode, newPassword) {
+        const name = String(email || "").trim().toLowerCase();
+        if (typeof newPassword !== "string" || newPassword.length < ACCOUNT_PASSWORD_MIN_LENGTH) {
+            return { error: `Password must be at least ${ACCOUNT_PASSWORD_MIN_LENGTH} characters`, code: "weak_password" };
+        }
+        const account = (state.accounts || []).find((item) => item.username === name);
+        if (!account || !account.recoveryCodeHash || !passwordMatches(normalizeCode(recoveryCode), account.recoveryCodeHash)) {
+            return { error: "Email or recovery code is incorrect", code: "invalid_recovery" };
+        }
+        account.passwordHash = hashPassword(newPassword);
+        account.passwordChangedAt = new Date().toISOString();
+        const next = formatRecoveryCode();
+        account.recoveryCodeHash = hashPassword(normalizeCode(next));
+        save();
+        return { ok: true, account: publicAccount(account), recoveryCode: next };
     }
 
     function publicAccount(account) {
         if (!account) return null;
-        const { passwordHash, ...rest } = account;
+        const { passwordHash, recoveryCodeHash, ...rest } = account;
         return rest;
     }
 
@@ -339,6 +410,7 @@ function createSettingsStore({ dataDir, env = process.env }) {
         plan,
         setPlan,
         signUpAccount,
+        resetPasswordWithRecoveryCode,
         accounts,
         findAccount: (id) => publicAccount(findAccount(id)),
         generateAccounts,

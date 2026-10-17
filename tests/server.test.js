@@ -302,29 +302,29 @@ test("trial accounts: admin creates them, users sign in, resets end old sessions
     });
 });
 
-test("the free-trial plan is validated and its limits are shown to the admin", async () => {
+test("the free plan is validated and its limits are shown to the admin", async () => {
     await withServer(async ({ call, login }) => {
         const admin = await login();
         const plan = await call("/admin/api/plan", { cookie: admin });
-        assert.equal(plan.data.plan.perAccountBudgetUsd, 20, "every account gets the same flat credit");
+        assert.equal(plan.data.plan.accountDailyUsd, 2.4, "a flat, moderate daily allowance per account");
         assert.equal(plan.data.plan.signupsOpen, true, "public sign-ups are open by default");
-        assert.equal(plan.data.limits.perAccount.period, 20, "not split across any number of accounts");
-        const bad = await call("/admin/api/plan", { method: "PUT", cookie: admin, body: { perAccountBudgetUsd: -5, periodDays: 30, visitorDailyUsd: 0.08 } });
+        assert.equal(plan.data.limits.perAccount.day, 2.4, "the day limit, not a slice of a pool that runs out");
+        const bad = await call("/admin/api/plan", { method: "PUT", cookie: admin, body: { perAccountBudgetUsd: -5, periodDays: 30, accountDailyUsd: 2.4, visitorDailyUsd: 0.08 } });
         assert.equal(bad.status, 400);
-        const good = await call("/admin/api/plan", { method: "PUT", cookie: admin, body: { perAccountBudgetUsd: 40, periodDays: 14, visitorDailyUsd: 0.2, signupsOpen: false, restart: true } });
+        const good = await call("/admin/api/plan", { method: "PUT", cookie: admin, body: { perAccountBudgetUsd: 400, periodDays: 365, accountDailyUsd: 4, visitorDailyUsd: 0.2, referralBonusUsd: 2, signupsOpen: false, restart: true } });
         assert.equal(good.status, 200);
-        assert.equal(good.data.plan.perAccountBudgetUsd, 40);
+        assert.equal(good.data.plan.accountDailyUsd, 4);
         assert.equal(good.data.plan.signupsOpen, false);
         assert.ok(good.data.plan.startedAt);
     });
 });
 
-test("anyone can sign up for a free trial; each account gets its own credit", async () => {
+test("anyone can sign up for free; each account gets the same moderate daily allowance", async () => {
     await withServer(async ({ call, login }) => {
-        // The public page can read the trial's $ amount and whether sign-ups are open.
+        // The public page can read the daily allowance and whether sign-ups are open.
         const pub = await call("/api/account");
         assert.equal(pub.data.signedIn, false);
-        assert.equal(pub.data.plan.perAccountBudgetUsd, 20);
+        assert.equal(pub.data.plan.accountDailyUsd, 2.4);
         assert.equal(pub.data.plan.signupsOpen, true);
 
         const bad = [
@@ -345,6 +345,8 @@ test("anyone can sign up for a free trial; each account gets its own credit", as
         assert.equal(signedUp.data.username, "person@example.com", "the email is normalised to lowercase");
         assert.ok("access" in signedUp.data, "the sign-up response logs the person straight in, same shape as login");
         assert.match(signedUp.cookie, /^ql_user=/);
+        assert.match(signedUp.data.recoveryCode, /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/, "a backup code is shown once, no email involved");
+        assert.match(signedUp.data.referralCode, /^[A-Z0-9]{7}$/, "every account gets a code to share");
 
         const dupe = await call("/api/account/signup", { method: "POST", csrf: false, body: { email: "person@example.com", password: "anotherpass1" } });
         assert.equal(dupe.data.errorCode, "SIGNUP_EMAIL_TAKEN");
@@ -357,11 +359,74 @@ test("anyone can sign up for a free trial; each account gets its own credit", as
         assert.ok(theirs.activatedAt, "the trial starts immediately, same as a first login");
 
         // Closing sign-ups blocks new accounts without touching the one just made.
-        await call("/admin/api/plan", { method: "PUT", cookie: admin, body: { perAccountBudgetUsd: 20, periodDays: 30, visitorDailyUsd: 0.08, signupsOpen: false } });
+        const closePlan = await call("/admin/api/plan", { method: "PUT", cookie: admin, body: { perAccountBudgetUsd: 300, periodDays: 365, accountDailyUsd: 2.4, visitorDailyUsd: 0.08, referralBonusUsd: 1.6, signupsOpen: false } });
+        assert.equal(closePlan.status, 200);
         const closed = await call("/api/account/signup", { method: "POST", csrf: false, body: { email: "another@example.com", password: "longenough1" } });
         assert.equal(closed.status, 403);
         assert.equal(closed.data.errorCode, "SIGNUPS_CLOSED");
         const stillWorks = await call("/api/account/login", { method: "POST", csrf: false, body: { username: "person@example.com", password: "longenough1" } });
         assert.equal(stillWorks.status, 200, "existing sign-ups keep working while new ones are paused");
+    });
+});
+
+test("a forgotten password is recovered with the one-time backup code, not email", async () => {
+    await withServer(async ({ call }) => {
+        const signedUp = await call("/api/account/signup", { method: "POST", csrf: false, body: { email: "forgetful@example.com", password: "firstpass1" } });
+        const { recoveryCode } = signedUp.data;
+
+        const wrongCode = await call("/api/account/reset", { method: "POST", csrf: false, body: { email: "forgetful@example.com", recoveryCode: "0000-0000-0000", newPassword: "secondpass1" } });
+        assert.equal(wrongCode.status, 400);
+        assert.equal(wrongCode.data.errorCode, "RESET_INVALID_RECOVERY");
+
+        const tooShort = await call("/api/account/reset", { method: "POST", csrf: false, body: { email: "forgetful@example.com", recoveryCode, newPassword: "short" } });
+        assert.equal(tooShort.data.errorCode, "RESET_WEAK_PASSWORD");
+
+        // Accepted with or without the dashes, case-insensitively.
+        const reset = await call("/api/account/reset", { method: "POST", csrf: false, body: { email: "forgetful@example.com", recoveryCode: recoveryCode.toLowerCase().replace(/-/g, ""), newPassword: "secondpass1" } });
+        assert.equal(reset.status, 200);
+        assert.match(reset.cookie, /^ql_user=/, "a successful reset signs the person back in");
+        assert.notEqual(reset.data.recoveryCode, recoveryCode, "the backup code rotates so the old one can't be reused");
+
+        // The old password no longer works; the new one does.
+        assert.equal((await call("/api/account/login", { method: "POST", csrf: false, body: { username: "forgetful@example.com", password: "firstpass1" } })).status, 401);
+        assert.equal((await call("/api/account/login", { method: "POST", csrf: false, body: { username: "forgetful@example.com", password: "secondpass1" } })).status, 200);
+
+        // The old (now-rotated) recovery code can't be reused either.
+        const reused = await call("/api/account/reset", { method: "POST", csrf: false, body: { email: "forgetful@example.com", recoveryCode, newPassword: "thirdpass1" } });
+        assert.equal(reused.data.errorCode, "RESET_INVALID_RECOVERY");
+    });
+});
+
+test("a referral code gives both the referrer and the new sign-up a temporary daily bonus", async () => {
+    await withServer(async ({ call, login }) => {
+        const first = await call("/api/account/signup", { method: "POST", csrf: false, body: { email: "friend-one@example.com", password: "firstpass1" } });
+        const { referralCode } = first.data;
+
+        const second = await call("/api/account/signup", { method: "POST", csrf: false, body: { email: "friend-two@example.com", password: "secondpass1", referralCode } });
+        assert.equal(second.status, 200);
+
+        const admin = await login();
+        const accounts = (await call("/admin/api/accounts", { cookie: admin })).data.accounts;
+        const referrer = accounts.find((account) => account.username === "friend-one@example.com");
+        const referred = accounts.find((account) => account.username === "friend-two@example.com");
+        assert.equal(referred.referredBy, referrer.id, "the new account records who referred it");
+        assert.ok(referrer.bonusUntil && referred.bonusUntil, "both sides get the temporary bonus");
+        assert.equal(referrer.bonusDayUsd, referred.bonusDayUsd);
+
+        // An unknown or missing code is simply ignored, not an error.
+        const noReferral = await call("/api/account/signup", { method: "POST", csrf: false, body: { email: "nobody@example.com", password: "thirdpass1", referralCode: "BOGUS99" } });
+        assert.equal(noReferral.status, 200);
+        const lonely = (await call("/admin/api/accounts", { cookie: admin })).data.accounts.find((account) => account.username === "nobody@example.com");
+        assert.equal(lonely.referredBy, null);
+        assert.equal(lonely.bonusUntil, undefined);
+    });
+});
+
+test("the funnel metrics route is admin-only and degrades cleanly without Redis configured", async () => {
+    await withServer(async ({ call, login }) => {
+        assert.equal((await call("/admin/api/metrics")).status, 401);
+        const admin = await login();
+        const metrics = await call("/admin/api/metrics", { cookie: admin });
+        assert.equal(metrics.status, 503, "no Redis configured in this test environment");
     });
 });

@@ -85,6 +85,7 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
     const { recentUsage, dailySpendUsd, redisCommand } = require("./server/usage-store");
     const { accessStatus, planLimits } = require("./server/quota");
     const { getConfig } = require("./server/config");
+    const { recordEvent, funnel } = require("./server/metrics");
 
     const sessionSecret = env.SESSION_SECRET || randomBytes(32).toString("hex");
     const trustProxy = env.TRUST_PROXY === "1";
@@ -151,10 +152,15 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         }
     }
 
-    // What the public page may know about the free-trial plan before signing in:
-    // the credit amount, trial length and whether new sign-ups are open.
-    function publicPlan(plan) {
-        return { perAccountBudgetUsd: plan.perAccountBudgetUsd, periodDays: plan.periodDays, signupsOpen: plan.signupsOpen };
+    // What the public page may know about the free plan before signing in: the
+    // daily allowance (as a number of searches, for the marketing copy) and
+    // whether new sign-ups are open.
+    function publicPlan(plan, config) {
+        return {
+            accountDailyUsd: plan.accountDailyUsd,
+            dailySearches: Math.max(1, Math.round(plan.accountDailyUsd / config.searchEstimateUsd)),
+            signupsOpen: plan.signupsOpen
+        };
     }
 
     async function handleAccount(req, res, route) {
@@ -183,9 +189,32 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
             if (body.website !== undefined && (typeof body.website !== "string" || body.website.trim())) {
                 return sendJson(res, 400, { errorCode: "AUTOMATED_REQUEST_REJECTED", error: "Request could not be verified" });
             }
-            const result = settings.signUpAccount(body.email, body.password);
+            const result = settings.signUpAccount(body.email, body.password, body.referralCode);
             if (result.error) return sendJson(res, 400, { errorCode: `SIGNUP_${(result.code || "failed").toUpperCase()}`, error: result.error });
-            return sendJson(res, 200, { signedIn: true, username: result.account.username, access: await status(result.account), plan: publicPlan(plan) }, { "Set-Cookie": accountCookie(req, result.account.id) });
+            recordEvent(config, "signup");
+            return sendJson(res, 200, {
+                signedIn: true, username: result.account.username, access: await status(result.account), plan: publicPlan(plan, config),
+                recoveryCode: result.recoveryCode, referralCode: result.account.referralCode
+            }, { "Set-Cookie": accountCookie(req, result.account.id) });
+        }
+        if (route === "/reset" && req.method === "POST") {
+            // No email is sent, so this is proof-of-possession of the backup code
+            // shown once at sign-up, not an email link - rate-limited like login.
+            const ip = `reset:${clientIp(req)}`;
+            const record = loginFailures.get(ip);
+            if (record && record.until > Date.now()) return sendJson(res, 429, { errorCode: "LOGIN_LOCKED", error: "Too many attempts. Try again in 15 minutes." });
+            const body = await readJson(req);
+            const result = settings.resetPasswordWithRecoveryCode(body.email, body.recoveryCode, body.newPassword);
+            if (result.error) {
+                const count = (record?.count || 0) + 1;
+                if (loginFailures.size > 10000) loginFailures.clear();
+                loginFailures.set(ip, count >= LOGIN_MAX_FAILURES ? { count: 0, until: Date.now() + LOGIN_LOCK_MS } : { count, until: 0 });
+                return sendJson(res, 400, { errorCode: `RESET_${(result.code || "failed").toUpperCase()}`, error: result.error });
+            }
+            loginFailures.delete(ip);
+            return sendJson(res, 200, {
+                signedIn: true, username: result.account.username, access: await status(result.account), plan: publicPlan(plan, config), recoveryCode: result.recoveryCode
+            }, { "Set-Cookie": accountCookie(req, result.account.id) });
         }
         if (route === "/login" && req.method === "POST") {
             const ip = `account:${clientIp(req)}`;
@@ -200,14 +229,14 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
                 return sendJson(res, 401, { errorCode: "LOGIN_FAILED", error: "Wrong username or password" });
             }
             loginFailures.delete(ip);
-            return sendJson(res, 200, { signedIn: true, username: account.username, access: await status(account), plan: publicPlan(plan) }, { "Set-Cookie": accountCookie(req, account.id) });
+            return sendJson(res, 200, { signedIn: true, username: account.username, access: await status(account), plan: publicPlan(plan, config), referralCode: account.referralCode }, { "Set-Cookie": accountCookie(req, account.id) });
         }
         if (route === "/logout" && req.method === "POST") {
-            return sendJson(res, 200, { signedIn: false, plan: publicPlan(plan) }, { "Set-Cookie": `${ACCOUNT_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0` });
+            return sendJson(res, 200, { signedIn: false, plan: publicPlan(plan, config) }, { "Set-Cookie": `${ACCOUNT_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0` });
         }
         if (route === "" && req.method === "GET") {
             const account = currentAccount(req);
-            return sendJson(res, 200, { signedIn: Boolean(account), username: account?.username || null, access: await status(account), plan: publicPlan(plan) });
+            return sendJson(res, 200, { signedIn: Boolean(account), username: account?.username || null, access: await status(account), plan: publicPlan(plan, config), referralCode: account?.referralCode || null });
         }
         return sendJson(res, 404, { error: "Not found" });
     }
@@ -317,6 +346,7 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         const body = await readBody(req);
         const headers = { ...req.headers, "x-qlook-client-ip": clientIp(req) };
         const result = await handler({ httpMethod: req.method, headers, body, isBase64Encoded: false, account: currentAccount(req), plan: settings.plan() });
+        if (result.statusCode === 200) recordEvent(getConfig(), "search");
         send(res, result.statusCode, result.body, { "Cache-Control": "no-store", ...result.headers });
     }
 
@@ -408,6 +438,15 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
             else if (!password && req.method === "DELETE") result = settings.deleteAccount(id);
             else return sendJson(res, 404, { error: "Not found" });
             return result.error ? sendJson(res, 404, { error: result.error }) : sendJson(res, 200, result);
+        }
+
+        // Visits -> sign-ups -> searches per day, shown on the admin page only.
+        if (route === "/metrics" && req.method === "GET") {
+            try {
+                return sendJson(res, 200, { funnel: await funnel(getConfig(), 14) });
+            } catch (error) {
+                return sendJson(res, 503, { error: "Metrics storage is unavailable" });
+            }
         }
 
         // Tokens and estimated cost per request, shown on the admin page only.
@@ -518,6 +557,7 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         }
         if (pathname === "/" || pathname === "/index.html") {
             if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, "Method Not Allowed", { Allow: "GET, HEAD" });
+            if (req.method === "GET") recordEvent(getConfig(), "pageview");
             return send(res, 200, req.method === "HEAD" ? undefined : pages.index, {
                 ...PAGE_HEADERS,
                 "Content-Type": "text/html; charset=utf-8",

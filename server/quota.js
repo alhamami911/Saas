@@ -1,12 +1,13 @@
 "use strict";
 
-// Trial usage limits. Every account — self-signed-up or admin-issued — gets the
-// same flat free-credit budget (plan.perAccountBudgetUsd), spent across four
-// windows, like Claude's own limits:
+// Usage limits. The product is free: an account's day limit is a flat, moderate
+// allowance (plan.accountDailyUsd) rather than a slice of a pool that runs out,
+// spent across four windows, like Claude's own limits:
 //   session - a 5-hour window that starts with the first use,
-//   day     - the UTC day,
+//   day     - the UTC day (the limit that actually matters day to day),
 //   week    - 7-day windows counted from the account's first sign-in,
-//   period  - the whole trial (periodDays from the first sign-in).
+//   period  - the whole account lifetime (periodDays) - a generous backstop
+//             against runaway abuse, not an everyday constraint.
 // Visitors without an account share one small daily allowance instead.
 // Limits are in estimated US dollars; the interface converts them into an
 // approximate number of searches and messages.
@@ -16,15 +17,16 @@ const { redisCommand, utcDayInfo } = require("./usage-store");
 const SESSION_MS = 5 * 60 * 60 * 1000;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const SHARES = { session: 0.06, day: 0.12, week: 0.35 };
+// session is half a day's allowance (so one sitting can't spend the whole day),
+// week is six days' worth (a daily user never feels the week cap).
+const SHARES = { session: 0.5, week: 6 };
 
 function planLimits(plan, estimates) {
     const period = plan.perAccountBudgetUsd;
-    // Every window allows at least one search, as long as the period has room.
     const floor = estimates.search;
-    const session = Math.min(period, Math.max(period * SHARES.session, floor));
-    const day = Math.min(period, Math.max(period * SHARES.day, session));
-    const week = Math.min(period, Math.max(period * SHARES.week, day));
+    const day = Math.min(period, Math.max(plan.accountDailyUsd, floor));
+    const session = Math.min(day, Math.max(day * SHARES.session, floor));
+    const week = Math.min(period, Math.max(day * SHARES.week, day));
     return { perAccount: { session, day, week, period }, visitorDay: Math.max(plan.visitorDailyUsd, 0) };
 }
 
@@ -64,6 +66,9 @@ async function accessStatus(config, plan, who, now = Date.now()) {
     const periodEnds = keys.start + plan.periodDays * DAY_MS;
     // A session lasts 5 hours from its first use, whether or not its keys expired yet.
     const sessionOpen = Number(sessionStart) > 0 && now < Number(sessionStart) + SESSION_MS;
+    // A referral (sending or accepting one) temporarily raises the day limit.
+    const bonusActive = who.account.bonusUntil && now < Date.parse(who.account.bonusUntil);
+    const dayLimit = limits.perAccount.day + (bonusActive ? Number(who.account.bonusDayUsd) || 0 : 0);
     return {
         kind: "account",
         estimates,
@@ -71,9 +76,10 @@ async function accessStatus(config, plan, who, now = Date.now()) {
         expiresAt: new Date(periodEnds).toISOString(),
         expired: now >= periodEnds,
         disabled: Boolean(who.account.disabled),
+        bonusUntil: bonusActive ? who.account.bonusUntil : null,
         windows: {
             session: { used: sessionOpen ? money(session) : 0, limit: money(limits.perAccount.session), resetsAt: sessionOpen ? new Date(Number(sessionStart) + SESSION_MS).toISOString() : null },
-            day: { used: money(day), limit: money(limits.perAccount.day), resetsAt: new Date(tomorrow).toISOString() },
+            day: { used: money(day), limit: money(dayLimit), resetsAt: new Date(tomorrow).toISOString() },
             week: { used: money(week), limit: money(limits.perAccount.week), resetsAt: new Date(Math.min(keys.start + (keys.week + 1) * WEEK_MS, periodEnds)).toISOString() },
             period: { used: money(period), limit: money(limits.perAccount.period), resetsAt: null }
         }
