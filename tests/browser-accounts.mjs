@@ -86,7 +86,10 @@ export default async function run(page) {
     // Visitor: the shared allowance meter and the limit message with a sign-up offer.
     await page.waitForSelector("#visitorMeters .meter-now");
     R.visitorMeter = await page.locator("#visitorMeters").innerText();
+    // A suggestion card only fills the composer (it's an example, not a choice);
+    // sending it is a separate, deliberate step.
     await page.locator("#suggestions .suggestion").first().click();
+    await page.locator("#promptOverride").press("Enter");
     // The setup card: one card with every setting, then one click.
     await page.waitForSelector(".setup");
     await page.locator('.setup select[data-field="industry"]').selectOption("المالية والمحاسبة");

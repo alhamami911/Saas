@@ -75,6 +75,7 @@
         .welcome-title { margin: 0 0 10px; font-size: clamp(1.9rem, 4.2vw, 2.8rem); font-weight: 600; line-height: 1.3; }
         .grad-text { background: var(--brand-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .welcome-sub { margin: 0 0 28px; font-size: 1.05rem; color: var(--text-secondary); line-height: 1.7; max-width: 640px; }
+        .suggestions-label { margin: 0 0 10px; font-size: 0.78rem; color: var(--text-secondary); }
         .suggestions { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
         .suggestion { position: relative; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; min-height: 112px; padding: 16px 16px 16px 19px; border: 0; border-inline-start: 3px solid var(--primary-color); border-radius: 4px 14px 14px 4px; background: var(--secondary-color); color: var(--text-primary); font: inherit; font-size: 0.92rem; line-height: 1.55; text-align: start; cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.15s; }
         html[dir="rtl"] .suggestion { border-radius: 14px 4px 4px 14px; }
@@ -482,6 +483,7 @@
                     </div>
                     <h1 class="welcome-title"><span class="grad-text" id="titleText">مرحباً، ما الفرصة التي تبحث عنها؟</span></h1>
                     <p class="welcome-sub" id="subText">صف فكرة منتج SaaS تريد إطلاقه أو شراءه، وسأبحث لك في أسواق البرمجيات الموثوقة وأحلل أفضل الفرص.</p>
+                    <p class="suggestions-label" id="suggestionsLabel" data-i18n="suggestionsLabel">أمثلة لإلهامك، اضغط على أي منها لتعبئة مربع البحث ثم عدّلها كما تريد</p>
                     <div class="suggestions" id="suggestions"></div>
                 </div>
                 <div class="chat" id="chatLog" aria-live="polite"></div>
@@ -633,6 +635,7 @@
             ar: {
                 toggle: 'English', title: 'مرحباً، ما الفرصة التي تبحث عنها؟', newChat: 'محادثة جديدة', sideNote: 'نتائج من أسواق برمجيات موثوقة، مع مصادرها.',
                 subtitle: 'صف فكرة منتج SaaS تريد إطلاقه أو شراءه، وسأبحث لك في أسواق البرمجيات الموثوقة وأحلل أفضل الفرص.', search: '⌕ بحث في الأسواق الموثوقة',
+                suggestionsLabel: 'أمثلة لإلهامك، اضغط على أي منها لتعبئة مربع البحث ثم عدّلها كما تريد',
                 sources: '↗ مصادر وروابط موثقة', usage: '✦ تتبع التكلفة والاستهلاك', country: 'الدولة المستهدفة',
                 budget: 'الميزانية المتاحة', industry: 'القطاع المستهدف', goal: 'الهدف التجاري', opportunityCount: 'عدد الفرص المطلوب الحصول عليها',
                 filtersLegend: 'خصائص SaaS المطلوبة (اختياري)', filtersHint: 'اختر خاصية واحدة أو أكثر لتصفية الفرص.',
@@ -708,6 +711,7 @@
             en: {
                 toggle: 'العربية', title: 'Hello, what opportunity are you looking for?', newChat: 'New chat', sideNote: 'Results from trusted software marketplaces, with sources.',
                 subtitle: 'Describe a SaaS product you want to launch or buy, and I will search trusted software marketplaces and analyse the best opportunities.', search: '⌕ Trusted marketplace search',
+                suggestionsLabel: 'Examples to inspire you - click one to fill the search box, then edit it as you like',
                 sources: '↗ Verified sources & links', usage: '✦ Usage and cost tracking', country: 'Target country',
                 budget: 'Available budget', industry: 'Target industry', goal: 'Business goal', opportunityCount: 'Number of opportunities requested',
                 filtersLegend: 'Required SaaS capabilities (optional)', filtersHint: 'Choose one or more capabilities to filter opportunities.',
@@ -1920,6 +1924,9 @@
             addMessage('user', label);
         }
 
+        // Cards are examples to start from, not choices to pick: clicking one fills
+        // the composer so the person can read, edit and send it themselves, instead
+        // of looking like a selectable option that jumps straight into a search.
         function renderSuggestions() {
             const box = document.getElementById('suggestions');
             box.replaceChildren();
@@ -1927,7 +1934,13 @@
                 const card = el('button', 'suggestion');
                 card.type = 'button';
                 card.append(el('span', '', example), blipIcon());
-                card.addEventListener('click', () => submitText(example, { isSuggestion: true }));
+                card.addEventListener('click', () => {
+                    const input = document.getElementById('promptOverride');
+                    input.value = example;
+                    autoGrow(input);
+                    input.focus();
+                    input.setSelectionRange(input.value.length, input.value.length);
+                });
                 box.appendChild(card);
             });
         }
@@ -1968,26 +1981,18 @@
         }
 
         // Picks the starting value of each field: what the description says, then
-        // (for a typed description only) the saved default, then whatever the
-        // field already holds. A clicked example card skips saved defaults for
-        // industry/budget/goal/capabilities, so every card stays its own
-        // self-contained example instead of all converging on one saved profile;
-        // country is kept, since "where I operate" is personal, not example-specific.
-        // The field's own neutral option, for when a suggestion card has neither a
-        // guess nor (deliberately) a saved default to fall back on - without this,
-        // the select would just keep whatever applyDefaults() set it to at page load.
-        const NEUTRAL_SETUP = { industry: 'جميع المجالات', budget: 'مفتوح', goal: 'إطلاق SaaS جديد' };
-        function prefillSetup(description, { isSuggestion = false } = {}) {
-            const choose = (field, guess, useSavedDefault = true) => {
+        // the saved default, then whatever the field already holds.
+        function prefillSetup(description) {
+            const choose = (field, guess) => {
                 const select = document.getElementById(field);
-                const value = guess || (useSavedDefault ? savedDefault(field) : NEUTRAL_SETUP[field]) || null;
+                const value = guess || savedDefault(field);
                 if (value && Array.from(select.options).some((option) => option.value === value)) select.value = value;
             };
             choose('country', null);
-            choose('industry', guessIndustry(description), !isSuggestion);
-            choose('budget', guessBudget(description), !isSuggestion);
-            choose('goal', guessGoal(description), !isSuggestion);
-            const presetFilters = isSuggestion ? [] : (readStore(STORE.defaults, null)?.filters || []);
+            choose('industry', guessIndustry(description));
+            choose('budget', guessBudget(description));
+            choose('goal', guessGoal(description));
+            const presetFilters = readStore(STORE.defaults, null)?.filters || [];
             document.querySelectorAll('input[name="featureFilter"]').forEach((input) => { input.checked = presetFilters.includes(input.value); });
         }
 
@@ -2008,11 +2013,11 @@
             return wrap;
         }
 
-        async function showSetup({ keep = false, isSuggestion = false } = {}) {
+        async function showSetup({ keep = false } = {}) {
             const t = translations[currentLang];
             const c = t.chat;
             chatState.step = 'setup';
-            if (!keep) prefillSetup(chatState.description, { isSuggestion });
+            if (!keep) prefillSetup(chatState.description);
             const card = el('div', 'setup');
             const grid = el('div', 'setup-grid');
             grid.append(setupSelect('country', t.country), setupSelect('industry', t.industry), setupSelect('budget', t.budget), setupSelect('goal', t.goal));
@@ -2045,7 +2050,7 @@
 
         // Typed messages: the first one answers "what are you looking for"; after
         // a report, a new description starts a fresh search with the same answers.
-        function submitText(text, { isSuggestion = false } = {}) {
+        function submitText(text) {
             const value = String(text || '').trim();
             if (!value || chatState.busy) return;
             const input = document.getElementById('promptOverride');
@@ -2054,7 +2059,7 @@
             addMessage('user', value);
             if (chatState.step === 'description') {
                 chatState.description = value;
-                return showSetup({ isSuggestion });
+                return showSetup();
             }
             if (['results', 'confirm', 'error'].includes(chatState.step)) {
                 chatState.description = value;
