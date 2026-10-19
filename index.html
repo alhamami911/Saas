@@ -1927,7 +1927,7 @@
                 const card = el('button', 'suggestion');
                 card.type = 'button';
                 card.append(el('span', '', example), blipIcon());
-                card.addEventListener('click', () => submitText(example));
+                card.addEventListener('click', () => submitText(example, { isSuggestion: true }));
                 box.appendChild(card);
             });
         }
@@ -1968,18 +1968,22 @@
         }
 
         // Picks the starting value of each field: what the description says, then
-        // the saved default, then whatever the field already holds.
-        function prefillSetup(description) {
-            const choose = (field, guess) => {
+        // (for a typed description only) the saved default, then whatever the
+        // field already holds. A clicked example card skips saved defaults for
+        // industry/budget/goal/capabilities, so every card stays its own
+        // self-contained example instead of all converging on one saved profile;
+        // country is kept, since "where I operate" is personal, not example-specific.
+        function prefillSetup(description, { isSuggestion = false } = {}) {
+            const choose = (field, guess, useSavedDefault = true) => {
                 const select = document.getElementById(field);
-                const value = guess || savedDefault(field);
+                const value = guess || (useSavedDefault ? savedDefault(field) : null);
                 if (value && Array.from(select.options).some((option) => option.value === value)) select.value = value;
             };
             choose('country', null);
-            choose('industry', guessIndustry(description));
-            choose('budget', guessBudget(description));
-            choose('goal', guessGoal(description));
-            const presetFilters = readStore(STORE.defaults, null)?.filters || [];
+            choose('industry', guessIndustry(description), !isSuggestion);
+            choose('budget', guessBudget(description), !isSuggestion);
+            choose('goal', guessGoal(description), !isSuggestion);
+            const presetFilters = isSuggestion ? [] : (readStore(STORE.defaults, null)?.filters || []);
             document.querySelectorAll('input[name="featureFilter"]').forEach((input) => { input.checked = presetFilters.includes(input.value); });
         }
 
@@ -2000,11 +2004,11 @@
             return wrap;
         }
 
-        async function showSetup({ keep = false } = {}) {
+        async function showSetup({ keep = false, isSuggestion = false } = {}) {
             const t = translations[currentLang];
             const c = t.chat;
             chatState.step = 'setup';
-            if (!keep) prefillSetup(chatState.description);
+            if (!keep) prefillSetup(chatState.description, { isSuggestion });
             const card = el('div', 'setup');
             const grid = el('div', 'setup-grid');
             grid.append(setupSelect('country', t.country), setupSelect('industry', t.industry), setupSelect('budget', t.budget), setupSelect('goal', t.goal));
@@ -2037,7 +2041,7 @@
 
         // Typed messages: the first one answers "what are you looking for"; after
         // a report, a new description starts a fresh search with the same answers.
-        function submitText(text) {
+        function submitText(text, { isSuggestion = false } = {}) {
             const value = String(text || '').trim();
             if (!value || chatState.busy) return;
             const input = document.getElementById('promptOverride');
@@ -2046,7 +2050,7 @@
             addMessage('user', value);
             if (chatState.step === 'description') {
                 chatState.description = value;
-                return showSetup();
+                return showSetup({ isSuggestion });
             }
             if (['results', 'confirm', 'error'].includes(chatState.step)) {
                 chatState.description = value;

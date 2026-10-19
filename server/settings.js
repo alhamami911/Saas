@@ -185,7 +185,7 @@ function createSettingsStore({ dataDir, env = process.env }) {
     // perAccountBudgetUsd/periodDays stay as a generous backstop against abuse,
     // not as the everyday constraint. Visitors without an account share one
     // small daily allowance.
-    const DEFAULT_PLAN = { perAccountBudgetUsd: 300, periodDays: 365, accountDailyUsd: 2.4, visitorDailyUsd: 0.08, referralBonusUsd: 1.6, signupsOpen: true };
+    const DEFAULT_PLAN = { perAccountBudgetUsd: 300, periodDays: 365, accountDailyUsd: 2.4, visitorDailyUsd: 1.6, referralBonusUsd: 1.6, signupsOpen: true };
     // A login name is either an admin-issued username or a self-signup email.
     const USERNAME_PATTERN = /^[a-z0-9][a-z0-9_.@+-]{2,63}$/;
     const EMAIL_PATTERN = /^[^\s@]{1,80}@[^\s@]{1,80}\.[^\s@]{2,24}$/;
