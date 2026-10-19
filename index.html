@@ -1973,10 +1973,14 @@
         // industry/budget/goal/capabilities, so every card stays its own
         // self-contained example instead of all converging on one saved profile;
         // country is kept, since "where I operate" is personal, not example-specific.
+        // The field's own neutral option, for when a suggestion card has neither a
+        // guess nor (deliberately) a saved default to fall back on - without this,
+        // the select would just keep whatever applyDefaults() set it to at page load.
+        const NEUTRAL_SETUP = { industry: 'جميع المجالات', budget: 'مفتوح', goal: 'إطلاق SaaS جديد' };
         function prefillSetup(description, { isSuggestion = false } = {}) {
             const choose = (field, guess, useSavedDefault = true) => {
                 const select = document.getElementById(field);
-                const value = guess || (useSavedDefault ? savedDefault(field) : null);
+                const value = guess || (useSavedDefault ? savedDefault(field) : NEUTRAL_SETUP[field]) || null;
                 if (value && Array.from(select.options).some((option) => option.value === value)) select.value = value;
             };
             choose('country', null);
