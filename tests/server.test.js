@@ -87,6 +87,20 @@ test("serves the app, admin page and health check", async () => {
         assert.match(admin.headers.get("content-security-policy"), /frame-ancestors 'none'/);
         assert.equal((await call("/server/config.js")).status, 404);
         assert.equal((await call("/../server.js")).status, 404);
+        // Search engines and link previews.
+        assert.match(index.data, /property="og:image" content="https:\/\/qlook\.jawab\.sa\/og-image\.png"/);
+        const robots = await call("/robots.txt");
+        assert.equal(robots.status, 200);
+        assert.match(robots.data, /Disallow: \/admin/);
+        assert.match(robots.data, /Sitemap: https:\/\/qlook\.jawab\.sa\/sitemap\.xml/);
+        const sitemap = await call("/sitemap.xml");
+        assert.match(sitemap.headers.get("content-type"), /xml/);
+        assert.match(sitemap.data, /<loc>https:\/\/qlook\.jawab\.sa\/<\/loc>/);
+        const image = await call("/og-image.png");
+        assert.equal(image.status, 200);
+        assert.equal(image.headers.get("content-type"), "image/png");
+        // Only these files are served; nothing else under server/static.
+        assert.equal((await call("/static/og-image.png")).status, 404);
     });
 });
 

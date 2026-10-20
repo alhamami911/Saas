@@ -7,6 +7,20 @@
     <meta name="theme-color" content="#0A0F0D">
     <meta name="description" content="QLook يبحث لك في أسواق برمجيات موثوقة عن فرص SaaS حقيقية للشراء أو الإطلاق، مع الترخيص والسعر والمصدر لكل فرصة. مجاني للبدء.">
     <title>QLook — مساعد فرص SaaS</title>
+    <link rel="canonical" href="https://qlook.jawab.sa/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="QLook">
+    <meta property="og:url" content="https://qlook.jawab.sa/">
+    <meta property="og:title" content="QLook — فرص SaaS حقيقية من أسواق موثوقة">
+    <meta property="og:description" content="صف المنتج الذي تريد إطلاقه أو شراءه، ويبحث QLook في 20 سوقاً ومستودعاً ويعرض لك الفرص مع الترخيص والسعر والمصدر. مجاني للبدء.">
+    <meta property="og:image" content="https://qlook.jawab.sa/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:locale" content="ar_SA">
+    <meta property="og:locale:alternate" content="en_US">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="QLook — فرص SaaS حقيقية من أسواق موثوقة">
+    <meta name="twitter:image" content="https://qlook.jawab.sa/og-image.png">
     <style>
         :root {
             --bg-color: #fbfdfc; --surface-color: #ffffff; --sidebar-color: #eef4f1; --text-primary: #0b1a14; --text-secondary: #4b5f57;
@@ -822,11 +836,12 @@
             requirementsTitle: 'مطابقة الخصائص المطلوبة', req_verified: 'متحققة من المصدر', req_unverified: 'غير متحققة', req_absent: 'غير متوفرة أو تحتاج تطويراً',
             budgetFit: 'الميزانية', budget_within: 'ضمن ميزانيتك (سعر متحقق)', budget_over: 'أعلى من ميزانيتك', budget_unknown: 'لم يُتحقق — سعر الترخيص المطلوب غير معروف', budget_open: 'ميزانية مفتوحة', budget_free: 'مجاني (مفتوح المصدر)؛ الاستضافة والتطوير تكلفة منفصلة',
             alternativesTitle: (n) => `منتجات للمراجعة لم تدخل القائمة المؤهلة (${n})`,
-            alternativesHint: 'هذه المنتجات لا تُحسب ضمن الفرص لأنها لم تجتز شروط الترخيص أو الخصائص أو الميزانية. راجعها بنفسك قبل أي قرار.',
+            alternativesHint: 'هذه المنتجات لا تُحسب ضمن الفرص لأنها لم تجتز شروط الملاءمة أو الترخيص أو الخصائص أو الميزانية. راجعها بنفسك قبل أي قرار.',
             reason_license_restricted: 'الترخيص يمنع الاستخدام التجاري كخدمة مدفوعة', reason_license_unclear: 'لم يثبت أن الترخيص يسمح بالاستخدام التجاري',
             reason_missing_capability: 'تنقصه خاصية مطلوبة', reason_over_budget: 'أعلى من الميزانية',
             reason_capability_unverified: 'خاصية مطلوبة غير متحققة من المصدر', reason_budget_unverified: 'لم يُتحقق من الميزانية (السعر غير متحقق)', reason_license_not_perpetual: 'اشتراك وليس ترخيصاً دائماً',
-            priceFree: 'تكلفة الترخيص مجانية', priceFreeNote: 'الاستضافة والتطوير تكلفة منفصلة', priceUnverified: 'لم يُتحقق', priceUnverifiedLong: 'لم يُتحقق من الميزانية',
+            reason_not_direct_match: 'أساس يحتاج تطويراً كبيراً، وليس المنتج الذي وصفته',
+            priceFree: 'تكلفة الترخيص مجانية', priceFreeNote: 'الاستضافة والتطوير تكلفة منفصلة', priceUnverified: 'لم يُتحقق', priceUnverifiedLong: 'لم يُتحقق من الميزانية', priceZero: 'مجاني حسب صفحة المنتج',
             logQuery: 'عبارة البحث', logTime: 'المدة', logResults: 'نتائج', logProducts: 'صفحات منتجات', logRetry: 'جولة استكمال بعد تعذّر المحاولة الأولى', logError: 'السبب',
             logErrors: { quota: 'نفد رصيد خدمة الذكاء الاصطناعي', timeout: 'انتهت مهلة الطلب', time_limit: 'لم يتبقَّ وقت ضمن حد البحث', search_not_run: 'لم يُنفّذ البحث', network: 'تعذّر الاتصال', provider_error: 'رفض مزود الخدمة الطلب', disabled: 'المصدر معطّل في الإعدادات', request_failed: 'فشل الطلب', too_many_requests: 'تجاوز حد الطلبات لدى الموقع', unavailable: 'الخدمة غير متاحة' },
             evidenceQuote: 'الدليل من الصفحة', pagesRead: (n, total) => `قُرئت صفحات ${n} من ${total} منتجاً مرشحاً`,
@@ -835,14 +850,15 @@
             viaOfficial: 'بيانات رسمية', viaSearch2: 'بحث داخل الموقع',
             searchDone: 'اكتمل البحث.', searchStopped: 'توقف البحث.', restoredNote: 'آخر تقرير محفوظ على هذا الجهاز من',
             defaultMark: 'افتراضي', seenBefore: 'عُرضت عليك سابقاً', tableFull: 'ملء الشاشة', tableExit: 'إغلاق ملء الشاشة',
-            headline: (n) => n === 1 ? 'وجدت لك فرصة واحدة جاهزة للتشغيل التجاري كـ SaaS.' : `وجدت لك ${n} فرص جاهزة للتشغيل التجاري كـ SaaS.`,
+            headline: (n) => n === 1 ? 'وجدت لك فرصة واحدة جاهزة للتشغيل التجاري كـ SaaS.' : n === 2 ? 'وجدت لك فرصتين جاهزتين للتشغيل التجاري كـ SaaS.' : `وجدت لك ${n} ${n <= 10 ? 'فرص جاهزة' : 'فرصة جاهزة'} للتشغيل التجاري كـ SaaS.`,
             headlineNone: 'لم تجتز أي فرصة كل شروطك هذه المرة.',
-            headlineReview: (n) => `وهناك ${n} فرص قريبة لم تكتمل أدلتها؛ تجدها أسفل الجدول مع سبب كل منها.`,
+            headlineReview: (n) => n === 1 ? 'وهناك فرصة قريبة واحدة لم تكتمل شروطها؛ تجدها أسفل الجدول مع السبب.' : n === 2 ? 'وهناك فرصتان قريبتان لم تكتمل شروطهما؛ تجدهما أسفل الجدول مع سبب كل منهما.' : `وهناك ${n} ${n <= 10 ? 'فرص قريبة' : 'فرصة قريبة'} لم تكتمل شروطها؛ تجدها أسفل الجدول مع سبب كل منها.`,
             reviewTitle: (n) => `فرص قريبة تحتاج تحققاً منك (${n})`,
             colReason: 'سبب عدم التأهل', searchDetails: 'تفاصيل البحث والمصادر',
-            meterNow: (n, at) => `متبقٍ لك: ≈ ${n} عمليات بحث${at ? ` · يتجدد ${new Date(at).toLocaleString('ar', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}` : ''}`,
+            meterNow: (n, at) => `متبقٍ لك: ≈ ${n} ${n >= 3 && n <= 10 ? 'عمليات بحث' : 'عملية بحث'}${at ? ` · يتجدد ${new Date(at).toLocaleString('ar', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}` : ''}`,
             meterDetails: 'تفاصيل الحدود',
-            accountLogin: 'أنشئ حساباً مجانياً', accountStartTrial: (n) => `مجاناً — حتى ${n} بحث يومياً`, accountLogout: 'خروج',
+            accountLogin: 'أنشئ حساباً مجانياً', accountStartTrial: (n) => `حساب مجاني — ${n} ${n >= 3 && n <= 10 ? 'عمليات بحث' : 'عملية بحث'} يومياً لك وحدك`, accountLogout: 'خروج',
+            meterShared: (n, at) => `مشتركة بين كل الزوار اليوم: ≈ ${n} ${n >= 3 && n <= 10 ? 'عمليات بحث' : 'عملية بحث'}${at ? ` · تتجدد ${new Date(at).toLocaleString('ar', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}` : ''}`,
             accountLoginTitle: 'الدخول إلى حسابك', accountLoginHint: 'أدخل البريد الإلكتروني أو اسم المستخدم وكلمة المرور.',
             accountUser: 'البريد الإلكتروني أو اسم المستخدم', accountPass: 'كلمة المرور',
             accountSignIn: 'دخول', accountCancel: 'إلغاء', accountLoginFailed: 'بيانات الدخول غير صحيحة.', accountLocked: 'محاولات كثيرة. حاول بعد 15 دقيقة.',
@@ -885,11 +901,12 @@
             requirementsTitle: 'Required capabilities', req_verified: 'Verified from a source', req_unverified: 'Not verified', req_absent: 'Missing or needs development',
             budgetFit: 'Budget', budget_within: 'Within your budget (verified price)', budget_over: 'Over your budget', budget_unknown: 'Not checked: the price of the licence you need is unknown', budget_open: 'Open budget', budget_free: 'Free (open source); hosting and development cost extra',
             alternativesTitle: (n) => `Products to review that are not in the eligible list (${n})`,
-            alternativesHint: 'These products are not counted as opportunities because they failed the licence, capability or budget checks. Review them yourself before deciding.',
+            alternativesHint: 'These products are not counted as opportunities because they failed the relevance, licence, capability or budget checks. Review them yourself before deciding.',
             reason_license_restricted: 'The licence forbids paid hosted use', reason_license_unclear: 'No proof the licence allows commercial use',
             reason_missing_capability: 'Missing a required capability', reason_over_budget: 'Over budget',
             reason_capability_unverified: 'Required capability not verified from a source', reason_budget_unverified: 'Budget not verified (price unknown)', reason_license_not_perpetual: 'A subscription, not a perpetual licence',
-            priceFree: 'Licence cost: free', priceFreeNote: 'hosting and development cost extra', priceUnverified: 'Not verified', priceUnverifiedLong: 'Budget not verified',
+            reason_not_direct_match: 'A foundation needing major development, not the product you described',
+            priceFree: 'Licence cost: free', priceFreeNote: 'hosting and development cost extra', priceUnverified: 'Not verified', priceUnverifiedLong: 'Budget not verified', priceZero: 'Free per the product page',
             logQuery: 'Query', logTime: 'Time', logResults: 'results', logProducts: 'product pages', logRetry: 'completion round after the first attempt failed', logError: 'Reason',
             logErrors: { quota: 'AI service credit exhausted', timeout: 'request timed out', time_limit: 'no time left within the search limit', search_not_run: 'search was not run', network: 'connection failed', provider_error: 'provider rejected the request', disabled: 'source disabled in settings', request_failed: 'request failed', too_many_requests: 'site rate limit reached', unavailable: 'service unavailable' },
             evidenceQuote: 'Evidence from the page', pagesRead: (n, total) => `Pages of ${n} of ${total} candidate products were read`,
@@ -900,12 +917,13 @@
             defaultMark: 'default', seenBefore: 'shown to you before', tableFull: 'Full screen', tableExit: 'Exit full screen',
             headline: (n) => n === 1 ? 'I found one opportunity ready to run commercially as a SaaS.' : `I found ${n} opportunities ready to run commercially as a SaaS.`,
             headlineNone: 'No opportunity met all your conditions this time.',
-            headlineReview: (n) => `${n} close matches lack some evidence; they are below the table with the reason for each.`,
+            headlineReview: (n) => n === 1 ? 'One close match did not meet every condition; it is below the table with the reason.' : `${n} close matches did not meet every condition; they are below the table with the reason for each.`,
             reviewTitle: (n) => `Close matches to check yourself (${n})`,
             colReason: 'Why not eligible', searchDetails: 'Search details and sources',
             meterNow: (n, at) => `Left now: ≈ ${n} searches${at ? ` · renews ${new Date(at).toLocaleString('en', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}` : ''}`,
             meterDetails: 'Limit details',
-            accountLogin: 'Create a free account', accountStartTrial: (n) => `Free — up to ${n} searches a day`, accountLogout: 'Sign out',
+            accountLogin: 'Create a free account', accountStartTrial: (n) => `Free account — ${n} searches a day, just for you`, accountLogout: 'Sign out',
+            meterShared: (n, at) => `Shared by all visitors today: ≈ ${n} searches${at ? ` · renews ${new Date(at).toLocaleString('en', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}` : ''}`,
             accountLoginTitle: 'Sign in to your account', accountLoginHint: 'Enter your email or username and password.',
             accountUser: 'Email or username', accountPass: 'Password',
             accountSignIn: 'Sign in', accountCancel: 'Cancel', accountLoginFailed: 'Wrong sign-in details.', accountLocked: 'Too many attempts. Try again in 15 minutes.',
@@ -1039,11 +1057,22 @@
             }
         }
 
+        // "2026-10-20" → "20 أكتوبر 2026" / "Oct 20, 2026" (Gregorian, Latin digits).
+        function dateText(iso) {
+            if (!iso || !/^\d{4}-\d{2}-\d{2}/.test(iso)) return iso || '';
+            const date = new Date(`${iso.slice(0, 10)}T12:00:00Z`);
+            return date.toLocaleDateString(currentLang === 'ar' ? 'ar-u-ca-gregory-nu-latn' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+        }
+
         function priceText(opportunity, t, long) {
             if (opportunity.budgetFit === 'free') return long ? `${t.priceFree} (${t.priceFreeNote})` : t.priceFree;
             const price = opportunity.price;
             if (price?.status === 'verified' && price.amount) {
-                return `${price.amount} ${price.currency || ''}${long && price.label ? ` — ${price.label}` : ''}`.trim();
+                // "0" alone read like a missing value; numbers are grouped (1,500).
+                const value = Number(String(price.amount).replace(/,/g, ''));
+                if (value === 0) return t.priceZero;
+                const amount = Number.isFinite(value) ? value.toLocaleString(currentLang === 'ar' ? 'ar-SA-u-nu-latn' : 'en-US', { maximumFractionDigits: 2 }) : price.amount;
+                return `${amount} ${price.currency || ''}${long && price.label ? ` — ${price.label}` : ''}`.trim();
             }
             return long ? t.priceUnverifiedLong : t.priceUnverified;
         }
@@ -1086,7 +1115,7 @@
             }
             metaItem(meta, `${t.confidence}: ${t[opportunity.confidence] || t.low}`);
             if (opportunity.seenBefore) metaItem(meta, t.seenBefore).className = 'status-label';
-            metaItem(meta, `${t.lastVerified}: ${opportunity.lastVerifiedDate}`);
+            metaItem(meta, `${t.lastVerified}: ${dateText(opportunity.lastVerifiedDate)}`);
             card.appendChild(meta);
 
             if (opportunity.discoveredVia) {
@@ -1100,7 +1129,7 @@
                 if (stats.stars) metaItem(via, `★ ${stats.stars.toLocaleString(currentLang === 'ar' ? 'ar' : 'en')}`);
                 if (stats.sales) metaItem(via, `${t.sales}: ${stats.sales.toLocaleString(currentLang === 'ar' ? 'ar' : 'en')}`);
                 if (stats.rating) metaItem(via, `${t.rating}: ${stats.rating}`);
-                if (stats.updatedAt) metaItem(via, `${t.updated}: ${stats.updatedAt}`);
+                if (stats.updatedAt) metaItem(via, `${t.updated}: ${dateText(stats.updatedAt)}`);
                 card.appendChild(via);
             }
 
@@ -1431,7 +1460,7 @@
                     t[`commercial_${commercialStatus}`]?.split(' — ')[0] || '—',
                     ...(review
                         ? [(row.opportunity.reasons || []).map((reason) => t[`reason_${reason}`] || reason).join(currentLang === 'ar' ? '، ' : ', ')]
-                        : [row.popularity === null ? '—' : `${row.opportunity.stats?.stars != null ? '★ ' : ''}${row.popularity.toLocaleString(locale)}`, row.updated || '—'])
+                        : [row.popularity === null ? '—' : `${row.opportunity.stats?.stars != null ? '★ ' : ''}${row.popularity.toLocaleString(locale)}`, row.updated ? dateText(row.updated) : '—'])
                 ];
                 cells.forEach((text, index) => {
                     const td = tr.insertCell();
@@ -1949,7 +1978,8 @@
         // The description usually names the industry, so it is guessed from it;
         // the other answers come from saved defaults. Everything stays editable.
         const INDUSTRY_HINTS = [
-            [/محاسب|فوتر|فاتور|ضريب|زكاة|مالي|رواتب ومحاسب|accounting|invoic|billing|bookkeep|tax/i, 'المالية والمحاسبة'],
+            // "فواتير" (invoices, the usual plural) contains neither "فاتور" nor "فوتر".
+            [/محاسب|فوتر|فاتور|فواتير|ضريب|زكاة|مالي|رواتب ومحاسب|accounting|invoic|billing|bookkeep|tax/i, 'المالية والمحاسبة'],
             [/عياد|مستشف|طبي|صح|أسنان|مريض|صيدل|clinic|hospital|health|medical|dental|pharma/i, 'الصحة والرعاية الصحية'],
             [/متجر|متاجر|تجار|بائع|سلة|دفع|e-?commerce|shop|store|marketplace|payment/i, 'التجارة الإلكترونية والمدفوعات'],
             [/crm|عملاء|مبيعات|تسويق|حملات|marketing|sales|leads?/i, 'التسويق والمبيعات'],
@@ -2264,8 +2294,13 @@
                 return balance > 1e-9 ? Math.max(1, Math.floor(balance / current.estimates.search + 1e-9)) : 0;
             };
             const tightest = scopes.filter((scope) => current.windows[scope]).sort((a, b) => left(a) - left(b))[0];
-            const line = el('div', 'meter-now', t.meterNow(left(tightest), left(tightest) === 0 ? current.windows[tightest].resetsAt : null));
-            if (current.kind !== 'account') line.prepend(el('span', 'meter-label', `${t.visitorPool}: `));
+            // A visitor's number is the pool every visitor shares today, not
+            // their own: it said "left for you: ≈ 89" beside "free account:
+            // up to 30 a day", so signing up looked like getting less.
+            const resetsAt = left(tightest) === 0 ? current.windows[tightest].resetsAt : null;
+            const line = el('div', 'meter-now', current.kind === 'account'
+                ? t.meterNow(left(tightest), resetsAt)
+                : t.meterShared(left(tightest), resetsAt));
             target.appendChild(line);
             const details = el('details', 'meter-details');
             details.appendChild(el('summary', '', t.meterDetails));

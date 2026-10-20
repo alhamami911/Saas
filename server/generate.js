@@ -121,12 +121,15 @@ function buildSummary(language, { opportunities, alternatives, log, notRelevant,
         missing_capability: ar ? "تنقصه خاصية مطلوبة" : "lacks a required capability",
         capability_unverified: ar ? "خاصية مطلوبة غير متحققة" : "required capability not verified",
         over_budget: ar ? "أعلى من الميزانية" : "over budget",
-        budget_unverified: ar ? "السعر غير متحقق" : "price not verified"
+        budget_unverified: ar ? "السعر غير متحقق" : "price not verified",
+        not_direct_match: ar ? "أساس يحتاج تطويراً وليس المنتج المطلوب" : "a foundation needing major development, not the product asked for"
     };
     const breakdown = Object.entries(reasons).map(([key, n]) => `${reasonText[key] || key}: ${n}`).join(ar ? "، " : ", ");
+    // Arabic sentences put the number after a label ("المصادر المفحوصة: 20 من 20"),
+    // so they never need number agreement ("اجتازت 1 فرص" was wrong).
     const parts = [];
     parts.push(ar
-        ? `فُحص ${checked} من ${log.length} مصدراً معتمداً، وقُرئت صفحات ${pagesRead} من ${candidatesChecked} منتجاً مرشحاً.`
+        ? `المصادر المعتمدة المفحوصة: ${checked} من ${log.length}. صفحات المنتجات المرشحة المقروءة: ${pagesRead} من ${candidatesChecked}.`
         : `${checked} of ${log.length} approved sources were checked, and the pages of ${pagesRead} of ${candidatesChecked} candidate products were read.`);
     if (missed.length) {
         parts.push(ar
@@ -134,19 +137,19 @@ function buildSummary(language, { opportunities, alternatives, log, notRelevant,
             : `Not fully checked: ${missed.map((entry) => `${entry.source} (${LOG_STATUS.en[entry.status]})`).join(", ")}; the search is therefore not complete.`);
     }
     parts.push(ar
-        ? `اجتازت ${opportunities.length} فرص شروط الترخيص والخصائص المطلوبة والميزانية من أصل ${requestedCount} مطلوبة.`
-        : `${opportunities.length} of the ${requestedCount} requested opportunities passed the licence, required-capability and budget checks.`);
+        ? `الفرص التي اجتازت شروط الملاءمة والترخيص والخصائص المطلوبة والميزانية: ${opportunities.length} من أصل ${requestedCount} مطلوبة.`
+        : `${opportunities.length} of the ${requestedCount} requested opportunities passed the relevance, licence, required-capability and budget checks.`);
     if (alternatives.length) {
         parts.push(ar
-            ? `نُقل ${alternatives.length} منتجاً إلى «للمراجعة» ولا تُحسب ضمن الفرص (${breakdown}).`
+            ? `منتجات نُقلت إلى «للمراجعة» ولا تُحسب ضمن الفرص: ${alternatives.length} (${breakdown}).`
             : `${alternatives.length} products were moved to the review list and are not counted (${breakdown}).`);
     }
     if (closedListings.length) {
         parts.push(ar
-            ? `واستُبعد ${closedListings.length} منتجاً لأن صفحته تقول إنه لم يعد معروضاً (بيع أو سُحب أو أُزيل).`
+            ? `منتجات استُبعدت لأن صفحاتها تقول إنها لم تعد معروضة (بيعت أو سُحبت أو أُزيلت): ${closedListings.length}.`
             : `${closedListings.length} were left out because their page says they are no longer offered (sold, unlisted or removed).`);
     }
-    if (notRelevant) parts.push(ar ? `واستُبعد ${notRelevant} لعدم ملاءمته لما تبحث عنه.` : `${notRelevant} were left out as not matching your request.`);
+    if (notRelevant) parts.push(ar ? `منتجات استُبعدت لأنها لا تطابق ما تبحث عنه: ${notRelevant}.` : `${notRelevant} were left out as not matching your request.`);
     return parts.join(" ");
 }
 

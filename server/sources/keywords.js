@@ -28,10 +28,12 @@ const FILTER_TERMS = {
 // Budget caps in USD; "مفتوح" (open) and unknown values mean no cap.
 const BUDGET_CAPS = { "حتى 100 دولار": 100, "حتى 500 دولار": 500, "حتى 5000 دولار": 5000 };
 
-// Catalogue APIs match every word, so they get the industry term only; the
-// capability filters are judged later by the analysis step.
-function searchTerms({ industry }) {
-    return INDUSTRY_TERMS[industry] || "saas";
+// What the investor described ("e-invoicing", from the server's keyword
+// step) is searched first; the industry term is the fallback when the
+// description names no product. Catalogue APIs match every word, so these
+// stay short; the capability filters are judged later by the analysis step.
+function searchTerms({ industry, keywords }) {
+    return keywords || INDUSTRY_TERMS[industry] || "saas";
 }
 
 function filterTerms(filters = []) {

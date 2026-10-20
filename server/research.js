@@ -237,6 +237,7 @@ function partitionEligible(research, request) {
         const withFit = { ...opportunity, budgetFit: budgetFitFor(opportunity, request.budget) };
         const reasons = [];
         const requirements = opportunity.requirements || [];
+        if (opportunity.match === "foundation") reasons.push("not_direct_match");
         if (opportunity.commercialUse?.notPerpetual) reasons.push("license_not_perpetual");
         else if (opportunity.commercialUse?.status === "restricted") reasons.push("license_restricted");
         if (opportunity.commercialUse?.status === "unclear") reasons.push("license_unclear");

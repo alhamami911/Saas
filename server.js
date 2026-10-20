@@ -100,6 +100,14 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         index: fs.readFileSync(path.join(rootDir, "index.html")),
         admin: fs.readFileSync(path.join(rootDir, "admin.html"))
     };
+    // Search engines and link previews (WhatsApp, X, LinkedIn): what may be
+    // crawled, the one public page, and the card image a shared link shows.
+    const SITE_URL = (process.env.PUBLIC_SITE_URL || "https://qlook.jawab.sa").replace(/\/$/, "");
+    const publicFiles = {
+        "/og-image.png": { body: fs.readFileSync(path.join(rootDir, "server", "static", "og-image.png")), type: "image/png", cache: "public, max-age=86400" },
+        "/robots.txt": { body: `User-agent: *\nAllow: /$\nDisallow: /admin\nDisallow: /api/\nSitemap: ${SITE_URL}/sitemap.xml\n`, type: "text/plain; charset=utf-8", cache: "public, max-age=3600" },
+        "/sitemap.xml": { body: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${SITE_URL}/</loc><changefreq>weekly</changefreq></url></urlset>\n`, type: "application/xml; charset=utf-8", cache: "public, max-age=3600" }
+    };
 
     function clientIp(req) {
         const forwarded = trustProxy && req.headers["x-real-ip"];
@@ -548,6 +556,10 @@ function createApp({ env = process.env, dataDir, rootDir = __dirname, fetchImpl 
         const { pathname } = new URL(req.url, "http://localhost");
 
         if (pathname === "/healthz") return sendJson(res, 200, { ok: true, version });
+        if (publicFiles[pathname] && (req.method === "GET" || req.method === "HEAD")) {
+            const file = publicFiles[pathname];
+            return send(res, 200, req.method === "HEAD" ? undefined : file.body, { "Content-Type": file.type, "Cache-Control": file.cache });
+        }
         if (pathname === "/api/generate") return handleGenerate(req, res);
         if (pathname === "/api/discuss") return handleDiscuss(req, res);
         if (pathname === "/api/account" || pathname.startsWith("/api/account/")) return handleAccount(req, res, pathname.slice("/api/account".length));

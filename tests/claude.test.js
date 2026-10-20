@@ -84,12 +84,16 @@ function analysisReply(prompt) {
     return message([{ type: "text", text: JSON.stringify({ candidates }) }]);
 }
 
-function fakeClient(calls, { failOnce = [], analysis } = {}) {
+function fakeClient(calls, { failOnce = [], analysis, keywords = null } = {}) {
     const failed = new Set();
     return () => ({
         messages: {
             async create(params) {
                 calls.push(JSON.parse(JSON.stringify(params)));
+                // The keyword step: the search query read from the description.
+                if (params.output_config?.format) {
+                    return message([{ type: "text", text: JSON.stringify({ query: keywords }) }]);
+                }
                 const tool = params.tools?.[0];
                 if (tool?.name === "web_search") {
                     const domain = tool.allowed_domains[0];
@@ -223,8 +227,8 @@ test("the server searches every approved source itself and logs each one", async
 test("only products with quoted evidence for every requirement are eligible", async () => {
     await withEnv({}, async ({ calls }) => {
         const data = JSON.parse((await search()).body);
-        const analysis = calls.find((call) => !call.tools);
-        assert.ok(analysis.output_config.format.schema.properties.candidates, "analysis uses structured output");
+        const analysis = calls.find((call) => !call.tools && call.output_config?.format?.schema?.properties?.candidates);
+        assert.ok(analysis, "analysis uses structured output");
         assert.ok(!analysis.tools, "the analysis step does not search");
         assert.match(analysis.messages[0].content, /Licensed under the MIT License/);
 
@@ -247,7 +251,7 @@ test("only products with quoted evidence for every requirement are eligible", as
         // The public report carries no tokens or costs, and the summary uses the real counts.
         assert.equal(data.usage, undefined);
         assert.equal(data.estimatedCosts, undefined);
-        assert.match(data.summary, /اجتازت 1 فرص/);
+        assert.match(data.summary, /الفرص التي اجتازت شروط الملاءمة والترخيص والخصائص المطلوبة والميزانية: 1 من أصل 5/);
         assert.match(data.summary, /للمراجعة/);
     });
 });
@@ -426,9 +430,55 @@ test("a listing whose page says it is unlisted or sold is never analysed or show
             assert.ok(!shown.includes(PRODUCTS["flippa.com"]));
             const analysis = calls.filter((call) => !call.tools).map((call) => call.messages[0].content).join("\n");
             assert.ok(!analysis.includes(PRODUCTS["flippa.com"]), "the closed listing is not sent to the analysis");
-            assert.match(data.summary, /لم يعد معروضاً/);
+            assert.match(data.summary, /لم تعد معروضة/);
         });
     } finally {
         delete PAGES[PRODUCTS["flippa.com"]];
     }
+});
+
+test("the marketplaces are searched for the product the investor describes", async () => {
+    await withEnv({ keywords: "e-invoicing" }, async ({ calls }) => {
+        const response = await search({ settings: "نظام فواتير إلكترونية يدعم العربية", industry: "جميع المجالات" });
+        assert.equal(response.statusCode, 200);
+        const data = JSON.parse(response.body);
+        const bySource = Object.fromEntries(data.coverage.map((entry) => [entry.source, entry]));
+        // Without the keyword step "All sectors" searched for the word "saas".
+        assert.equal(bySource.CodeCanyon.query, "e-invoicing saas script");
+        assert.equal(bySource.Flippa.query, "e-invoicing saas for sale");
+        const keywordCall = calls.find((call) => call.output_config?.format && !call.tools);
+        assert.ok(keywordCall.messages[0].content.includes("نظام فواتير إلكترونية"));
+    });
+});
+
+test("without usable keywords the industry term is searched", async () => {
+    await withEnv({ keywords: "<script>" }, async () => {
+        const data = JSON.parse((await search()).body);
+        const codecanyon = data.coverage.find((entry) => entry.source === "CodeCanyon");
+        // "<script>" cleans to "script": letters only ever reach the queries.
+        assert.equal(codecanyon.query, "script saas script");
+    });
+    await withEnv({ keywords: null }, async () => {
+        const data = JSON.parse((await search()).body);
+        assert.equal(data.coverage.find((entry) => entry.source === "CodeCanyon").query, "accounting invoicing saas script");
+    });
+});
+
+test("a framework that would need major development is reviewed, not counted", async () => {
+    const analysis = (params) => {
+        const reply = analysisReply(params.messages[0].content);
+        const parsed = JSON.parse(reply.content[0].text);
+        for (const candidate of parsed.candidates) {
+            delete candidate.relevant;
+            candidate.match = candidate.productName === "OpenBilling" ? "foundation" : "direct";
+        }
+        return message([{ type: "text", text: JSON.stringify(parsed) }]);
+    };
+    await withEnv({ analysis }, async () => {
+        const data = JSON.parse((await search()).body);
+        assert.ok(!data.opportunities.some((item) => item.productName === "OpenBilling"));
+        const reviewed = data.alternatives.find((item) => item.productName === "OpenBilling");
+        assert.ok(reviewed.reasons.includes("not_direct_match"));
+        assert.match(data.summary, /أساس يحتاج تطويراً/);
+    });
 });
