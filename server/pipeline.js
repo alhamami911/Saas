@@ -79,6 +79,22 @@ function siteQuery(source, request, round) {
     return round === 1 ? `${terms}${extra} ${source.suffix}`.trim() : terms;
 }
 
+// Directories rank their "alternatives to X" pages above X's own page; the
+// product's own page is the one read, so search hits are mapped to it.
+function productPageFor(value) {
+    try {
+        const url = new URL(value);
+        const host = url.hostname.replace(/^www\./, "");
+        const alternativeTo = url.pathname.match(/^\/software\/([^/]+)\/?$/);
+        if (host === "alternativeto.net" && alternativeTo) return `https://alternativeto.net/software/${alternativeTo[1]}/about/`;
+        const saasHub = url.pathname.match(/^\/([^/]+)-alternatives\/?$/);
+        if (host === "saashub.com" && saasHub) return `https://www.saashub.com/${saasHub[1]}`;
+        return value;
+    } catch (error) {
+        return value;
+    }
+}
+
 // One web search restricted to one marketplace, with the exact query the server chose.
 // ---- Shared cache --------------------------------------------------------
 // The same marketplace query gives the same results for a while, so a search
@@ -141,7 +157,8 @@ async function siteSearchLive(client, config, usage, source, query, deadline, ro
         if (!used || !result) return finish({ status: "error", error: "search_not_run" });
         if (!Array.isArray(result.content)) return finish({ status: "error", error: result.content?.error_code || "search_failed", query: used.input?.query || query });
         const hits = result.content.filter((item) => item.type === "web_search_result" && item.url);
-        const products = hits.filter((item) => onDomain(item.url, source.domain) && isProductPage(item.url));
+        const products = hits.map((item) => ({ ...item, url: productPageFor(item.url) }))
+            .filter((item, index, all) => onDomain(item.url, source.domain) && isProductPage(item.url) && all.findIndex((other) => other.url === item.url) === index);
         return finish({
             query: used.input?.query || query,
             status: products.length ? "found" : "no_results",
@@ -629,5 +646,6 @@ module.exports = {
     toOpportunity,
     quoteFound,
     excerpt,
-    siteQuery
+    siteQuery,
+    productPageFor
 };
