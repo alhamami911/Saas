@@ -9,10 +9,10 @@ const AWESOME_TTL_MS = 12 * 60 * 60 * 1000;
 
 let awesomeCache = { at: 0, entries: null };
 
-async function getJson(url, headers = {}) {
+async function getJson(url, headers = {}, timeoutMs = TIMEOUT_MS) {
     const response = await fetch(url, {
         headers: { Accept: "application/json", "User-Agent": USER_AGENT, ...headers },
-        signal: AbortSignal.timeout(TIMEOUT_MS)
+        signal: AbortSignal.timeout(timeoutMs)
     });
     if (!response.ok) throw Object.assign(new Error(`HTTP ${response.status}`), { status: response.status });
     return response.json();
@@ -95,9 +95,12 @@ async function codebergLicense(fullName) {
     return null;
 }
 
+// Codeberg's search API routinely takes 5-6 seconds, so it gets a longer limit.
 async function searchCodeberg(terms) {
     const data = await getJson(
-        `https://codeberg.org/api/v1/repos/search?q=${encodeURIComponent(terms)}&sort=stars&order=desc&limit=8`
+        `https://codeberg.org/api/v1/repos/search?q=${encodeURIComponent(terms)}&sort=stars&order=desc&limit=8`,
+        {},
+        15000
     );
     const repos = (data.data || []).filter((repo) => !repo.archived && !repo.fork && !repo.mirror).slice(0, 4);
     return Promise.all(repos.map(async (repo) => ({

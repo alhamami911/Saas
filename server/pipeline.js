@@ -87,7 +87,7 @@ function productPageFor(value) {
         const host = url.hostname.replace(/^www\./, "");
         const alternativeTo = url.pathname.match(/^\/software\/([^/]+)\/?$/);
         if (host === "alternativeto.net" && alternativeTo) return `https://alternativeto.net/software/${alternativeTo[1]}/about/`;
-        const saasHub = url.pathname.match(/^\/([^/]+)-alternatives\/?$/);
+        const saasHub = url.pathname.match(/^\/(?:open-source\/)?([^/]+)-alternatives\/?$/);
         if (host === "saashub.com" && saasHub) return `https://www.saashub.com/${saasHub[1]}`;
         return value;
     } catch (error) {

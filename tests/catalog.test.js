@@ -219,6 +219,7 @@ test("directory 'alternatives to X' pages lead to X's own page", () => {
     const { isProductPage } = require("../server/research");
     assert.equal(productPageFor("https://alternativeto.net/software/invoice-ninja/"), "https://alternativeto.net/software/invoice-ninja/about/");
     assert.equal(productPageFor("https://www.saashub.com/invoice-ninja-alternatives"), "https://www.saashub.com/invoice-ninja");
+    assert.equal(productPageFor("https://www.saashub.com/open-source/sugarcrm-alternatives"), "https://www.saashub.com/sugarcrm");
     assert.equal(productPageFor("https://flippa.com/12285909"), "https://flippa.com/12285909");
     assert.ok(isProductPage(productPageFor("https://alternativeto.net/software/invoice-ninja/")));
     assert.ok(!isProductPage(productPageFor("https://alternativeto.net/category/business-and-commerce/")));
