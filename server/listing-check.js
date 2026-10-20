@@ -4,7 +4,7 @@ const { CLOSED_LISTING } = require("./research");
 
 // Business-for-sale listings go stale between a search engine's crawl and the
 // report, so the live page title decides. Only these hosts are fetched.
-const LISTING_HOSTS = ["flippa.com", "acquire.com", "microns.io"];
+const LISTING_HOSTS = ["flippa.com", "acquire.com", "microns.io", "empireflippers.com", "sideprojectors.com"];
 const MAX_BYTES = 200 * 1024;
 
 function isListingUrl(value) {

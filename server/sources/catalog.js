@@ -70,6 +70,48 @@ async function searchGitLab(terms) {
     }));
 }
 
+// Codeberg (Forgejo API): the search omits licenses, so each repository's
+// LICENSE file is read and its first lines name the license.
+const LICENSE_NAMES = [
+    [/GNU AFFERO/i, "AGPL-3.0"], [/GNU LESSER/i, "LGPL"], [/GNU GENERAL PUBLIC/i, "GPL"],
+    [/Mozilla Public/i, "MPL-2.0"], [/Apache License/i, "Apache-2.0"], [/MIT License|Permission is hereby granted, free of charge/i, "MIT"],
+    [/BSD/i, "BSD"], [/European Union Public/i, "EUPL"], [/ISC License/i, "ISC"]
+];
+
+async function codebergLicense(fullName) {
+    for (const file of ["LICENSE", "LICENSE.md", "COPYING"]) {
+        try {
+            const response = await fetch(`https://codeberg.org/${fullName}/raw/branch/HEAD/${file}`, {
+                headers: { "User-Agent": USER_AGENT },
+                signal: AbortSignal.timeout(TIMEOUT_MS)
+            });
+            if (!response.ok) continue;
+            const head = (await response.text()).slice(0, 1500);
+            return LICENSE_NAMES.find(([pattern]) => pattern.test(head))?.[1] || null;
+        } catch (error) {
+            return null;
+        }
+    }
+    return null;
+}
+
+async function searchCodeberg(terms) {
+    const data = await getJson(
+        `https://codeberg.org/api/v1/repos/search?q=${encodeURIComponent(terms)}&sort=stars&order=desc&limit=8`
+    );
+    const repos = (data.data || []).filter((repo) => !repo.archived && !repo.fork && !repo.mirror).slice(0, 4);
+    return Promise.all(repos.map(async (repo) => ({
+        source: "Codeberg",
+        sourceType: "repository",
+        name: bounded(repo.full_name, 200),
+        url: repo.html_url,
+        description: bounded(repo.description, 300),
+        license: await codebergLicense(repo.full_name),
+        stars: repo.stars_count,
+        updatedAt: repo.updated_at?.slice(0, 10) || null
+    })));
+}
+
 // Awesome Selfhosted lines look like:
 // - [Name](url) - Description. ([Demo](..), [Source Code](url)) `License` `Platform`
 function parseAwesome(markdown) {
@@ -148,6 +190,7 @@ async function collectCandidates(request, { envatoToken, githubToken } = {}) {
     const tasks = [
         ["GitHub", () => searchGitHub(terms, { token: githubToken })],
         ["GitLab", () => searchGitLab(terms)],
+        ["Codeberg", () => searchCodeberg(terms)],
         ["Awesome Selfhosted", () => searchAwesomeSelfhosted(terms)]
     ];
     if (envatoToken) tasks.push(["CodeCanyon", () => searchCodeCanyon(terms, { token: envatoToken, maxPriceUsd: budgetCap(request.budget) })]);
@@ -170,4 +213,4 @@ async function collectCandidates(request, { envatoToken, githubToken } = {}) {
     };
 }
 
-module.exports = { collectCandidates, parseAwesome, searchGitHub, searchGitLab, searchCodeCanyon };
+module.exports = { collectCandidates, parseAwesome, searchGitHub, searchGitLab, searchCodeberg, searchCodeCanyon };

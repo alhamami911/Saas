@@ -60,6 +60,13 @@ test("collects candidates from every official source and reports failures withou
         if (url.startsWith("https://gitlab.com/api/v4/projects?")) return json([{ id: 7, path_with_namespace: "g/crm", web_url: "https://gitlab.com/g/crm", star_count: 3 }]);
         if (url.startsWith("https://gitlab.com/api/v4/projects/7")) return json({ license: { name: "Apache License 2.0" } });
         if (url.startsWith("https://raw.githubusercontent.com/")) return json(AWESOME);
+        if (url.startsWith("https://codeberg.org/api/v1/repos/search")) {
+            return json({ data: [
+                { full_name: "erp/crm", html_url: "https://codeberg.org/erp/crm", description: "CRM", stars_count: 40, updated_at: "2026-10-01T00:00:00Z" },
+                { full_name: "copy/crm", html_url: "https://codeberg.org/copy/crm", fork: true, stars_count: 90 }
+            ] });
+        }
+        if (url === "https://codeberg.org/erp/crm/raw/branch/HEAD/LICENSE") return { ok: true, status: 200, text: async () => "GNU AFFERO GENERAL PUBLIC LICENSE Version 3" };
         if (url.startsWith("https://api.envato.com/")) {
             return json({ matches: [
                 { name: "Perfex CRM", url: "https://codecanyon.net/item/perfex/14013737", price_cents: 5900, number_of_sales: 25000, rating: { rating: 4.6 }, updated_at: "2026-09-01T00:00:00Z" },
@@ -73,6 +80,9 @@ test("collects candidates from every official source and reports failures withou
         assert.ok(names.includes("GitHub:acme/crm"));
         assert.ok(!names.some((name) => name.includes("awesome-crm")), "awesome lists are not products");
         assert.ok(names.includes("GitLab:g/crm"));
+        assert.ok(names.includes("Codeberg:erp/crm"));
+        assert.ok(!names.includes("Codeberg:copy/crm"), "forks are not separate products");
+        assert.equal(result.candidates.find((candidate) => candidate.name === "erp/crm").license, "AGPL-3.0");
         assert.ok(names.includes("Awesome Selfhosted:Krayin"));
         assert.ok(!names.includes("Awesome Selfhosted:Lila"), "only entries matching the industry");
         assert.ok(names.includes("CodeCanyon:Perfex CRM"));
@@ -82,7 +92,7 @@ test("collects candidates from every official source and reports failures withou
         assert.equal(perfex.sales, 25000);
         assert.ok(calls.find((call) => call.url.startsWith("https://api.envato.com/")).headers.Authorization.startsWith("Bearer "));
         assert.deepEqual(result.coverage.map((entry) => `${entry.source}:${entry.status}`),
-            ["GitHub:ok", "GitLab:ok", "Awesome Selfhosted:ok", "CodeCanyon:ok"]);
+            ["GitHub:ok", "GitLab:ok", "Codeberg:ok", "Awesome Selfhosted:ok", "CodeCanyon:ok"]);
     });
 
     await withFetch((url) => {
@@ -137,6 +147,15 @@ test("product links must open the product, not a marketplace search or category 
         "https://www.microns.io/startup-listings/all-in-one-platform",
         "https://www.indiehackers.com/product/invoicely",
         "https://techwithemma.gumroad.com/l/huytmd",
+        "https://codeberg.org/forgejo/forgejo",
+        "https://empireflippers.com/listing/88213/",
+        "https://www.sideprojectors.com/project/51234/invoice-saas",
+        "https://invoicekit.lemonsqueezy.com/buy/3f2a9c1e",
+        "https://invoicekit.lemonsqueezy.com/",
+        "https://openalternative.co/invoiceninja",
+        "https://alternativeto.net/software/invoice-ninja/about/",
+        "https://www.saashub.com/invoice-ninja",
+        "https://www.producthunt.com/products/invoice-ninja",
         "https://www.espocrm.com/"
     ]) assert.equal(isProductPage(url), true, url);
     for (const url of [
@@ -146,7 +165,17 @@ test("product links must open the product, not a marketplace search or category 
         "https://github.com/YunaiV/yudao-cloud/issues",
         "https://flippa.com/search?query=saas",
         "https://www.microns.io/blog/best-micro-saas-ideas",
-        "https://www.indiehackers.com/post/how-i-grew-my-saas-abc123"
+        "https://www.indiehackers.com/post/how-i-grew-my-saas-abc123",
+        "https://codeberg.org/explore/repos",
+        "https://empireflippers.com/marketplace/",
+        "https://www.sideprojectors.com/search",
+        "https://www.lemonsqueezy.com/pricing",
+        "https://app.lemonsqueezy.com/",
+        "https://openalternative.co/alternatives/notion",
+        "https://alternativeto.net/software/invoice-ninja/",
+        "https://www.saashub.com/invoice-ninja-alternatives",
+        "https://www.saashub.com/best-invoicing-software",
+        "https://www.producthunt.com/categories/invoicing"
     ]) assert.equal(isProductPage(url), false, url);
 
     const page = "https://codecanyon.net/search/saas";

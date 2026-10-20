@@ -25,9 +25,18 @@ const WEB_SOURCES = Object.freeze([
     { domain: "flippa.com", label: "Flippa", suffix: "saas for sale" },
     { domain: "microns.io", label: "Microns.io", suffix: "saas for sale" },
     // Indie Hackers: independent SaaS products with their founders' own numbers.
-    { domain: "indiehackers.com", label: "Indie Hackers", suffix: "saas product" }
+    { domain: "indiehackers.com", label: "Indie Hackers", suffix: "saas product" },
+    { domain: "empireflippers.com", label: "Empire Flippers", suffix: "saas for sale" },
+    { domain: "sideprojectors.com", label: "SideProjectors", suffix: "saas for sale" },
+    // Boilerplates and scripts sold from creators' own Lemon Squeezy stores.
+    { domain: "lemonsqueezy.com", label: "Lemon Squeezy", suffix: "saas boilerplate source code" },
+    { domain: "openalternative.co", label: "OpenAlternative", suffix: "open source", repository: true },
+    // Directories list products without selling them; they lead to the product.
+    { domain: "alternativeto.net", label: "AlternativeTo", suffix: "self-hosted open source", directory: true },
+    { domain: "saashub.com", label: "SaaSHub", suffix: "open source", directory: true },
+    { domain: "producthunt.com", label: "Product Hunt", suffix: "open source saas", directory: true }
 ]);
-const APPROVED_SOURCES = ["GitHub", "GitLab", "Awesome Selfhosted", ...WEB_SOURCES.map((source) => source.label)];
+const APPROVED_SOURCES = ["GitHub", "GitLab", "Codeberg", "Awesome Selfhosted", ...WEB_SOURCES.map((source) => source.label)];
 // Extra words for "find more", so repeat searches reach different listings.
 const MORE_WORDS = ["self-hosted", "white label", "clone", "system"];
 const WEB_FETCH_BETA = { headers: { "anthropic-beta": "web-fetch-2025-09-10" } };
@@ -79,7 +88,7 @@ function siteQuery(source, request, round) {
 const SEARCH_CACHE_SECONDS = 24 * 60 * 60;
 const PAGE_CACHE_SECONDS = 7 * 24 * 60 * 60;
 const LISTING_CACHE_SECONDS = 3 * 60 * 60;
-const LISTING_HOSTS = ["acquire.com", "flippa.com", "microns.io", "appsumo.com", "indiehackers.com"];
+const LISTING_HOSTS = ["acquire.com", "flippa.com", "microns.io", "appsumo.com", "indiehackers.com", "empireflippers.com", "sideprojectors.com"];
 const isListingHost = (url) => LISTING_HOSTS.some((domain) => onDomain(url, domain));
 const cacheKey = (kind, value) => `ql:cache:${kind}:${createHash("sha256").update(value).digest("hex").slice(0, 40)}`;
 
@@ -185,7 +194,7 @@ function apiLog(catalogue, startedAt) {
 // (shown to this person in earlier searches) only goes to the back of each
 // source's queue, so a search prefers new products but never runs dry.
 function pickCandidates(catalogue, marketLog, shown, limit, seenBefore = new Set()) {
-    const perSource = { GitHub: 3, GitLab: 1, "Awesome Selfhosted": 2, CodeCanyon: 2 };
+    const perSource = { GitHub: 3, GitLab: 1, Codeberg: 1, "Awesome Selfhosted": 2, CodeCanyon: 2 };
     const pools = [];
     const used = new Set(shown);
     const take = (item) => {
@@ -195,7 +204,7 @@ function pickCandidates(catalogue, marketLog, shown, limit, seenBefore = new Set
         return true;
     };
     const newFirst = (items) => [...items.filter((item) => !seenBefore.has(normalizePublicUrl(item.url))), ...items.filter((item) => seenBefore.has(normalizePublicUrl(item.url)))];
-    for (const source of ["GitHub", "GitLab", "Awesome Selfhosted", "CodeCanyon"]) {
+    for (const source of ["GitHub", "GitLab", "Codeberg", "Awesome Selfhosted", "CodeCanyon"]) {
         const items = newFirst(catalogue.candidates.filter((item) => item.source === source)).filter(take).slice(0, perSource[source]);
         pools.push(items.map((item) => ({ ...item, url: normalizePublicUrl(item.url), via: "official_api" })));
     }
@@ -203,7 +212,7 @@ function pickCandidates(catalogue, marketLog, shown, limit, seenBefore = new Set
         const source = WEB_SOURCES.find((item) => item.label === entry.source);
         pools.push(newFirst(entry.links).filter(take).slice(0, 2).map((link) => ({
             source: entry.source,
-            sourceType: source?.repository ? "repository" : "marketplace",
+            sourceType: source?.repository ? "repository" : source?.directory ? "directory" : "marketplace",
             name: link.title || link.url,
             url: link.url,
             license: null,
@@ -224,6 +233,7 @@ function readmeUrls(url) {
     if (!owner || !repo) return [];
     if (onDomain(url, "github.com")) return ["README.md", "readme.md", "README.rst"].map((file) => `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${file}`);
     if (onDomain(url, "gitlab.com")) return [`${parsed.origin}${parsed.pathname.replace(/\/$/, "")}/-/raw/HEAD/README.md`];
+    if (onDomain(url, "codeberg.org")) return [`https://codeberg.org/${owner}/${repo}/raw/branch/HEAD/README.md`];
     return [];
 }
 
@@ -530,7 +540,7 @@ function toOpportunity(candidate, entry, request, language, today) {
         offerType: entry.offerType,
         license,
         commercialUse,
-        availability: page && candidate.sourceType !== "repository" ? { status: "available", sourceUrl } : { status: "unknown", sourceUrl: null },
+        availability: page && candidate.sourceType === "marketplace" ?{ status: "available", sourceUrl } : { status: "unknown", sourceUrl: null },
         price,
         lastVerifiedDate: today,
         confidence: evidenceComplete && price.status === "verified" ? "high" : license.status === "verified" ? "medium" : "low",
@@ -559,7 +569,7 @@ async function runPipeline(config, request, { shown = new Set(), seenBefore = ne
     const [catalogue, marketLog] = await Promise.all([
         config.catalogEnabled
             ? collectCandidates(request, { envatoToken: config.envatoToken, githubToken: config.githubToken })
-            : Promise.resolve({ terms: searchTerms(request), candidates: [], coverage: ["GitHub", "GitLab", "Awesome Selfhosted"].map((source) => ({ source, status: "disabled", count: 0 })) }),
+            : Promise.resolve({ terms: searchTerms(request), candidates: [], coverage: ["GitHub", "GitLab", "Codeberg", "Awesome Selfhosted"].map((source) => ({ source, status: "disabled", count: 0 })) }),
         searchMarketplaces(client, config, usage, request, collectBy)
     ]);
     const log = [...apiLog(catalogue, startedAt), ...marketLog].map((entry) => (entry.status === "disabled" ? { ...entry, status: "not_checked", error: "disabled" } : entry));
