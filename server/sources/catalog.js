@@ -95,12 +95,13 @@ async function codebergLicense(fullName) {
     return null;
 }
 
-// Codeberg's search API routinely takes 5-6 seconds, so it gets a longer limit.
+// Codeberg's search API routinely takes 5-6 seconds; it gets 6 s at most, so one
+// slow source never holds up the whole search (results are cached for 24 h).
 async function searchCodeberg(terms) {
     const data = await getJson(
         `https://codeberg.org/api/v1/repos/search?q=${encodeURIComponent(terms)}&sort=stars&order=desc&limit=8`,
         {},
-        15000
+        6000
     );
     const repos = (data.data || []).filter((repo) => !repo.archived && !repo.fork && !repo.mirror).slice(0, 4);
     return Promise.all(repos.map(async (repo) => ({
