@@ -178,7 +178,7 @@ async function runClaudeSearch(config, request, shown, visitor, event, seenBefor
     const result = await runPipeline(config, request, { shown, seenBefore });
     const elapsedMs = Date.now() - startedAt;
     const baseFields = { kind: "search", requestedCount: request.opportunityCount, language: request.language, elapsedMs };
-    console.log("Claude pipeline finished", result.ok ? "ok" : result.kind, `${elapsedMs}ms`, `${result.log?.length || 0} sources`);
+    console.log("Claude pipeline finished", result.ok ? "ok" : result.kind, `${elapsedMs}ms`, `${result.log?.length || 0} sources`, JSON.stringify(result.timings || {}));
     if (!result.ok) {
         // A failed search is not charged to the visitor's daily searches.
         await refundRateLimit(event, config).catch(() => {});
@@ -240,6 +240,7 @@ async function runClaudeSearch(config, request, shown, visitor, event, seenBefor
         unreadPages: result.unreadPages,
         provider: config.provider,
         elapsedMs,
+        timings: result.timings,
         requestId: accounting.requestId
     });
 }

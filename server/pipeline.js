@@ -626,7 +626,13 @@ async function runPipeline(config, request, { shown = new Set(), seenBefore = ne
     const evidenceBy = startedAt + Math.round(total * 0.6);
     const analyseBy = startedAt + total - 2000;
 
+    // Milliseconds per phase, so slow searches can be traced to their cause.
+    const timings = {};
+    let mark = Date.now();
+    const lap = (name) => { const at = Date.now(); timings[name] = at - mark; mark = at; };
+
     const keywords = await searchKeywords(client, config, usage, request, collectBy);
+    lap("keywords");
     if (keywords) request = { ...request, keywords };
 
     const [catalogue, marketLog] = await Promise.all([
@@ -635,15 +641,19 @@ async function runPipeline(config, request, { shown = new Set(), seenBefore = ne
             : Promise.resolve({ terms: searchTerms(request), candidates: [], coverage: ["GitHub", "GitLab", "Codeberg", "Awesome Selfhosted"].map((source) => ({ source, status: "disabled", count: 0 })) }),
         searchMarketplaces(client, config, usage, request, collectBy)
     ]);
+    lap("collect");
     const log = [...apiLog(catalogue, startedAt), ...marketLog].map((entry) => (entry.status === "disabled" ? { ...entry, status: "not_checked", error: "disabled" } : entry));
 
     const candidates = pickCandidates(catalogue, marketLog, shown, 16, seenBefore);
     const read = await gatherEvidence(client, config, usage, candidates, evidenceBy);
+    lap("pages");
     // The top of the page decides: a listing that is sold, unlisted or removed
     // is never analysed or shown.
     const closed = read.filter((candidate) => candidate.evidence && CLOSED_LISTING.test(candidate.evidence.text.slice(0, 4000)));
     const withEvidence = read.filter((candidate) => !closed.includes(candidate));
     const analysis = await analyse(client, config, usage, request, withEvidence, analyseBy);
+    lap("analysis");
+    timings.outputTokens = usage.candidatesTokenCount;
     if (!analysis.ok) return { ok: false, kind: analysis.kind, status: analysis.status, message: analysis.message, usage, log, candidates: withEvidence };
 
     const today = new Date(startedAt).toISOString().slice(0, 10);
@@ -683,7 +693,8 @@ async function runPipeline(config, request, { shown = new Set(), seenBefore = ne
         pagesRead: read.filter((candidate) => candidate.evidence).length,
         closedListings: closed.map((candidate) => ({ url: candidate.url, source: candidate.source, name: candidate.name })),
         unreadPages: withEvidence.filter((candidate) => !candidate.evidence).map((candidate) => ({ url: candidate.url, source: candidate.source, error: candidate.evidenceError })),
-        notRelevant
+        notRelevant,
+        timings
     };
 }
 
