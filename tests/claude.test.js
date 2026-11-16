@@ -482,3 +482,15 @@ test("a framework that would need major development is reviewed, not counted", a
         assert.match(data.summary, /أساس يحتاج تطويراً/);
     });
 });
+
+test("a rejected API key says search is down instead of asking to try again", async () => {
+    const { classifyError } = require("../server/providers/claude");
+    assert.equal(classifyError({ status: 401, message: "invalid x-api-key" }).kind, "auth");
+    assert.equal(classifyError({ status: 403, message: "forbidden" }).kind, "auth");
+    const analysis = () => { throw Object.assign(new Error("invalid x-api-key"), { status: 401 }); };
+    await withEnv({ analysis }, async () => {
+        const response = await search();
+        assert.equal(response.statusCode, 503);
+        assert.equal(JSON.parse(response.body).errorCode, "AI_SERVICE_DOWN");
+    });
+});

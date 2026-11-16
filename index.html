@@ -703,6 +703,7 @@
                     DAILY_LIMIT_REACHED: 'وصلت إلى الحد اليومي لعمليات البحث (30 بحثاً). يمكنك المحاولة مجدداً غداً.',
                     DAILY_BUDGET_REACHED: 'استُهلكت ميزانية البحث المخصصة لليوم. انتظر حتى تتجدد، أو تواصل مع مسؤول الموقع لزيادة الرصيد.',
                     AI_QUOTA_EXCEEDED: 'رصيد خدمة الذكاء الاصطناعي غير كافٍ حالياً. يرجى إبلاغ مسؤول الموقع.',
+                    AI_SERVICE_DOWN: 'البحث متوقف مؤقتاً بسبب عطل في خدمة التحليل، ونعمل على إصلاحه. لن تُحتسب هذه المحاولة؛ حاول لاحقاً.',
                     AI_TIMEOUT: 'استغرق البحث وقتاً أطول من المسموح. حاول مرة أخرى، أو اطلب عدداً أقل من الفرص.',
                     OUTPUT_LIMIT_REACHED: 'التقرير أطول من الحد المسموح. اطلب عدداً أقل من الفرص.',
                     CLAUDE_KEY_MISSING: 'خدمة البحث غير مهيأة بعد. يرجى إبلاغ مسؤول الموقع.',
@@ -779,6 +780,7 @@
                     DAILY_LIMIT_REACHED: 'You reached the daily search limit (30 searches). Try again tomorrow.',
                     DAILY_BUDGET_REACHED: "Today's research budget has been used. Wait until it renews, or ask the site administrator to add credit.",
                     AI_QUOTA_EXCEEDED: 'The AI service is out of credit right now. Please tell the site administrator.',
+                    AI_SERVICE_DOWN: 'Search is paused because the analysis service is down, and we are fixing it. This attempt is not counted; please try later.',
                     AI_TIMEOUT: 'The search took too long. Try again, or request fewer opportunities.',
                     OUTPUT_LIMIT_REACHED: 'The report was too long. Request fewer opportunities.',
                     CLAUDE_KEY_MISSING: 'Search is not set up yet. Please tell the site administrator.',
@@ -1740,7 +1742,7 @@
             };
         }
 
-        const WAIT_ONLY = ['DAILY_BUDGET_REACHED', 'DAILY_LIMIT_REACHED', 'DISCUSS_LIMIT_REACHED', 'ACCOUNT_LIMIT', 'ACCOUNT_EXPIRED', 'ACCOUNT_DISABLED', 'VISITOR_LIMIT'];
+        const WAIT_ONLY = ['DAILY_BUDGET_REACHED', 'DAILY_LIMIT_REACHED', 'DISCUSS_LIMIT_REACHED', 'ACCOUNT_LIMIT', 'ACCOUNT_EXPIRED', 'ACCOUNT_DISABLED', 'VISITOR_LIMIT', 'AI_SERVICE_DOWN'];
 
         function limitError(data, t) {
             if (data.access) renderAccess(data.access);

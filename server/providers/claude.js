@@ -49,6 +49,9 @@ function classifyError(error) {
     }
     if (status === undefined) return { kind: "network", message };
     if (status === 429 || /credit balance|quota|billing/i.test(message)) return { kind: "quota", status, message };
+    // The key itself is rejected (revoked, rotated, wrong workspace): no retry
+    // can succeed until an admin saves a working key.
+    if (status === 401 || status === 403) return { kind: "auth", status, message };
     return { kind: "provider_error", status, message };
 }
 

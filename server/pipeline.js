@@ -466,7 +466,7 @@ async function analyse(client, config, usage, request, candidates, deadline) {
 
 async function analyseWithRetry(client, config, usage, request, candidates, deadline) {
     let result = await analyseOnce(client, config, usage, request, candidates, deadline);
-    if (!result.ok && result.kind !== "quota") {
+    if (!result.ok && result.kind !== "quota" && result.kind !== "auth") {
         console.error("Analysis attempt failed", result.kind, result.status || "", result.message || "");
         if (deadline - Date.now() > 15000) result = await analyseOnce(client, config, usage, request, candidates, deadline);
     }

@@ -184,6 +184,10 @@ async function runClaudeSearch(config, request, shown, visitor, event, seenBefor
         await refundRateLimit(event, config).catch(() => {});
         await persistFailure(config, { ...baseFields, outcome: result.kind, coverage: summarizeLog(result.log) }, result.usage, true, event);
         if (result.kind === "quota") return jsonResponse(429, { errorCode: "AI_QUOTA_EXCEEDED", error: "Claude usage quota or credit is exhausted." });
+        if (result.kind === "auth") {
+            console.error("CLAUDE API KEY REJECTED", result.status, "- save a working key in /admin");
+            return jsonResponse(503, { errorCode: "AI_SERVICE_DOWN", error: "Search is temporarily unavailable." });
+        }
         if (result.kind === "timeout") return jsonResponse(504, { errorCode: "AI_TIMEOUT", error: "The analysis timed out. Try again." });
         if (result.kind === "network") return jsonResponse(502, { errorCode: "AI_UNAVAILABLE", error: "Claude could not be reached" });
         console.error("Claude pipeline failed", result.kind, result.status || "", result.message || "");
@@ -194,6 +198,12 @@ async function runClaudeSearch(config, request, shown, visitor, event, seenBefor
     // Out of AI credit: every marketplace search failed for that reason. Say so
     // plainly instead of returning a report built from the APIs alone.
     const siteSearches = result.log.filter((entry) => entry.method === "site_search");
+    if (siteSearches.length && siteSearches.every((entry) => entry.error === "auth")) {
+        await refundRateLimit(event, config).catch(() => {});
+        await persistFailure(config, { ...baseFields, outcome: "provider_key_rejected", coverage: summarizeLog(result.log) }, result.usage, true, event);
+        console.error("CLAUDE API KEY REJECTED - save a working key in /admin");
+        return jsonResponse(503, { errorCode: "AI_SERVICE_DOWN", error: "Search is temporarily unavailable." });
+    }
     if (siteSearches.length && siteSearches.every((entry) => entry.error === "quota")) {
         await refundRateLimit(event, config).catch(() => {});
         await persistFailure(config, { ...baseFields, outcome: "provider_quota_exceeded", coverage: summarizeLog(result.log) }, result.usage, true, event);
